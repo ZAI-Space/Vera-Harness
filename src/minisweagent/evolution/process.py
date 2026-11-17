@@ -8,14 +8,15 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from uuid import uuid4
 
 from minisweagent.evolution.config import EvolutionError
 
 
 def write_json(path: Path, value: dict) -> None:
     """Atomically replace a manifest in its directory; readers never see partial JSON."""
-    temporary = path.with_suffix(".pending")
-    with temporary.open("w", encoding="utf-8") as stream:
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.pending")
+    with temporary.open("x", encoding="utf-8") as stream:
         json.dump(value, stream, indent=2, ensure_ascii=False, allow_nan=False)
         stream.flush()
         os.fsync(stream.fileno())
@@ -75,7 +76,11 @@ def recover_processes(root: Path) -> None:
     Unknown costs remain reserved. No optimizer or verifier invocation is replayed.
     Only a PID with the recorded creation stamp can be terminated.
     """
-    for path in (root / "artifacts").glob("**/*.process.json"):
+    artifacts = root / "artifacts"
+    leases = [*artifacts.glob("*/*.process.json"), *artifacts.glob("*/*/verifier.process.json")]
+    for path in leases:
+        if path.parent.name == "worker":
+            continue  # Untrusted worker output is never a controller process lease.
         if not path.resolve().is_relative_to(root / "artifacts"):
             raise EvolutionError("A process lease escaped the artifact directory.")
         lease = json.loads(path.read_text(encoding="utf-8"))

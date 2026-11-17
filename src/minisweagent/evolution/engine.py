@@ -242,6 +242,8 @@ class Experiment:
     def _optimize(self, version: dict, optimizer: dict, base: dict) -> None:
         directory = self.root / "artifacts" / version["id"]
         directory.mkdir(parents=True, exist_ok=True)
+        output_directory = directory / "worker"
+        output_directory.mkdir()
         workspace = Path(version["workspace"])
         optimizer_source = checkout(self.root, f"{version['id']}-optimizer-{uuid4().hex[:8]}", optimizer["sha"])
         evidence = {
@@ -267,7 +269,7 @@ class Experiment:
         config = self.config.optimizer | {
             "sandbox": {"mode": "local", "workspace": str(workspace)},
             "environment": {"environment_class": "local", "cwd": str(workspace)},
-            "storage": {"path": str(directory / "agent-runs.sqlite3")},
+            "storage": {"path": str(output_directory / "agent-runs.sqlite3")},
         }
         config["agent"] = config.get("agent", {}) | {
             "cost_limit": self.config.optimizer_cost_limit,
@@ -282,17 +284,21 @@ class Experiment:
             config["storage"]["path"] = "/artifacts/agent-runs.sqlite3"
         config_path = directory / "optimizer-config.yaml"
         write_json(config_path, config)
-        result_path = directory / "optimizer-result.json"
+        write_json(output_directory / "optimizer-config.yaml", config)
+        result_path = output_directory / "optimizer-result.json"
         request = directory / "request.json"
         write_json(
             request,
             {
                 "config": "/artifacts/optimizer-config.yaml" if isolated else str(config_path),
                 "task": task,
-                "trajectory": "/artifacts/optimizer.traj.json" if isolated else str(directory / "optimizer.traj.json"),
+                "trajectory": "/artifacts/optimizer.traj.json"
+                if isolated
+                else str(output_directory / "optimizer.traj.json"),
                 "result": "/artifacts/optimizer-result.json" if isolated else str(result_path),
             },
         )
+        write_json(output_directory / "request.json", json.loads(request.read_text(encoding="utf-8")))
         self._reserve(self.config.optimizer_cost_limit)
         container = f"vera-evolution-{self.state['id'][:12]}-{version['id']}"
         if runtime["mode"] == "docker":
@@ -302,7 +308,7 @@ class Experiment:
             runtime,
             workspace=workspace,
             optimizer=optimizer_source,
-            artifacts=directory,
+            artifacts=output_directory,
             worker=Path(__file__).with_name("worker.py"),
             name=container,
             env=self._environment(optimizer_source),
@@ -319,6 +325,8 @@ class Experiment:
         finally:
             if runtime["mode"] == "docker":
                 stop_container(runtime, container)
+        if result_path.is_symlink():
+            raise EvolutionError("Optimizer results cannot be symbolic links.")
         if result_path.exists():
             report = json.loads(result_path.read_text(encoding="utf-8"))
             self._settle(self.config.optimizer_cost_limit, float(report["cost"]))

@@ -126,6 +126,9 @@ as for the other `mini-extra` commands.
   is disabled for optimizer runs, so a mutable global bank cannot contaminate
   comparisons. Task verifiers must supply their own fixed memory/data fixtures.
 * Docker/Bubblewrap isolate the **whole optimizer Python process**, not just Bash.
+  Only its `worker/` output directory is writable; controller logs, leases and
+  verifier artifacts stay outside that mount. Atomic writes use exclusive random
+  temporary files. Worker-provided process leases are ignored; result symlinks are rejected.
   Provider network access remains available. Local mode has no host security
   boundary. Trusted check/verifier commands execute on the host and must isolate
   untrusted candidate execution themselves (as benchmark sandbox backends do).

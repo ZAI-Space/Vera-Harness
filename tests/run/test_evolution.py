@@ -6,6 +6,7 @@ Each optimizer executes the normal Vera Agent Loop and real Bash file operations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -318,8 +319,11 @@ def test_manifest_validation_and_dirty_source_fail_closed(source_repo, tmp_path)
 
 @pytest.mark.parametrize("backend", ["docker", "bubblewrap"])
 def test_complete_optimizer_process_is_isolated(source_repo, tmp_path, backend):
+    canary = tmp_path / "controller-owned-canary"
+    canary.write_text("protected controller data", encoding="utf-8")
     config = _config(
         "test ! -w /optimizer/src/minisweagent/run/mini.py && test ! -e /artifacts/../state.json && printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py",
+        f"ln -s {shlex.quote(str(canary))} /artifacts/check-0.log; ln -s {shlex.quote(str(canary))} /artifacts/optimizer.process.pending; printf '{{}}' > /artifacts/verifier.process.json",
         sandbox=backend,
     )
     try:
@@ -331,6 +335,10 @@ def test_complete_optimizer_process_is_isolated(source_repo, tmp_path, backend):
     assert state["versions"][-1]["status"] == "accepted", state["versions"][-1]
     assert state["runtime"]["mode"] == backend
     assert state["best"] == "generation-0001"
+    assert canary.read_text(encoding="utf-8") == "protected controller data"
+    if os.name != "nt":
+        assert (experiment.root / "artifacts/generation-0001/worker/check-0.log").is_symlink()
+    assert Experiment(experiment.root).run(iterations=0)["best"] == state["best"]
     if backend == "docker":
         assert not subprocess.check_output(
             ["docker", "ps", "-aq", "--filter", f"name=^/{state['versions'][-1]['container']}$"],
