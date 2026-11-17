@@ -8,6 +8,8 @@ from minisweagent import Agent, Environment, Model
 _AGENT_MAPPING = {
     "default": "minisweagent.agents.default.DefaultAgent",
     "interactive": "minisweagent.agents.interactive.InteractiveAgent",
+    "stateful": "minisweagent.agents.stateful.StatefulAgent",
+    "stateful_interactive": "minisweagent.agents.stateful.StatefulInteractiveAgent",
 }
 
 
