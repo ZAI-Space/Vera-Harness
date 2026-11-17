@@ -31,5 +31,10 @@ jobs:
         run: .venv/Scripts/python -m pytest tests/environments/test_local.py tests/environments/test_windows_local.py tests/agents/test_default.py tests/config tests/test_init.py tests/run/test_windows_startup.py -q
       - name: Exercise runtime integrations and run storage
         run: .venv/Scripts/python -m pytest tests/run/test_mcp_tools.py tests/run/test_skill_tools.py tests/run/test_subagents.py tests/run/test_sandbox.py tests/run/test_storage.py -q
+      - name: Verify versioned source evolution
+        run: |
+          .venv/Scripts/python -m ruff check src/minisweagent/evolution src/minisweagent/run/utilities/evolution.py tests/run/test_evolution.py
+          .venv/Scripts/python -m ruff format --check src/minisweagent/evolution src/minisweagent/run/utilities/evolution.py tests/run/test_evolution.py
+          .venv/Scripts/python -m pytest tests/run/test_evolution.py -q
       - name: Build package
         run: .venv/Scripts/python -m build

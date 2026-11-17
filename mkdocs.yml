@@ -71,6 +71,7 @@ nav:
       - "Subagents": subagents.md
       - "Sandbox": sandbox.md
       - "Run storage": storage.md
+      - "Source evolution": evolution.md
       - "Config": usage/config.md
       - "SWE-bench": usage/swebench.md
       - "ProgramBench": usage/programbench.md
