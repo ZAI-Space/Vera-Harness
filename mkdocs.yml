@@ -62,6 +62,7 @@ nav:
   - Getting Started:
     - "Overview": index.md
     - "Quick start": quickstart.md
+    - "Windows startup": windows.md
     - "Command line usage":
       - "<code>mini</code>": usage/mini.md
       - "Config": usage/config.md

@@ -1,0 +1,33 @@
+name: Windows compatibility
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    env:
+      MSWEA_SILENT_STARTUP: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install -e . pytest pytest-asyncio ruff build
+      - name: Check changed Python modules
+        run: |
+          .venv/Scripts/ruff check src/minisweagent/environments/local.py src/minisweagent/utils/windows_bash.py src/minisweagent/agents/utils/prompt_user.py tests/environments/test_windows_local.py tests/run/test_windows_startup.py
+          .venv/Scripts/ruff format --check src/minisweagent/environments/local.py src/minisweagent/utils/windows_bash.py src/minisweagent/agents/utils/prompt_user.py tests/environments/test_windows_local.py tests/run/test_windows_startup.py
+      - name: Run local execution and startup regressions
+        run: .venv/Scripts/python -m pytest tests/environments/test_local.py tests/environments/test_windows_local.py tests/agents/test_default.py tests/config tests/test_init.py tests/run/test_windows_startup.py -q
+      - name: Build package
+        run: .venv/Scripts/python -m build
