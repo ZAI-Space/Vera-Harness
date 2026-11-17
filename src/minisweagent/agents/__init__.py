@@ -10,6 +10,8 @@ _AGENT_MAPPING = {
     "interactive": "minisweagent.agents.interactive.InteractiveAgent",
     "stateful": "minisweagent.agents.stateful.StatefulAgent",
     "stateful_interactive": "minisweagent.agents.stateful.StatefulInteractiveAgent",
+    "hindsight": "minisweagent.agents.hindsight.HindsightAgent",
+    "hindsight_interactive": "minisweagent.agents.hindsight.HindsightInteractiveAgent",
 }
 
 
