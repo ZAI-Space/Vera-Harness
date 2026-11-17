@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from minisweagent import Environment, Model, __version__
 from minisweagent.exceptions import FormatError, InterruptAgentFlow, LimitsExceeded, TimeExceeded
+from minisweagent.tools import ToolError, ToolRegistry
 from minisweagent.utils.serialize import recursive_merge
 
 
@@ -36,12 +37,26 @@ class AgentConfig(BaseModel):
 
 
 class DefaultAgent:
-    def __init__(self, model: Model, env: Environment, *, config_class: type = AgentConfig, **kwargs):
+    def __init__(
+        self,
+        model: Model,
+        env: Environment,
+        *,
+        config_class: type = AgentConfig,
+        tool_registry: ToolRegistry | None = None,
+        **kwargs,
+    ):
         """See the `AgentConfig` class for permitted keyword arguments."""
         self.config = config_class(**kwargs)
         self.messages: list[dict] = []
         self.model = model
         self.env = env
+        self.tool_registry = tool_registry
+        if tool_registry is not None:
+            bind = getattr(model, "bind_tool_registry", None)
+            if not callable(bind):
+                raise ToolError("This model adapter does not support registered tools.")
+            bind(tool_registry)
         self.extra_template_vars = {}
         self.logger = logging.getLogger("agent")
         self.cost = 0.0
@@ -153,8 +168,15 @@ class DefaultAgent:
 
     def execute_actions(self, message: dict) -> list[dict]:
         """Execute actions in message, add observation messages, return them."""
-        outputs = [self.env.execute(action) for action in message.get("extra", {}).get("actions", [])]
+        outputs = [self._execute_action(action) for action in message.get("extra", {}).get("actions", [])]
         return self.add_messages(*self.model.format_observation_messages(message, outputs, self.get_template_vars()))
+
+    def _execute_action(self, action: dict) -> dict:
+        if self.tool_registry is not None:
+            return self.tool_registry.execute(action)
+        if "tool" in action:
+            return {"output": "", "returncode": 1, "exception_info": "Named tools require a tool registry."}
+        return self.env.execute(action)
 
     def serialize(self, *extra_dicts) -> dict:
         """Serialize agent state to a json-compatible nested dictionary for saving."""

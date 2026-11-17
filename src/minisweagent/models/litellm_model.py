@@ -12,7 +12,6 @@ from pydantic import BaseModel
 from minisweagent.exceptions import FormatError
 from minisweagent.models import GLOBAL_MODEL_STATS
 from minisweagent.models.utils.actions_toolcall import (
-    BASH_TOOL,
     format_toolcall_observation_messages,
     parse_toolcall_actions,
 )
@@ -20,6 +19,7 @@ from minisweagent.models.utils.anthropic_utils import _reorder_anthropic_thinkin
 from minisweagent.models.utils.cache_control import set_cache_control
 from minisweagent.models.utils.openai_multimodal import expand_multimodal_content
 from minisweagent.models.utils.retry import retry
+from minisweagent.models.utils.tool_registry import ToolCallingModel
 
 logger = logging.getLogger("litellm_model")
 
@@ -46,7 +46,7 @@ class LitellmModelConfig(BaseModel):
     """Regex to extract multimodal content. Empty string disables multimodal processing."""
 
 
-class LitellmModel:
+class LitellmModel(ToolCallingModel):
     abort_exceptions: list[type[Exception]] = [
         litellm.exceptions.UnsupportedParamsError,
         litellm.exceptions.NotFoundError,
@@ -66,7 +66,7 @@ class LitellmModel:
             return litellm.completion(
                 model=self.config.model_name,
                 messages=messages,
-                tools=[BASH_TOOL],
+                tools=self.tool_definitions(),
                 **(self.config.model_kwargs | kwargs),
             )
         except litellm.exceptions.AuthenticationError as e:
@@ -132,6 +132,7 @@ class LitellmModel:
             tool_calls,
             format_error_template=self.config.format_error_template,
             template_kwargs={"finish_reason": response.choices[0].finish_reason},
+            registry=self.tool_registry,
         )
 
     def format_message(self, **kwargs) -> dict:

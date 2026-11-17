@@ -6,8 +6,10 @@ There are three modes:
 - yolo: commands issued by the LM are executed immediately without confirmation
 """
 
+import json
 import re
 import sys
+from collections.abc import Sequence
 from typing import Literal, NoReturn
 
 from rich.console import Console
@@ -124,12 +126,13 @@ class InteractiveAgent(DefaultAgent):
     def execute_actions(self, message: dict) -> list[dict]:
         # Override to handle user confirmation and confirm_exit, with try/finally to preserve partial outputs
         actions = message.get("extra", {}).get("actions", [])
-        commands = [action["command"] for action in actions]
+        commands = [action["command"] for action in actions if "tool" not in action]
+        tool_calls = [action for action in actions if "tool" in action]
         outputs = []
         try:
-            self._ask_confirmation_or_interrupt(commands)
+            self._ask_confirmation_or_interrupt(commands, tool_calls=tool_calls)
             for action in actions:
-                outputs.append(self.env.execute(action))
+                outputs.append(self._execute_action(action))
         except Submitted as e:
             self._check_for_new_task_or_submit(e)
         finally:
@@ -162,11 +165,13 @@ class InteractiveAgent(DefaultAgent):
     def _should_ask_confirmation(self, action: str) -> bool:
         return self.config.mode == "confirm" and not any(re.match(r, action) for r in self.config.whitelist_actions)
 
-    def _ask_confirmation_or_interrupt(self, commands: list[str]) -> None:
-        if not any(self._should_ask_confirmation(c) for c in commands):
+    def _ask_confirmation_or_interrupt(self, commands: list[str], *, tool_calls: Sequence[dict] = ()) -> None:
+        if self.config.mode != "confirm" or not (tool_calls or any(self._should_ask_confirmation(c) for c in commands)):
             return
+        for call in tool_calls:
+            console.print(f"{call['tool']}: {json.dumps(call['arguments'], ensure_ascii=False)}", markup=False)
         prompt = (
-            f"[bold yellow]Execute {len(commands)} action(s)?[/] [green][bold]Enter[/] to confirm[/], "
+            f"[bold yellow]Execute {len(commands) + len(tool_calls)} action(s)?[/] [green][bold]Enter[/] to confirm[/], "
             "[red]type [bold]comment[/] to reject[/], or [blue][bold]/h[/] to show available commands[/]\n"
             "[bold yellow]>[/bold yellow] "
         )

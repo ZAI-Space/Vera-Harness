@@ -4,6 +4,7 @@ import copy
 import importlib
 
 from minisweagent import Agent, Environment, Model
+from minisweagent.tools import ToolRegistry
 
 _AGENT_MAPPING = {
     "default": "minisweagent.agents.default.DefaultAgent",
@@ -26,7 +27,11 @@ def get_agent_class(spec: str) -> type[Agent]:
         raise ValueError(msg)
 
 
-def get_agent(model: Model, env: Environment, config: dict, *, default_type: str = "") -> Agent:
+def get_agent(
+    model: Model, env: Environment, config: dict, *, default_type: str = "", tool_registry: ToolRegistry | None = None
+) -> Agent:
     config = copy.deepcopy(config)
     agent_class = get_agent_class(config.pop("agent_class", default_type))
+    if tool_registry is not None:
+        return agent_class(model, env, tool_registry=tool_registry, **config)
     return agent_class(model, env, **config)

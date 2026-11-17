@@ -14,7 +14,6 @@ from minisweagent.models.openrouter_model import (
     OpenRouterRateLimitError,
 )
 from minisweagent.models.utils.actions_toolcall_response import (
-    BASH_TOOL_RESPONSE_API,
     finish_reason_from_responses_api,
     format_toolcall_observation_messages,
     parse_toolcall_actions_response,
@@ -49,7 +48,7 @@ class OpenRouterResponseModel(OpenRouterModel):
         payload = {
             "model": self.config.model_name,
             "input": messages,
-            "tools": [BASH_TOOL_RESPONSE_API],
+            "tools": self.tool_definitions(responses=True),
             **(self.config.model_kwargs | kwargs),
         }
         try:
@@ -107,6 +106,7 @@ class OpenRouterResponseModel(OpenRouterModel):
             response.get("output", []),
             format_error_template=self.config.format_error_template,
             template_kwargs={"finish_reason": finish_reason_from_responses_api(response)},
+            registry=self.tool_registry,
         )
 
     def format_message(self, **kwargs) -> dict:

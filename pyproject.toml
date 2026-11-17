@@ -34,6 +34,7 @@ dependencies = [
     "pyyaml",
     "requests",
     "jinja2",
+    "jsonschema>=4",
     "pydantic >= 2.0",  # v2 required for safe mutable default arguments
     "litellm >= 1.75.5, != 1.82.7, != 1.82.8", # Security: Skip compromised 1.82.7/8; requires 1.75.5+ for GPT-5
     "tenacity",

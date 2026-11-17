@@ -17,6 +17,8 @@ from minisweagent.config import builtin_config_dir, get_config_from_spec
 from minisweagent.environments import get_environment
 from minisweagent.models import get_model
 from minisweagent.run.utilities.config import configure_if_first_time
+from minisweagent.tools import ToolError, make_tool_registry
+from minisweagent.tools.web import WebConfig, configure_web_tools
 from minisweagent.utils.serialize import UNSET, recursive_merge
 
 DEFAULT_CONFIG_FILE = Path(os.getenv("MSWEA_MINI_CONFIG_PATH", builtin_config_dir / "mini.yaml"))
@@ -98,7 +100,16 @@ def main(
 
     model = get_model(config=config.get("model", {}))
     env = get_environment(config.get("environment", {}), default_type="local")
-    agent = get_agent(model, env, config.get("agent", {}), default_type="interactive")
+    web = WebConfig.model_validate(config.get("web", {}))
+    try:
+        if web.search_provider or web.extract_provider:
+            registry = make_tool_registry(env)
+            configure_web_tools(registry, web)
+            agent = get_agent(model, env, config.get("agent", {}), default_type="interactive", tool_registry=registry)
+        else:
+            agent = get_agent(model, env, config.get("agent", {}), default_type="interactive")
+    except ToolError as error:
+        raise typer.BadParameter(str(error)) from None
     agent.run(run_task)
     if (output_path := config.get("agent", {}).get("output_path")):
         console.print(f"Saved trajectory to [bold green]'{output_path}'[/bold green]")

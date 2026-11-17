@@ -65,6 +65,7 @@ nav:
     - "Windows startup": windows.md
     - "Command line usage":
       - "<code>mini</code>": usage/mini.md
+      - "Web tools": web-tools.md
       - "Config": usage/config.md
       - "SWE-bench": usage/swebench.md
       - "ProgramBench": usage/programbench.md

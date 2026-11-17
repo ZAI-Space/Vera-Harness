@@ -25,6 +25,8 @@ class OpenRouterTextbasedModelConfig(OpenRouterModelConfig):
 
 
 class OpenRouterTextbasedModel(OpenRouterModel):
+    supports_tool_registry = False
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.config = OpenRouterTextbasedModelConfig(**kwargs)
