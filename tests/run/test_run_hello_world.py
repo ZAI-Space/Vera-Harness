@@ -28,7 +28,7 @@ def test_run_hello_world_end_to_end(local_test_data):
 
     with (
         patch("minisweagent.run.hello_world.LitellmModel") as mock_model_class,
-        patch("os.environ", {"MSWEA_MODEL_NAME": "tardis"}),
+        patch.dict("os.environ", {"MSWEA_MODEL_NAME": "tardis"}),
     ):
         mock_model_class.return_value = _make_model_from_fixture(model_responses)
         agent = main(task="Blah blah blah")

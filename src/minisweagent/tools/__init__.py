@@ -6,6 +6,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from jsonschema.validators import validator_for
+from referencing import Registry
+from referencing.exceptions import Unresolvable
 
 from minisweagent import Environment
 
@@ -54,6 +56,14 @@ class ToolRegistry:
             )
         return definitions
 
+    def select(self, names: list[str]) -> "ToolRegistry":
+        """Create a registry containing only these tools, with the same execution handlers."""
+        if missing := set(names) - self._tools.keys():
+            raise ToolError(f"Tools unavailable in this runtime: {', '.join(sorted(missing))}.")
+        selected = ToolRegistry()
+        selected._tools = {name: self._tools[name] for name in names}
+        return selected
+
     def validate(self, name: object, arguments: object) -> None:
         """Raise ToolError on an unknown tool or invalid arguments, without echoing their values."""
         if not isinstance(name, str) or name not in self._tools:
@@ -61,7 +71,12 @@ class ToolRegistry:
         spec, _ = self._tools[name]
         if not isinstance(arguments, dict):
             raise ToolError(f"Arguments for {name!r} must be a JSON object.")
-        error = next(validator_for(spec.parameters)(spec.parameters).iter_errors(arguments), None)
+        # Resolve tool schemas locally, including schemas supplied by external tool servers.
+        validator = validator_for(spec.parameters)(spec.parameters, registry=Registry())
+        try:
+            error = next(validator.iter_errors(arguments), None)
+        except Unresolvable:
+            raise ToolError(f"Unresolved schema reference for {name!r}.") from None
         if error is not None:
             field = ".".join(str(part) for part in error.absolute_path) or "arguments"
             raise ToolError(f"Invalid {field} for {name!r} ({error.validator}).")

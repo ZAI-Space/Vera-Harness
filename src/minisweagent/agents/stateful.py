@@ -83,6 +83,8 @@ class _StateTrackingMixin:
             status = AgentStatus.STOPPED
             if exit_status == "Submitted":
                 status = AgentStatus.COMPLETED
+            elif exit_status == "Cancelled":
+                status = AgentStatus.CANCELLED
             elif exit_status == "RepeatedFormatError":
                 status = AgentStatus.FAILED
             self._observed_state = replace(

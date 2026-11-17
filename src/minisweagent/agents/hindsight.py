@@ -47,6 +47,8 @@ class _HindsightMixin:
 
     def run(self, task: str = "", **kwargs) -> dict:
         """Recall once at task start and delegate execution to the existing loop."""
+        if self.run_record is not None and self.run_record.resume is not None:
+            return super().run(task, **kwargs)
         try:
             self._memory_context = _format_context(self._collect_memory(task))
             return super().run(task, **kwargs)

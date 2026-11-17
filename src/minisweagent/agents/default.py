@@ -7,6 +7,7 @@ import logging
 import time
 import traceback
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from jinja2 import StrictUndefined, Template
 from pydantic import BaseModel
@@ -15,6 +16,9 @@ from minisweagent import Environment, Model, __version__
 from minisweagent.exceptions import FormatError, InterruptAgentFlow, LimitsExceeded, TimeExceeded
 from minisweagent.tools import ToolError, ToolRegistry
 from minisweagent.utils.serialize import recursive_merge
+
+if TYPE_CHECKING:
+    from minisweagent.storage import RunRecord
 
 
 class AgentConfig(BaseModel):
@@ -49,6 +53,7 @@ class DefaultAgent:
         """See the `AgentConfig` class for permitted keyword arguments."""
         self.config = config_class(**kwargs)
         self.messages: list[dict] = []
+        self.run_record: RunRecord | None = None
         self.model = model
         self.env = env
         self.tool_registry = tool_registry
@@ -103,15 +108,24 @@ class DefaultAgent:
     def run(self, task: str = "", **kwargs) -> dict:
         """Run step() until agent is finished. Returns dictionary with exit_status, submission keys."""
         self.extra_template_vars |= {"task": task, **kwargs}
-        self.messages = []
-        self.add_messages(
-            self.model.format_message(role="system", content=self._render_template(self.config.system_template)),
-            self.model.format_message(role="user", content=self._render_template(self.config.instance_template)),
-        )
+        if self.run_record is not None and self.run_record.resume is not None:
+            self.messages = self.run_record.resume.messages.copy()
+        else:
+            self.messages = []
+            self.add_messages(
+                self.model.format_message(role="system", content=self._render_template(self.config.system_template)),
+                self.model.format_message(role="user", content=self._render_template(self.config.instance_template)),
+            )
+        if self.run_record is not None:
+            self.run_record.checkpoint(task)
         while True:
             try:
+                if self.run_record is not None:
+                    self.run_record.check_cancelled()
                 self.step()
                 self.n_consecutive_format_errors = 0  # reset on any clean step
+                if self.run_record is not None:
+                    self.run_record.checkpoint(task)
             except FormatError as e:
                 # The call was billed before parsing failed, so query() never got to charge it.
                 self.cost += e.messages[0].get("extra", {}).get("cost", 0.0)
@@ -172,6 +186,11 @@ class DefaultAgent:
         return self.add_messages(*self.model.format_observation_messages(message, outputs, self.get_template_vars()))
 
     def _execute_action(self, action: dict) -> dict:
+        if self.run_record is not None:
+            return self.run_record.execute(action, self._dispatch_action)
+        return self._dispatch_action(action)
+
+    def _dispatch_action(self, action: dict) -> dict:
         if self.tool_registry is not None:
             return self.tool_registry.execute(action)
         if "tool" in action:
