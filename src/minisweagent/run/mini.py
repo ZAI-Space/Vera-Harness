@@ -4,6 +4,8 @@
 # Read this first: https://mini-swe-agent.com/latest/usage/mini/  (usage)
 
 import os
+import sys
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
@@ -21,6 +23,9 @@ from minisweagent.plugins import PluginError
 from minisweagent.run.utilities.config import configure_if_first_time
 from minisweagent.runtime import open_agent_runtime
 from minisweagent.storage import RunStore, StorageConfig, StorageError
+from minisweagent.terminal.files import MENTION, ProjectFiles
+from minisweagent.terminal.session import TerminalSession
+from minisweagent.terminal.ui import bind_session, completion_context, read_task
 from minisweagent.tools import ToolError
 from minisweagent.tools.skills import get_skill
 from minisweagent.utils.serialize import UNSET, recursive_merge
@@ -109,15 +114,51 @@ def main(
     if reconciliation is not None and (resume_from is None or not reconciliation.strip()):
         raise typer.BadParameter("Supply a nonempty reconciliation with --resume.")
     run_task = config.get("run", {}).get("task", UNSET)
+    session = None
     if resume_from:
         if task or skill:
             raise typer.BadParameter("--resume uses the original task and selected skill.")
         run_task = ""
     elif run_task is UNSET:
+        workspace = config.get("sandbox", {}).get("workspace") or config.get("environment", {}).get("cwd") or Path.cwd()
+        session = TerminalSession(config, Path(workspace))
         console.print("[bold yellow]What do you want to do?")
-        run_task = _multiline_prompt()
+        console.print("/help: commands; @ + Tab: project files; Esc Enter: submit.", markup=False)
+        with completion_context(session):
+            run_task = read_task(session, _multiline_prompt, _show_session_message)
+        if run_task is None:
+            return None
         console.print("[bold green]Got that, thanks![/bold green]")
+    elif not resume_from and isinstance(run_task, str) and MENTION.search(run_task):
+        workspace = config.get("sandbox", {}).get("workspace") or config.get("environment", {}).get("cwd") or Path.cwd()
+        try:
+            run_task = ProjectFiles(Path(workspace)).attach(run_task)
+        except ToolError as error:
+            raise typer.BadParameter(str(error)) from None
 
+    while True:
+        current = session.runtime_config() if session else config
+        with completion_context(session) if session else nullcontext():
+            agent = _run_task(current, run_task, skill, resume_from, reconciliation, session)
+            if session is None or exit_immediately or not (sys.stdin and sys.stdin.isatty()):
+                return agent
+            console.print("[bold yellow]Next task (/new, /help, @file; Ctrl+D to exit):[/bold yellow]")
+            run_task = read_task(session, _multiline_prompt, _show_session_message)
+            if run_task is None:
+                return agent
+            # Keep previous task artifacts when the same session starts another run.
+            path = current.get("agent", {}).get("output_path")
+            if path:
+                path = Path(path)
+                session.config.setdefault("agent", {})["output_path"] = path.parent / f"{path.stem.split('.session-')[0]}.session-{uuid4().hex[:8]}{path.suffix}"
+
+
+def _show_session_message(message: str) -> None:
+    console.print(message, markup=False)
+
+
+def _run_task(config, run_task, skill, resume_from, reconciliation, session=None):
+    """Assemble and close one task's resources; terminal session choices stay outside the agent loop."""
     agent_config = config.get("agent", {})
     run_id = uuid4().hex if "storage" in config or resume_from else None
     if run_id and agent_config.get("output_path") == DEFAULT_OUTPUT_FILE:
@@ -127,6 +168,8 @@ def main(
         storage = StorageConfig.model_validate(config.get("storage", {})) if run_id else None
         with open_agent_runtime(config) as runtime:
             agent = runtime.agent
+            if session is not None:
+                bind_session(agent, session, _show_session_message)
             if runtime.mode is not None:
                 console.print(f"Execution mode: {runtime.mode}")
             if skill is not None:

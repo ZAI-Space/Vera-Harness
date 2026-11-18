@@ -5,11 +5,13 @@ from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from minisweagent.agents import get_agent
+from minisweagent.agents import get_agent, get_agent_class
+from minisweagent.agents.interactive import InteractiveAgent
 from minisweagent.agents.subagents import SubagentConfig, register_subagent_tools
 from minisweagent.environments import get_environment
 from minisweagent.environments.sandbox import SandboxConfig, open_runtime
 from minisweagent.models import get_model
+from minisweagent.permissions import PermissionsConfig, ReadOnlyEnvironment, register_readonly_finish
 from minisweagent.plugins import load_plugins
 from minisweagent.tools import ToolError, make_tool_registry
 from minisweagent.tools.mcp import open_mcp_tools, parse_mcp_servers
@@ -38,11 +40,36 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
     """
     plugins = load_plugins(config)
     config = plugins.config
+    permissions = PermissionsConfig.model_validate(config.get("permissions", {}))
+    readonly = permissions.mode == "read-only"
+    if permissions.mode == "confirm":
+        agent_config = config.get("agent", {})
+        agent_type = get_agent_class(agent_config.get("agent_class", default_type))
+        if not issubclass(agent_type, InteractiveAgent) or agent_config.get("mode", "confirm") != "confirm":
+            raise ToolError("Confirmation permissions require an interactive agent in confirm mode.")
+    if readonly:
+        config["mcp_servers"] = {}
+        agent_config = config.setdefault("agent", {})
+        agent_config["instance_template"] = (
+            agent_config.get("instance_template", "{{task}}")
+            + "\nRead-only task: use task_finish to submit. Bash and external MCP are unavailable."
+        )
+    if "mcp_selection" in config:
+        selected = config["mcp_selection"]
+        if not isinstance(selected, list) or any(not isinstance(name, str) for name in selected):
+            raise ToolError("mcp_selection must be a list of configured server names.")
+        configured = config.get("mcp_servers", {})
+        if not readonly and set(selected) - configured.keys():
+            raise ToolError("Selected MCP services are no longer available.")
+        config["mcp_servers"] = {name: server for name, server in configured.items() if name in selected}
     model_config = config.get("model", {})
     model = get_model(config=model_config)
     web = WebConfig.model_validate(config.get("web", {}))
     skill_config = SkillConfig.model_validate(config.get("skills", {}))
     subagents = SubagentConfig.model_validate(config.get("subagents", {}))
+    if readonly:
+        for role in subagents.roles.values():
+            role.tools = [name for name in role.tools if name in {"web_search", "web_extract"}]
     sandbox = SandboxConfig.model_validate(config["sandbox"]) if "sandbox" in config else None
     servers = parse_mcp_servers(config.get("mcp_servers", {}))
     with ExitStack() as stack:
@@ -58,7 +85,10 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
                 http={name for name, server in servers.items() if server.url},
             )
             env, mode = stack.enter_context(open_runtime(sandbox, environment_config))
-        catalog = discover_skills(skill_config, Path.cwd())
+        if readonly:
+            env = ReadOnlyEnvironment(env)
+        workspace = sandbox.workspace if sandbox else Path(getattr(env.config, "cwd", "") or ".")
+        catalog = discover_skills(skill_config, workspace.expanduser().resolve())
         if collision := catalog.keys() & plugins.skills.keys():
             raise ToolError(f"Plugin skill name collision: {sorted(collision)}.")
         catalog.update(plugins.skills)
@@ -68,17 +98,30 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
             and getattr(model, "supports_tool_registry", True)
         )
         registry = None
-        if has_web_tools or servers or has_skill_tools or subagents.roles:
+        if has_web_tools or servers or has_skill_tools or subagents.roles or readonly:
             registry = make_tool_registry(env)
             configure_web_tools(registry, web)
             stack.enter_context(open_mcp_tools(registry, servers))
             if has_skill_tools:
                 register_skill_tools(registry, catalog)
+            if "mcp_selection" in config:
+                # Explicit service selection also limits delegated MCP capabilities.
+                available = {tool["function"]["name"] for tool in registry.definitions()}
+                for role in subagents.roles.values():
+                    role.tools = [name for name in role.tools if not name.startswith("mcp_") or name in available]
+            if readonly:
+                registry = registry.select(
+                    [tool["function"]["name"] for tool in registry.definitions() if tool["function"]["name"] != "bash"]
+                )
+                register_readonly_finish(registry)
         agent = get_agent(model, env, config.get("agent", {}), default_type=default_type, tool_registry=registry)
         if subagents.roles:
             register_subagent_tools(registry, agent, subagents, model_config, catalog)
-        workspace = sandbox.workspace if sandbox else Path(getattr(env.config, "cwd", "") or ".")
         policy = sandbox.model_dump_json() if sandbox else ""
+        if permissions.mode != "standard":
+            policy = json.dumps({"sandbox": policy, "permissions": permissions.mode}, sort_keys=True)
+        if "mcp_selection" in config:
+            policy = json.dumps({"sandbox": policy, "mcp_selection": sorted(config["mcp_selection"])}, sort_keys=True)
         if plugins.versions:
             policy = json.dumps({"sandbox": policy, "plugins": plugins.versions}, sort_keys=True)
         yield AgentRuntime(agent, catalog, workspace.expanduser(), policy, plugins.versions, mode)

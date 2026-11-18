@@ -38,6 +38,8 @@ class InteractiveAgent(DefaultAgent):
     def __init__(self, *args, config_class=InteractiveAgentConfig, **kwargs):
         super().__init__(*args, config_class=config_class, **kwargs)
         self.cost_last_confirmed = 0.0
+        # Optional input adapter: None re-prompts, text continues, flow exceptions stop.
+        self.input_handler = None
 
     def _interrupt(self, content: str, *, itype: str = "UserInterruption") -> NoReturn:
         raise UserInterruption({"role": "user", "content": content, "extra": {"interrupt_type": itype}})
@@ -189,9 +191,7 @@ class InteractiveAgent(DefaultAgent):
     def _prompt_and_handle_slash_commands(self, prompt: str, *, _multiline: bool = False) -> str:
         """Prompts the user, takes care of /h (followed by requery) and sets the mode. Returns the user input."""
         console.print(prompt, end="")
-        if _multiline:
-            return _multiline_prompt()
-        user_input = prompt_session.prompt("")
+        user_input = _multiline_prompt() if _multiline else prompt_session.prompt("")
         if user_input == "/m":
             return self._prompt_and_handle_slash_commands(prompt, _multiline=True)
         if user_input == "/h":
@@ -211,4 +211,9 @@ class InteractiveAgent(DefaultAgent):
             self.config.mode = self._MODE_COMMANDS_MAPPING[user_input]
             console.print(f"Switched to [bold green]{self.config.mode}[/bold green] mode.")
             return user_input
+        if self.input_handler is not None:
+            processed = self.input_handler(user_input)
+            if processed is None:
+                return self._prompt_and_handle_slash_commands(prompt)
+            return processed
         return user_input
