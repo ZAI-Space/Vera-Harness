@@ -130,6 +130,9 @@ def optimizer_command(
         if not Path(prefix).is_relative_to(Path("/usr")):
             arguments += ["--ro-bind", prefix, prefix]
     arguments += [
+        "--setenv",
+        "PATH",
+        f"{Path(sys.executable).parent}:/usr/local/bin:/usr/bin:/bin",
         "--bind",
         str(workspace),
         "/workspace",

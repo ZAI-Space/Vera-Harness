@@ -358,7 +358,7 @@ def test_complete_optimizer_process_is_isolated(source_repo, tmp_path, backend):
         pytest.skip(f"{backend} optimizer runtime is unavailable")
     experiment = Experiment.create(tmp_path / backend, source_repo, config)
     state = experiment.run(iterations=1)
-    assert state["versions"][-1]["status"] == "accepted", state["versions"][-1]
+    assert state["versions"][-1]["status"] == "accepted", json.dumps(state["versions"][-1], indent=2)
     assert state["runtime"]["mode"] == backend
     assert state["best"] == "generation-0001"
     assert canary.read_text(encoding="utf-8") == "protected controller data"
