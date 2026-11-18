@@ -237,6 +237,21 @@ def test_cli_cancellation_reaps_child_and_requires_explicit_resume(source_repo, 
     assert _cli(experiment.root, "run", check=False).returncode != 0
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows MAX_PATH contracts")
+def test_atomic_manifest_keeps_temporary_paths_within_windows_limits(tmp_path):
+    """A valid destination must not fail because a temporary name repeats its basename."""
+    directory = tmp_path
+    while len(str(directory)) < 180:
+        directory /= "manifest-directory"
+    directory.mkdir(parents=True)
+    path = directory / f"controller-state-{'s' * 30}.json"
+    assert len(str(path)) < 260 < len(str(path)) + 42
+    path.write_text('{"status":"old"}', encoding="utf-8")
+    write_json(path, {"status": "published"})
+    assert read_json(path) == {"status": "published"}
+    assert not list(directory.glob("*.pending"))
+
+
 @pytest.mark.skipif(os.name != "nt", reason="Windows exclusive file sharing contracts")
 @pytest.mark.parametrize("is_transient", [True, False])
 def test_state_reader_handles_real_windows_sharing_errors(tmp_path, is_transient):
