@@ -14,6 +14,7 @@ subcommands = [
     ("minisweagent.run.utilities.config", ["config"], "Manage the global config file"),
     ("minisweagent.run.utilities.memory", ["memory"], "Retain and recall project notes in Hindsight"),
     ("minisweagent.run.utilities.skills", ["skills"], "List and inspect local Agent Skills"),
+    ("minisweagent.run.utilities.plugins", ["plugins"], "Install plugins from GitHub and plugin marketplaces"),
     ("minisweagent.run.utilities.runs", ["runs"], "Inspect and cancel recorded agent runs"),
     ("minisweagent.run.utilities.evolution", ["evolution"], "Evaluate and evolve versioned Vera source"),
     ("minisweagent.run.utilities.inspector", ["inspect", "i", "inspector"], "Run inspector (browse trajectories)"),

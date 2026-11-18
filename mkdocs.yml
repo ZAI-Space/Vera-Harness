@@ -68,6 +68,7 @@ nav:
       - "Web tools": web-tools.md
       - "MCP tools": mcp.md
       - "Agent Skills": skills.md
+      - "Plugins": plugins.md
       - "Subagents": subagents.md
       - "Sandbox": sandbox.md
       - "Run storage": storage.md

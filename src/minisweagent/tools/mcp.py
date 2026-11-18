@@ -134,7 +134,8 @@ async def _discover(session: "ClientSession", allow_tools: list[str] | None, tim
     return [tool for name, tool in tools.items() if name in allow_tools]
 
 
-def _tool_name(server: str, tool: str) -> str:
+def mcp_tool_name(server: str, tool: str) -> str:
+    """Return the stable registry name used for a server/tool pair, including long-name hashing."""
     name = f"mcp_{server}_{tool}"
     normalized = re.sub(r"[^A-Za-z0-9_-]", "_", name)
     if normalized == name and len(name) <= 64:
@@ -195,7 +196,7 @@ def open_mcp_tools(registry: ToolRegistry, servers: dict[str, MCPServerConfig]) 
             except Exception as error:
                 raise ToolError(f"MCP server {name!r} setup failed ({type(error).__name__}).") from None
             for tool in tools:
-                spec = ToolSpec(_tool_name(name, tool.name), tool.description or tool.name, tool.inputSchema)
+                spec = ToolSpec(mcp_tool_name(name, tool.name), tool.description or tool.name, tool.inputSchema)
                 try:
                     registry.register(spec, partial(_call_tool, portal, session, name, tool.name))
                 except SchemaError:

@@ -3,6 +3,7 @@
 """Run mini-SWE-agent in your local environment. This is the default executable `mini`."""
 # Read this first: https://mini-swe-agent.com/latest/usage/mini/  (usage)
 
+import json
 import os
 from contextlib import ExitStack
 from pathlib import Path
@@ -22,6 +23,7 @@ from minisweagent.config import builtin_config_dir, get_config_from_spec
 from minisweagent.environments import get_environment
 from minisweagent.environments.sandbox import SandboxConfig, SandboxMode, open_runtime
 from minisweagent.models import get_model
+from minisweagent.plugins import PluginError, load_plugins
 from minisweagent.run.utilities.config import configure_if_first_time
 from minisweagent.storage import RunStore, StorageConfig, StorageError
 from minisweagent.tools import ToolError, make_tool_registry
@@ -110,6 +112,11 @@ def main(
     if storage_path is not None:
         configs.append({"storage": {"path": storage_path}})
     config = recursive_merge(*configs)
+    try:
+        plugins = load_plugins(config)
+        config = plugins.config
+    except PluginError as error:
+        raise typer.BadParameter(str(error)) from None
 
     if reconciliation is not None and (resume_from is None or not reconciliation.strip()):
         raise typer.BadParameter("Supply a nonempty reconciliation with --resume.")
@@ -156,6 +163,9 @@ def main(
                 env, mode = stack.enter_context(open_runtime(sandbox, environment_config))
                 console.print(f"Execution mode: {mode}")
             catalog = discover_skills(skill_config, Path.cwd())
+            if collision := catalog.keys() & plugins.skills.keys():
+                raise ToolError(f"Plugin skill name collision: {sorted(collision)}.")
+            catalog.update(plugins.skills)
             if skill is not None:
                 selected = get_skill(catalog, skill).view()
                 run_task = (
@@ -182,10 +192,13 @@ def main(
                 if not isinstance(agent, DefaultAgent):
                     raise StorageError("Run storage requires a DefaultAgent-compatible agent.")
                 workspace = sandbox.workspace if sandbox is not None else Path(getattr(env.config, "cwd", "") or ".")
+                runtime_policy = sandbox.model_dump_json() if sandbox is not None else ""
+                if plugins.versions:
+                    runtime_policy = json.dumps({"sandbox": runtime_policy, "plugins": plugins.versions}, sort_keys=True)
                 with RunStore(storage.path).track(
                     agent, run_id=run_id, resume_from=resume_from, reconciliation=reconciliation,
                     workspace=workspace.expanduser(),
-                    runtime_policy=sandbox.model_dump_json() if sandbox is not None else "",
+                    runtime_policy=runtime_policy,
                 ) as record:
                     console.print(f"Run ID: {record.id}")
                     agent.run(record.resume.task if record.resume else run_task)
@@ -195,6 +208,8 @@ def main(
             typer.echo(str(error), err=True)
             raise typer.Exit(1) from None
     if (output_path := agent_config.get("output_path")):
+        if plugins.versions:
+            agent.save(Path(output_path), {"info": {"plugins": plugins.versions}})
         console.print(f"Saved trajectory to [bold green]'{output_path}'[/bold green]")
     return agent
 

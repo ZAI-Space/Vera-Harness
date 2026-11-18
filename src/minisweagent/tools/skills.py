@@ -151,22 +151,13 @@ class Skill:
             raise ToolError(f"Could not read skill {self.name!r} ({type(error).__name__}).") from None
 
 
-def discover_skills(config: SkillConfig, workspace: Path) -> dict[str, Skill]:
-    """Index a run's local skills by name. Earlier roots take precedence."""
-    if not config.enabled:
-        return {}
+def discover_skill_roots(roots: list[Path], disabled: list[str] = ()) -> dict[str, Skill]:
+    """Index only the supplied roots; earlier roots take precedence, without global discovery."""
     skills = {}
     try:
-        workspace = workspace.resolve()
-        project_root = workspace / ".agents" / "skills"
-        roots = [
-            project_root,
-            *(workspace / path.expanduser() for path in config.directories),
-            global_config_dir / "skills",
-        ]
         for root in dict.fromkeys(roots):
             resolved_root = root.resolve()
-            if not resolved_root.exists() or (root == project_root and root != resolved_root):
+            if not resolved_root.exists():
                 continue
             if not resolved_root.is_dir():
                 raise ToolError(f"Skill root is not a directory: {root}.")
@@ -181,11 +172,22 @@ def discover_skills(config: SkillConfig, workspace: Path) -> dict[str, Skill]:
                         raise ToolError(f"{source}: {error}") from None
                 if name != directory.name:
                     raise ToolError(f"{source}: skill name must match the containing directory.")
-                if name not in config.disabled:
+                if name not in disabled:
                     skills.setdefault(name, Skill(name, description, directory))
     except (OSError, UnicodeError, RuntimeError) as error:
         raise ToolError(f"Skill discovery failed ({type(error).__name__}).") from None
     return dict(sorted(skills.items()))
+
+
+def discover_skills(config: SkillConfig, workspace: Path) -> dict[str, Skill]:
+    """Index project, configured and user skill roots. Earlier roots take precedence."""
+    if not config.enabled:
+        return {}
+    workspace = workspace.resolve()
+    project_root = workspace / ".agents" / "skills"
+    roots = [project_root] if project_root.resolve() == project_root else []
+    roots.extend(workspace / path.expanduser() for path in config.directories)
+    return discover_skill_roots([*roots, global_config_dir / "skills"], config.disabled)
 
 
 def get_skill(skills: dict[str, Skill], name: str) -> Skill:
