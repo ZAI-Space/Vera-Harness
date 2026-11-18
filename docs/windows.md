@@ -87,7 +87,8 @@ Validation on 2026-11-17 used Windows x64, Python 3.12.13 and Git Bash 5.3.15:
 - Linux/WSL standard-library probes passed for execution, exit codes, partial
   timeout output and startup-script syntax. These were not a full Linux test run.
 
-Python 3.10, ARM64 and hosted GitHub Actions were not executed locally. No real
-model/API quality result is claimed. The optional gstack checks selector requires
-an `origin/dev` policy source; this independent repository has no remote, so the
-checks above were run directly instead.
+Python 3.10, ARM64 and hosted GitHub Actions were not part of that local validation.
+No real model/API quality result is claimed by those checks. At that point the
+repository had no remote, so checks ran directly. The repository now uses
+`https://github.com/zml-mis/Vera-Harness.git`; pull requests targeting `dev` or
+`main` run the complete Windows suite on Python 3.10 and 3.12.
