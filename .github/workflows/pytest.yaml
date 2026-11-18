@@ -1,80 +1,76 @@
-
-name: Pytest
-
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+name: Linux tests
 
 on:
   push:
-    branches:
-      - main
-      - v2.0
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'mkdocs.yml'
-      - '.cursor/**'
-      - '.github/workflows/build-docs.yaml'
-      - '.github/workflows/release.yaml'
-      - '.github/workflows/pylint.yaml'
+    branches: [dev, main]
   pull_request:
-    branches:
-      - main
-      - v2.0
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'mkdocs.yml'
-      - '.cursor/**'
-      - '.github/workflows/build-docs.yaml'
-      - '.github/workflows/release.yaml'
-      - '.github/workflows/pylint.yaml'
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MSWEA_SILENT_STARTUP: '1'
+  PYTHONUTF8: '1'
 
 jobs:
   test:
+    name: Tests (ubuntu-latest, ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
-      - name: Update apt package list
-        run: sudo apt-get update
-      - name: Install podman
-        run: sudo apt-get install -y podman
-      - name: Install bubblewrap
-        run: |
-          sudo apt-get install -y bubblewrap
-          sudo chmod u+s $(which bwrap)  # ensure we can set uid permissions
-      - name: Install singularity/apptainer
-        run: |
-            sudo apt-get install -y wget
-            cd /tmp
-            wget https://github.com/apptainer/apptainer/releases/download/v1.3.4/apptainer_1.3.4_amd64.deb
-            sudo dpkg -i apptainer_1.3.4_amd64.deb || sudo apt-get install -f -y
-            # Create singularity symlink for compatibility
-            sudo ln -sf /usr/bin/apptainer /usr/bin/singularity
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: Install dependencies
-        run: |
-            uv pip install --python ${Python_ROOT_DIR} -e '.[full]'
-      - name: Configure mini-swe-agent
-        run: |
-          mini-extra config set MSWEA_CONFIGURED 'true'
-          mini-extra config set OPENAI_API_KEY '${{ secrets.OPENAI_API_KEY }}'
-          mini-extra config set OPENROUTER_API_KEY '${{ secrets.OPENROUTER_API_KEY }}'
-          # mini-extra config set PORTKEY_API_KEY '${{ secrets.PORTKEY_API_KEY }}'
-          mini-extra config set REQUESTY_API_KEY '${{ secrets.REQUESTY_API_KEY }}'
-      - name: Run pytest
-        run: pytest -v --cov --cov-branch --cov-report=xml -n auto
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v7
+          python-version: ${{ matrix.python-version }}
+      - name: Install all runtime and test dependencies
+        run: python -m pip install -e '.[full,channels]'
+      - name: Run complete suite without paid model calls
+        run: python -m pytest -n 2 -ra --junitxml=results.xml
+      - name: Preserve test results
+        if: always()
+        uses: actions/upload-artifact@v6
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: SWE-agent/mini-swe-agent
+          name: linux-tests-${{ matrix.python-version }}
+          path: results.xml
+
+  sandboxes:
+    name: Linux sandboxes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install isolated execution backends
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman bubblewrap
+          sudo chmod u+s /usr/bin/bwrap
+          curl --fail --location --output /tmp/apptainer.deb https://github.com/apptainer/apptainer/releases/download/v1.3.4/apptainer_1.3.4_amd64.deb
+          sudo apt-get install -y /tmp/apptainer.deb
+          sudo ln -sf /usr/bin/apptainer /usr/bin/singularity
+          docker version
+          podman version
+          singularity version
+      - name: Install runtime dependencies
+        run: python -m pip install -e '.[full,channels]'
+      - name: Build the committed RSI optimizer runtime
+        run: mini-extra evolution prepare-runtime --source .
+      - name: Verify real isolated execution and runtime policies
+        run: python -m pytest tests/environments tests/run/test_sandbox.py tests/run/test_evolution.py -ra --junitxml=sandboxes.xml
+      - name: Preserve sandbox results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-sandboxes
+          path: sandboxes.xml
