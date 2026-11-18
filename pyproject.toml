@@ -85,7 +85,7 @@ dev = [
 ]
 
 contree = [
-    "contree-sdk>=0.2.0",
+    "contree-sdk>=0.2.0,<0.4",  # This adapter uses the 0.3 ContreeConfig API.
 ]
 
 [project.urls]
