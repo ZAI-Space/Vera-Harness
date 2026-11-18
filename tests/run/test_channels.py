@@ -163,7 +163,8 @@ def test_feishu_pairing_requires_private_correct_code_and_protects_app_credentia
             assert b"fake-pair-secret" not in files[0].read_bytes()
 
 
-def start_gateway(tmp_path, service, channel):
+def start_gateway(tmp_path, service, channel, *, agent_profile=None, model_environment=None):
+    """Start the real gateway, optionally using a composed runtime profile."""
     state = tmp_path / "state"
     state.mkdir()
     if channel == "weixin":
@@ -179,7 +180,9 @@ def start_gateway(tmp_path, service, channel):
     profile = tmp_path / "agent.yaml"
     profile.write_text(
         yaml.safe_dump(
-            {
+            agent_profile
+            if agent_profile is not None
+            else {
                 "agent": {"system_template": "Use Bash and submit the result.", "instance_template": "{{task}}"},
                 "model": {"model_class": "tests.run.test_web_tools.LocalFixtureModel", "model_name": "fixture"},
             }
@@ -199,15 +202,19 @@ def start_gateway(tmp_path, service, channel):
         )
     )
     repository = Path(__file__).resolve().parents[2]
-    environment = os.environ | {
-        "MSWEA_SILENT_STARTUP": "1",
-        "LITELLM_LOCAL_MODEL_COST_MAP": "True",
-        "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config"),
-        "MSWEA_TEST_MODEL_URL": service["base_url"] + "/model",
-        "PYTHONPATH": os.pathsep.join([str(repository / "src"), str(repository)]),
-        "FEISHU_APP_ID": "fake-app",
-        "FEISHU_APP_SECRET": "fake-app-secret",
-    }
+    environment = (
+        os.environ
+        | {
+            "MSWEA_SILENT_STARTUP": "1",
+            "LITELLM_LOCAL_MODEL_COST_MAP": "True",
+            "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config"),
+            "MSWEA_TEST_MODEL_URL": service["base_url"] + "/model",
+            "PYTHONPATH": os.pathsep.join([str(repository / "src"), str(repository)]),
+            "FEISHU_APP_ID": "fake-app",
+            "FEISHU_APP_SECRET": "fake-app-secret",
+        }
+        | (model_environment or {})
+    )
     output = (tmp_path / "gateway.log").open("wb")
     process = subprocess.Popen(
         [sys.executable, "-m", "minisweagent.run.utilities.channels", "start", "--config", str(config)],

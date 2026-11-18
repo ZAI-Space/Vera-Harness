@@ -36,7 +36,8 @@ def read_json(path: Path) -> dict:
 
 def write_json(path: Path, value: dict) -> None:
     """Atomically replace a manifest in its directory; readers never see partial JSON."""
-    temporary = path.with_name(f".{path.name}.{uuid4().hex}.pending")
+    # Keep the temporary basename short for valid destinations near Windows MAX_PATH.
+    temporary = path.with_name(f".{uuid4().hex}.pending")
     with temporary.open("x", encoding="utf-8") as stream:
         json.dump(value, stream, indent=2, ensure_ascii=False, allow_nan=False)
         stream.flush()
