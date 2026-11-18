@@ -83,7 +83,7 @@ class BubblewrapEnvironment:
         command = action.get("command", "")
         cwd = cwd or self.config.cwd or str(self.working_dir)
 
-        cmd = [self.config.executable] + self.config.wrapper_args + ["--bind", cwd, cwd, "--chdir", cwd]
+        cmd = [self.config.executable, *self.config.wrapper_args, *self._workspace_args(cwd)]
 
         # Add environment variables
         for key, value in self.config.env.items():
@@ -98,6 +98,7 @@ class BubblewrapEnvironment:
                 timeout=timeout or self.config.timeout,
                 encoding="utf-8",
                 errors="replace",
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
             )
@@ -115,6 +116,10 @@ class BubblewrapEnvironment:
             }
         self._check_finished(output)
         return output
+
+    def _workspace_args(self, cwd: str) -> list[str]:
+        """Return mount and working-directory arguments for a command."""
+        return ["--bind", cwd, cwd, "--chdir", cwd]
 
     def _check_finished(self, output: dict):
         """Raises Submitted if the output indicates task completion."""

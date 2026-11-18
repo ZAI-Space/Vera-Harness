@@ -1,0 +1,50 @@
+name: Windows compatibility
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Tests (windows-latest, ${{ matrix.python-version }})
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    env:
+      MSWEA_SILENT_STARTUP: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install all runtime and test dependencies
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install -e '.[full,channels]'
+          (Resolve-Path .venv/Scripts).Path | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Verify Git Bash availability
+        run: |
+          $gitBash = Join-Path $env:ProgramFiles 'Git\bin\bash.exe'
+          if (-not (Test-Path -LiteralPath $gitBash)) { throw 'Git Bash is required for Windows tests' }
+          & $gitBash --version
+      - name: Run complete suite without paid model calls
+        run: python -m pytest -n 2 -ra --junitxml=results.xml
+      - name: Preserve test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-tests-${{ matrix.python-version }}
+          path: results.xml

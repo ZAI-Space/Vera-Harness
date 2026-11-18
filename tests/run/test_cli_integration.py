@@ -19,15 +19,16 @@ def test_configure_if_first_time_called():
     """Test that configure_if_first_time is called when running mini main."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time") as mock_configure,
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
 
@@ -56,15 +57,16 @@ def test_mini_command_calls_run_interactive():
     """Test that mini command creates agent via get_agent."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test", "mode": "confirm"}, "env": {}, "model": {}}
 
@@ -99,9 +101,9 @@ def test_mini_calls_prompt_when_no_task_provided():
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
         patch("minisweagent.run.mini._multiline_prompt") as mock_prompt,
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
@@ -109,6 +111,7 @@ def test_mini_calls_prompt_when_no_task_provided():
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test", "mode": "confirm"}, "env": {}, "model": {}}
 
@@ -142,15 +145,16 @@ def test_mini_with_explicit_model():
     """Test that mini works with explicitly provided model."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {
             "agent": {"system_template": "test", "mode": "yolo"},
@@ -188,15 +192,16 @@ def test_yolo_mode_sets_correct_agent_config():
     """Test that yolo mode sets the correct agent configuration."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
 
@@ -230,15 +235,16 @@ def test_confirm_mode_sets_correct_agent_config():
     """Test that when yolo=False, no explicit mode is set (defaults to None)."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
 
@@ -272,13 +278,14 @@ def test_cost_limit_zero_is_preserved():
     """Test that an explicit cost_limit=0 is not dropped during config merge."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         mock_get_model.return_value = Mock()
         mock_get_env.return_value = Mock()
+        mock_get_env.return_value.config.cwd = ""
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
         mock_agent = Mock()
         mock_get_agent.return_value = mock_agent
@@ -453,15 +460,16 @@ def test_exit_immediately_flag_sets_confirm_exit_false():
     """Test that --exit-immediately flag sets confirm_exit to False in agent config."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
 
@@ -492,15 +500,16 @@ def test_no_exit_immediately_flag_sets_confirm_exit_true():
     """Test that when --exit-immediately flag is not used, confirm_exit defaults to True."""
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
 
@@ -532,15 +541,16 @@ def test_exit_immediately_flag_with_typer_runner():
 
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_agent") as mock_get_agent,
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_agent") as mock_get_agent,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
     ):
         # Setup mocks
         mock_model = Mock()
         mock_get_model.return_value = mock_model
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_get_env.return_value = mock_environment
         mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
 
@@ -573,8 +583,8 @@ def test_output_file_is_created(tmp_path):
 
     with (
         patch("minisweagent.run.mini.configure_if_first_time"),
-        patch("minisweagent.run.mini.get_model") as mock_get_model,
-        patch("minisweagent.run.mini.get_environment") as mock_get_env,
+        patch("minisweagent.runtime.get_model") as mock_get_model,
+        patch("minisweagent.runtime.get_environment") as mock_get_env,
         patch("minisweagent.agents.utils.prompt_user.prompt_session.prompt", return_value=""),
         patch("minisweagent.agents.utils.prompt_user._multiline_prompt_session.prompt", return_value=""),
     ):
@@ -614,7 +624,9 @@ def test_output_file_is_created(tmp_path):
             )
 
         mock_environment = Mock()
+        mock_environment.config.cwd = ""
         mock_environment.config = Mock()
+        mock_environment.config.cwd = ""
         mock_environment.config.model_dump.return_value = {}
         mock_environment.execute.side_effect = execute_side_effect
         mock_environment.get_template_vars.return_value = {

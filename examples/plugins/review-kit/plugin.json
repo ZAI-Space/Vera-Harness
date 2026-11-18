@@ -1,0 +1,7 @@
+{
+  "name": "review-kit",
+  "version": "1.0.0",
+  "description": "Review a change with a focused independent Subagent.",
+  "license": "MIT",
+  "extensions": {"vera": {"subagents": "./subagents.json"}}
+}

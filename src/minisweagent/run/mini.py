@@ -5,18 +5,24 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+from uuid import uuid4
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 
 from minisweagent import global_config_dir
-from minisweagent.agents import get_agent
+from minisweagent.agents.default import DefaultAgent
 from minisweagent.agents.utils.prompt_user import _multiline_prompt
 from minisweagent.config import builtin_config_dir, get_config_from_spec
-from minisweagent.environments import get_environment
-from minisweagent.models import get_model
+from minisweagent.environments.sandbox import SandboxMode
+from minisweagent.plugins import PluginError
 from minisweagent.run.utilities.config import configure_if_first_time
+from minisweagent.runtime import open_agent_runtime
+from minisweagent.storage import RunStore, StorageConfig, StorageError
+from minisweagent.tools import ToolError
+from minisweagent.tools.skills import get_skill
 from minisweagent.utils.serialize import UNSET, recursive_merge
 
 DEFAULT_CONFIG_FILE = Path(os.getenv("MSWEA_MINI_CONFIG_PATH", builtin_config_dir / "mini.yaml"))
@@ -57,7 +63,12 @@ def main(
     model_class: str | None = typer.Option(None, "--model-class", help="Model class to use (e.g., 'litellm' or 'minisweagent.models.litellm_model.LitellmModel')", rich_help_panel="Advanced"),
     agent_class: str | None = typer.Option(None, "--agent-class", help="Agent class to use (e.g., 'interactive' or 'minisweagent.agents.interactive.InteractiveAgent')", rich_help_panel="Advanced"),
     environment_class: str | None = typer.Option(None, "--environment-class", help="Environment class to use (e.g., 'local' or 'minisweagent.environments.local.LocalEnvironment')", rich_help_panel="Advanced"),
+    sandbox_mode: Annotated[SandboxMode | None, typer.Option("--sandbox", help="Choose workspace isolation or explicit local execution.")] = None,
     task: str | None = typer.Option(None, "-t", "--task", help="Task/problem statement", show_default=False),
+    skill: Annotated[str | None, typer.Option("--skill", help="Load a local skill into the initial task.")] = None,
+    storage_path: Annotated[Path | None, typer.Option("--storage", help="Record this run in a SQLite database.")] = None,
+    resume_from: Annotated[str | None, typer.Option("--resume", help="Continue a stored run from its checkpoint.")] = None,
+    reconciliation: Annotated[str | None, typer.Option("--reconcile", help="Verified outcome of unresolved tool calls.")] = None,
     yolo: bool = typer.Option(False, "-y", "--yolo", help="Run without confirmation"),
     cost_limit: float | None = typer.Option(None, "-l", "--cost-limit", help="Cost limit. Set to 0 to disable."),
     config_spec: list[str] = typer.Option([str(DEFAULT_CONFIG_FILE)], "-c", "--config", help=_CONFIG_SPEC_HELP_TEXT),
@@ -89,18 +100,64 @@ def main(
             "environment_class": environment_class or UNSET,
         },
     })
+    if sandbox_mode is not None:
+        configs.append({"sandbox": {"mode": sandbox_mode.value}})
+    if storage_path is not None:
+        configs.append({"storage": {"path": storage_path}})
     config = recursive_merge(*configs)
 
-    if (run_task := config.get("run", {}).get("task", UNSET)) is UNSET:
+    if reconciliation is not None and (resume_from is None or not reconciliation.strip()):
+        raise typer.BadParameter("Supply a nonempty reconciliation with --resume.")
+    run_task = config.get("run", {}).get("task", UNSET)
+    if resume_from:
+        if task or skill:
+            raise typer.BadParameter("--resume uses the original task and selected skill.")
+        run_task = ""
+    elif run_task is UNSET:
         console.print("[bold yellow]What do you want to do?")
         run_task = _multiline_prompt()
         console.print("[bold green]Got that, thanks![/bold green]")
 
-    model = get_model(config=config.get("model", {}))
-    env = get_environment(config.get("environment", {}), default_type="local")
-    agent = get_agent(model, env, config.get("agent", {}), default_type="interactive")
-    agent.run(run_task)
-    if (output_path := config.get("agent", {}).get("output_path")):
+    agent_config = config.get("agent", {})
+    run_id = uuid4().hex if "storage" in config or resume_from else None
+    if run_id and agent_config.get("output_path") == DEFAULT_OUTPUT_FILE:
+        agent_config = agent_config | {"output_path": DEFAULT_OUTPUT_FILE.parent / "runs" / f"{run_id}.traj.json"}
+        config["agent"] = agent_config
+    try:
+        storage = StorageConfig.model_validate(config.get("storage", {})) if run_id else None
+        with open_agent_runtime(config) as runtime:
+            agent = runtime.agent
+            if runtime.mode is not None:
+                console.print(f"Execution mode: {runtime.mode}")
+            if skill is not None:
+                selected = get_skill(runtime.skills, skill).view()
+                run_task = (
+                    f"{run_task}\n\nUse the explicitly selected skill {skill!r}. Its directory is {selected['directory']}.\n\n"
+                    f"{selected['content']}"
+                )
+            if storage is not None:
+                if not isinstance(agent, DefaultAgent):
+                    raise StorageError("Run storage requires a DefaultAgent-compatible agent.")
+                with RunStore(storage.path).track(
+                    agent, run_id=run_id, resume_from=resume_from, reconciliation=reconciliation,
+                    workspace=runtime.workspace, runtime_policy=runtime.policy,
+                ) as record:
+                    console.print(f"Run ID: {record.id}")
+                    agent.run(record.resume.task if record.resume else run_task)
+            else:
+                agent.run(run_task)
+            if runtime.plugin_versions and agent_config.get("output_path"):
+                agent.save(Path(agent_config["output_path"]), {"info": {"plugins": runtime.plugin_versions}})
+    except (ToolError, PluginError) as error:
+        raise typer.BadParameter(str(error)) from None
+    except ValidationError as error:
+        issue = error.errors(include_input=False)[0]
+        field = ".".join(map(str, issue["loc"])) or "config"
+        raise typer.BadParameter(f"{field}: {issue['msg']}") from None
+    except StorageError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(1) from None
+    if (output_path := agent_config.get("output_path")):
         console.print(f"Saved trajectory to [bold green]'{output_path}'[/bold green]")
     return agent
 

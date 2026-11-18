@@ -14,6 +14,8 @@ class LitellmTextbasedModelConfig(LitellmModelConfig):
 
 
 class LitellmTextbasedModel(LitellmModel):
+    supports_tool_registry = False
+
     def __init__(self, **kwargs):
         super().__init__(config_class=LitellmTextbasedModelConfig, **kwargs)
 

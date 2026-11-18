@@ -1,0 +1,10 @@
+{
+  "reviewer": {
+    "description": "Review the requested code change for actionable correctness defects.",
+    "instructions": "Read the assigned change and relevant callers. Report verified defects with file paths and reproduction steps. Do not edit files or delegate further.",
+    "tools": ["bash"],
+    "skills": ["review"],
+    "step_limit": 12,
+    "cost_limit": 0.5
+  }
+}

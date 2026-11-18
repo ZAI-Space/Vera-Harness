@@ -62,8 +62,18 @@ nav:
   - Getting Started:
     - "Overview": index.md
     - "Quick start": quickstart.md
+    - "Windows startup": windows.md
     - "Command line usage":
       - "<code>mini</code>": usage/mini.md
+      - "Web tools": web-tools.md
+      - "MCP tools": mcp.md
+      - "Agent Skills": skills.md
+      - "Plugins": plugins.md
+      - "Remote channels": channels.md
+      - "Subagents": subagents.md
+      - "Sandbox": sandbox.md
+      - "Run storage": storage.md
+      - "Source evolution": evolution.md
       - "Config": usage/config.md
       - "SWE-bench": usage/swebench.md
       - "ProgramBench": usage/programbench.md
@@ -79,6 +89,8 @@ nav:
     - "Python bindings & more":
       - "Basic Python bindings": usage/python_bindings.md
       - "Understanding the agent": advanced/control_flow.md
+      - "Agent state observation": agent-state.md
+      - "Hindsight project memory": hindsight-memory.md
       - "Subclassing and more": advanced/cookbook.md
       - "Environments": advanced/environments.md
       - "v2 migration guide": advanced/v2_migration.md

@@ -7,28 +7,18 @@ from jinja2 import StrictUndefined, Template
 
 from minisweagent.exceptions import FormatError
 from minisweagent.models.utils.openai_multimodal import expand_multimodal_content
+from minisweagent.models.utils.tool_registry import BASH_CHAT_TOOL, parse_action
+from minisweagent.tools import ToolError, ToolRegistry
 
-BASH_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "bash",
-        "description": "Execute a bash command",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "description": "The bash command to execute",
-                }
-            },
-            "required": ["command"],
-        },
-    },
-}
+BASH_TOOL = BASH_CHAT_TOOL
 
 
 def parse_toolcall_actions(
-    tool_calls: list, *, format_error_template: str, template_kwargs: dict | None = None
+    tool_calls: list,
+    *,
+    format_error_template: str,
+    template_kwargs: dict | None = None,
+    registry: ToolRegistry | None = None,
 ) -> list[dict]:
     """Parse tool calls from the response. Raises FormatError if unknown tool or invalid args.
 
@@ -52,17 +42,13 @@ def parse_toolcall_actions(
         )
     actions = []
     for tool_call in tool_calls:
-        error_msg = ""
-        args = {}
         try:
             args = json.loads(tool_call.function.arguments)
-        except Exception as e:
-            error_msg = f"Error parsing tool call arguments: {e}."
-        if tool_call.function.name != "bash":
-            error_msg += f"Unknown tool '{tool_call.function.name}'."
-        if not isinstance(args, dict) or "command" not in args:
-            error_msg += "Missing 'command' argument in bash tool call."
-        if error_msg:
+            actions.append(parse_action(tool_call.function.name, args, tool_call.id, registry))
+        except (json.JSONDecodeError, TypeError, ToolError) as error:
+            error_msg = (
+                str(error) if isinstance(error, ToolError) else "Error parsing tool call arguments: invalid JSON."
+            )
             raise FormatError(
                 {
                     "role": "user",
@@ -71,8 +57,7 @@ def parse_toolcall_actions(
                     ),
                     "extra": {"interrupt_type": "FormatError"},
                 }
-            )
-        actions.append({"command": args["command"], "tool_call_id": tool_call.id})
+            ) from error
     return actions
 
 

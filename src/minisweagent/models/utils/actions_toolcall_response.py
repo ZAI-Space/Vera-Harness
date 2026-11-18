@@ -6,23 +6,11 @@ import time
 from jinja2 import StrictUndefined, Template
 
 from minisweagent.exceptions import FormatError
+from minisweagent.models.utils.tool_registry import BASH_RESPONSES_TOOL, parse_action
+from minisweagent.tools import ToolError, ToolRegistry
 
 # OpenRouter/OpenAI Responses API uses a flat structure (no nested "function" key)
-BASH_TOOL_RESPONSE_API = {
-    "type": "function",
-    "name": "bash",
-    "description": "Execute a bash command",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "command": {
-                "type": "string",
-                "description": "The bash command to execute",
-            }
-        },
-        "required": ["command"],
-    },
-}
+BASH_TOOL_RESPONSE_API = BASH_RESPONSES_TOOL
 
 
 def _format_error_message(error_text: str) -> dict:
@@ -56,7 +44,11 @@ def finish_reason_from_responses_api(response) -> str | None:
 
 
 def parse_toolcall_actions_response(
-    output: list, *, format_error_template: str, template_kwargs: dict | None = None
+    output: list,
+    *,
+    format_error_template: str,
+    template_kwargs: dict | None = None,
+    registry: ToolRegistry | None = None,
 ) -> list[dict]:
     """Parse tool calls from a Responses API response output.
 
@@ -85,22 +77,18 @@ def parse_toolcall_actions_response(
         raise FormatError(_format_error_message(error_text))
     actions = []
     for tool_call in tool_calls:
-        error_msg = ""
-        args = {}
         try:
             args = json.loads(tool_call.get("arguments", "{}"))
-        except Exception as e:
-            error_msg = f"Error parsing tool call arguments: {e}."
-        if tool_call.get("name") != "bash":
-            error_msg += f"Unknown tool '{tool_call.get('name')}'."
-        if not isinstance(args, dict) or "command" not in args:
-            error_msg += "Missing 'command' argument in bash tool call."
-        if error_msg:
+            call_id = tool_call.get("call_id") or tool_call.get("id")
+            actions.append(parse_action(tool_call.get("name"), args, call_id, registry))
+        except (json.JSONDecodeError, TypeError, ToolError) as error:
+            error_msg = (
+                str(error) if isinstance(error, ToolError) else "Error parsing tool call arguments: invalid JSON."
+            )
             error_text = Template(format_error_template, undefined=StrictUndefined).render(
                 error=error_msg.strip(), actions=[], has_tool_calls=True, **template_kwargs
             )
-            raise FormatError(_format_error_message(error_text))
-        actions.append({"command": args["command"], "tool_call_id": tool_call.get("call_id") or tool_call.get("id")})
+            raise FormatError(_format_error_message(error_text)) from error
     return actions
 
 
