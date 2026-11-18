@@ -20,7 +20,17 @@ def write_json(path: Path, value: dict) -> None:
         json.dump(value, stream, indent=2, ensure_ascii=False, allow_nan=False)
         stream.flush()
         os.fsync(stream.fileno())
-    temporary.replace(path)
+    # Windows readers briefly prevent replacement; retain atomic publication and
+    # retry only transient access/sharing errors, never write partial JSON in place.
+    for attempt in range(20):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError as error:
+            if os.name != "nt" or error.winerror not in {5, 32, 33} or attempt == 19:
+                temporary.unlink(missing_ok=True)
+                raise
+            time.sleep(0.01)
 
 
 def _process_stamp(pid: int) -> str | None:
