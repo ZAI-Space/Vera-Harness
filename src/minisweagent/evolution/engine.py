@@ -15,7 +15,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from minisweagent.evolution.config import BudgetError, EvaluationError, EvolutionConfig, EvolutionError, TaskSpec
-from minisweagent.evolution.process import experiment_lock, recover_processes, run_process, write_json
+from minisweagent.evolution.process import experiment_lock, read_json, recover_processes, run_process, write_json
 from minisweagent.evolution.repository import checkout, commit_candidate, create_archive
 from minisweagent.evolution.runtime import optimizer_command, select_runtime, stop_container
 
@@ -66,7 +66,7 @@ class Experiment:
 
     def __init__(self, root: Path):
         self.root = root.resolve()
-        self.state = json.loads((self.root / "state.json").read_text(encoding="utf-8"))
+        self.state = read_json(self.root / "state.json")
         self.config = EvolutionConfig.model_validate(self.state["config"])
         if self.state["manifest_hash"] != _fingerprint(self.state["config"]):
             raise EvolutionError("The experiment manifest changed after initialization.")
