@@ -69,6 +69,7 @@ nav:
       - "MCP tools": mcp.md
       - "Agent Skills": skills.md
       - "Plugins": plugins.md
+      - "Remote channels": channels.md
       - "Subagents": subagents.md
       - "Sandbox": sandbox.md
       - "Run storage": storage.md

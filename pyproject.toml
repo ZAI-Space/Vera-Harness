@@ -59,6 +59,7 @@ full = [
 ]
 
 mcp = ["mcp>=1.30,<2", "anyio>=4", "httpx>=0.27"]
+channels = ["lark-oapi>=1.8,<2", "qrcode[pil]>=7.4,<9"]
 
 modal = [
     "modal",
@@ -99,6 +100,7 @@ mini-e= "minisweagent.run.utilities.mini_extra:main"
 
 [tool.setuptools]
 include-package-data = true
+license-files = ["LICENSE.md", "THIRD_PARTY_NOTICES.md"]
 
 [tool.setuptools.dynamic]
 version = {attr = "minisweagent.__version__"}

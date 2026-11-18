@@ -3,9 +3,7 @@
 """Run mini-SWE-agent in your local environment. This is the default executable `mini`."""
 # Read this first: https://mini-swe-agent.com/latest/usage/mini/  (usage)
 
-import json
 import os
-from contextlib import ExitStack
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
@@ -15,21 +13,16 @@ from pydantic import ValidationError
 from rich.console import Console
 
 from minisweagent import global_config_dir
-from minisweagent.agents import get_agent
 from minisweagent.agents.default import DefaultAgent
-from minisweagent.agents.subagents import SubagentConfig, register_subagent_tools
 from minisweagent.agents.utils.prompt_user import _multiline_prompt
 from minisweagent.config import builtin_config_dir, get_config_from_spec
-from minisweagent.environments import get_environment
-from minisweagent.environments.sandbox import SandboxConfig, SandboxMode, open_runtime
-from minisweagent.models import get_model
-from minisweagent.plugins import PluginError, load_plugins
+from minisweagent.environments.sandbox import SandboxMode
+from minisweagent.plugins import PluginError
 from minisweagent.run.utilities.config import configure_if_first_time
+from minisweagent.runtime import open_agent_runtime
 from minisweagent.storage import RunStore, StorageConfig, StorageError
-from minisweagent.tools import ToolError, make_tool_registry
-from minisweagent.tools.mcp import open_mcp_tools, parse_mcp_servers
-from minisweagent.tools.skills import SkillConfig, discover_skills, get_skill, register_skill_tools
-from minisweagent.tools.web import WebConfig, configure_web_tools
+from minisweagent.tools import ToolError
+from minisweagent.tools.skills import get_skill
 from minisweagent.utils.serialize import UNSET, recursive_merge
 
 DEFAULT_CONFIG_FILE = Path(os.getenv("MSWEA_MINI_CONFIG_PATH", builtin_config_dir / "mini.yaml"))
@@ -112,11 +105,6 @@ def main(
     if storage_path is not None:
         configs.append({"storage": {"path": storage_path}})
     config = recursive_merge(*configs)
-    try:
-        plugins = load_plugins(config)
-        config = plugins.config
-    except PluginError as error:
-        raise typer.BadParameter(str(error)) from None
 
     if reconciliation is not None and (resume_from is None or not reconciliation.strip()):
         raise typer.BadParameter("Supply a nonempty reconciliation with --resume.")
@@ -130,86 +118,46 @@ def main(
         run_task = _multiline_prompt()
         console.print("[bold green]Got that, thanks![/bold green]")
 
-    model_config = config.get("model", {})
-    model = get_model(config=model_config)
-    web = WebConfig.model_validate(config.get("web", {}))
+    agent_config = config.get("agent", {})
+    run_id = uuid4().hex if "storage" in config or resume_from else None
+    if run_id and agent_config.get("output_path") == DEFAULT_OUTPUT_FILE:
+        agent_config = agent_config | {"output_path": DEFAULT_OUTPUT_FILE.parent / "runs" / f"{run_id}.traj.json"}
+        config["agent"] = agent_config
     try:
-        skill_config = SkillConfig.model_validate(config.get("skills", {}))
-        subagents = SubagentConfig.model_validate(config.get("subagents", {}))
-        sandbox = SandboxConfig.model_validate(config["sandbox"]) if "sandbox" in config else None
-        storage = StorageConfig.model_validate(config.get("storage", {})) if "storage" in config or resume_from else None
-    except ValidationError as error:
-        issue = error.errors(include_input=False)[0]
-        field = ".".join(map(str, issue["loc"])) or "config"
-        raise typer.BadParameter(f"{field}: {issue['msg']}") from None
-    with ExitStack() as stack:
-        agent_options = {}
-        agent_config = config.get("agent", {})
-        run_id = uuid4().hex if storage else None
-        if run_id and agent_config.get("output_path") == DEFAULT_OUTPUT_FILE:
-            agent_config = agent_config | {"output_path": DEFAULT_OUTPUT_FILE.parent / "runs" / f"{run_id}.traj.json"}
-        try:
-            servers = parse_mcp_servers(config.get("mcp_servers", {}))
-            has_web_tools = bool(web.search_provider or web.extract_provider)
-            environment_config = config.get("environment", {})
-            if sandbox is None:
-                env = get_environment(environment_config, default_type="local")
-            else:
-                sandbox.check_external_tools(
-                    web_enabled=has_web_tools,
-                    stdio={name for name, server in servers.items() if server.command},
-                    http={name for name, server in servers.items() if server.url},
-                )
-                env, mode = stack.enter_context(open_runtime(sandbox, environment_config))
-                console.print(f"Execution mode: {mode}")
-            catalog = discover_skills(skill_config, Path.cwd())
-            if collision := catalog.keys() & plugins.skills.keys():
-                raise ToolError(f"Plugin skill name collision: {sorted(collision)}.")
-            catalog.update(plugins.skills)
+        storage = StorageConfig.model_validate(config.get("storage", {})) if run_id else None
+        with open_agent_runtime(config) as runtime:
+            agent = runtime.agent
+            if runtime.mode is not None:
+                console.print(f"Execution mode: {runtime.mode}")
             if skill is not None:
-                selected = get_skill(catalog, skill).view()
+                selected = get_skill(runtime.skills, skill).view()
                 run_task = (
                     f"{run_task}\n\nUse the explicitly selected skill {skill!r}. Its directory is {selected['directory']}.\n\n"
                     f"{selected['content']}"
                 )
-            has_skill_tools = bool(catalog) and callable(getattr(model, "bind_tool_registry", None)) and getattr(
-                model, "supports_tool_registry", True
-            )
-            if has_web_tools or servers or has_skill_tools or subagents.roles:
-                registry = make_tool_registry(env)
-                configure_web_tools(registry, web)
-                stack.enter_context(open_mcp_tools(registry, servers))
-                if has_skill_tools:
-                    register_skill_tools(registry, catalog)
-                agent_options["tool_registry"] = registry
-            agent = get_agent(model, env, agent_config, default_type="interactive", **agent_options)
-            if subagents.roles:
-                register_subagent_tools(registry, agent, subagents, model_config, catalog)
-        except ToolError as error:
-            raise typer.BadParameter(str(error)) from None
-        try:
             if storage is not None:
                 if not isinstance(agent, DefaultAgent):
                     raise StorageError("Run storage requires a DefaultAgent-compatible agent.")
-                workspace = sandbox.workspace if sandbox is not None else Path(getattr(env.config, "cwd", "") or ".")
-                runtime_policy = sandbox.model_dump_json() if sandbox is not None else ""
-                if plugins.versions:
-                    runtime_policy = json.dumps({"sandbox": runtime_policy, "plugins": plugins.versions}, sort_keys=True)
                 with RunStore(storage.path).track(
                     agent, run_id=run_id, resume_from=resume_from, reconciliation=reconciliation,
-                    workspace=workspace.expanduser(),
-                    runtime_policy=runtime_policy,
+                    workspace=runtime.workspace, runtime_policy=runtime.policy,
                 ) as record:
                     console.print(f"Run ID: {record.id}")
                     agent.run(record.resume.task if record.resume else run_task)
             else:
                 agent.run(run_task)
-        except StorageError as error:
-            typer.echo(str(error), err=True)
-            raise typer.Exit(1) from None
+            if runtime.plugin_versions and agent_config.get("output_path"):
+                agent.save(Path(agent_config["output_path"]), {"info": {"plugins": runtime.plugin_versions}})
+    except (ToolError, PluginError) as error:
+        raise typer.BadParameter(str(error)) from None
+    except ValidationError as error:
+        issue = error.errors(include_input=False)[0]
+        field = ".".join(map(str, issue["loc"])) or "config"
+        raise typer.BadParameter(f"{field}: {issue['msg']}") from None
+    except StorageError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(1) from None
     if (output_path := agent_config.get("output_path")):
-        if plugins.versions:
-            agent.save(Path(output_path), {"info": {"plugins": plugins.versions}})
         console.print(f"Saved trajectory to [bold green]'{output_path}'[/bold green]")
     return agent
 
