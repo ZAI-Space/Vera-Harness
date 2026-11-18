@@ -135,7 +135,7 @@ def experiment_lock(root: Path) -> Iterator[None]:
 
 
 def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout: int, cancel: Path) -> dict:
-    """Run argv without a shell and reap the process tree on timeout/cancellation.
+    """Run argv without a shell and reap on failure, timeout or cancellation.
 
     Output goes straight to disk, avoiding pipe deadlocks and unbounded RAM use.
     Caller must reserve costs before starting; a killed paid request remains charged
@@ -155,9 +155,9 @@ def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout:
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
         )
         lease_path = log.with_suffix(".process.json")
-        lease = {"pid": process.pid, "stamp": _process_stamp(process.pid), "status": "running"}
-        write_json(lease_path, lease)
         try:
+            lease = {"pid": process.pid, "stamp": _process_stamp(process.pid), "status": "running"}
+            write_json(lease_path, lease)
             while process.poll() is None:
                 if cancel.exists() or time.monotonic() - started >= timeout:
                     reason = "cancelled" if cancel.exists() else "timeout"
@@ -167,6 +167,6 @@ def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout:
             if process.poll() is None:
                 _kill_tree(process.pid)
                 process.wait(timeout=15)
-            lease["status"] = reason
-            write_json(lease_path, lease)
+        lease["status"] = reason
+        write_json(lease_path, lease)
     return {"returncode": process.returncode, "status": reason, "seconds": time.monotonic() - started}

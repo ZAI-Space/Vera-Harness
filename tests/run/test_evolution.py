@@ -16,7 +16,7 @@ import pytest
 
 from minisweagent.evolution.config import EvolutionConfig, EvolutionError
 from minisweagent.evolution.engine import Experiment
-from minisweagent.evolution.process import _process_stamp, experiment_lock, write_json
+from minisweagent.evolution.process import _process_stamp, experiment_lock, run_process, write_json
 from minisweagent.evolution.repository import checkout, commit_candidate, git
 from minisweagent.evolution.runtime import select_runtime
 
@@ -234,6 +234,28 @@ def test_cli_cancellation_reaps_child_and_requires_explicit_resume(source_repo, 
     assert state["spent"] == experiment.config.optimizer_cost_limit
     assert not (Path(state["versions"][-1]["workspace"]) / "optimizer-finished").exists()
     assert _cli(experiment.root, "run", check=False).returncode != 0
+
+
+def test_process_lease_failure_reaps_started_child(tmp_path):
+    """An unpublishable process lease must not leave the worker running."""
+    marker = tmp_path / "unexpected-completion"
+    log = tmp_path / "worker.log"
+    log.with_suffix(".process.json").mkdir()
+    with pytest.raises(OSError):
+        run_process(
+            [
+                sys.executable,
+                "-c",
+                "import time;from pathlib import Path;time.sleep(1);Path('unexpected-completion').touch()",
+            ],
+            cwd=tmp_path,
+            env=os.environ.copy(),
+            log=log,
+            timeout=10,
+            cancel=tmp_path / "cancel.request",
+        )
+    time.sleep(1.5)
+    assert not marker.exists()
 
 
 def test_controller_crash_reaps_previous_process_without_replaying(source_repo, tmp_path):

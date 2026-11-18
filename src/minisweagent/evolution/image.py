@@ -35,6 +35,7 @@ def prepare_image(source: Path, image: str) -> str:
             "pyproject.toml",
             "README.md",
             "LICENSE.md",
+            "THIRD_PARTY_NOTICES.md",
             "src",
         ]
     )
