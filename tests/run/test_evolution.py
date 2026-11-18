@@ -95,6 +95,7 @@ def test_closed_loop_executes_evolved_optimizer_and_rejects_regression(source_re
     baseline = git(source_repo, "rev-parse", "HEAD")
     config = _config(
         "if grep -q 'VALUE = 0' src/minisweagent/evolution_example.py; then printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py; else printf 'VALUE = -1\\n' > src/minisweagent/evolution_example.py; fi",
+        "printf '\\n# Candidate import path: %s\\n' \"$PYTHONPATH\" >> src/minisweagent/evolution_example.py",
         "printf '\\nprint(\"EVOLVED_OPTIMIZER_ACTIVE\")\\n' >> src/minisweagent/run/mini.py",
         repeats=2,
     )
@@ -106,6 +107,9 @@ def test_closed_loop_executes_evolved_optimizer_and_rejects_regression(source_re
     assert "Regression" in rejected["reason"]
     assert rejected["optimizer"] == accepted["id"] == rejected["base"]
     assert rejected["base_sha"] == accepted["sha"] != original["sha"]
+    assert str(Path(accepted["workspace"]) / "src") in (
+        Path(accepted["workspace"]) / "src/minisweagent/evolution_example.py"
+    ).read_text(encoding="utf-8")
     assert "EVOLVED_OPTIMIZER_ACTIVE" in (experiment.root / "artifacts" / rejected["id"] / "optimizer.log").read_text(
         encoding="utf-8"
     )
@@ -322,7 +326,7 @@ def test_complete_optimizer_process_is_isolated(source_repo, tmp_path, backend):
     canary = tmp_path / "controller-owned-canary"
     canary.write_text("protected controller data", encoding="utf-8")
     config = _config(
-        "test ! -w /optimizer/src/minisweagent/run/mini.py && test ! -e /artifacts/../state.json && printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py",
+        "test ! -w /optimizer/src/minisweagent/run/mini.py && test ! -e /artifacts/../state.json && printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py && python -c 'from minisweagent.evolution_example import VALUE; assert VALUE == 1' || printf 'VALUE = 0\\n' > src/minisweagent/evolution_example.py",
         f"ln -s {shlex.quote(str(canary))} /artifacts/check-0.log; ln -s {shlex.quote(str(canary))} /artifacts/optimizer.process.pending; printf '{{}}' > /artifacts/verifier.process.json",
         sandbox=backend,
     )

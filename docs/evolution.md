@@ -103,6 +103,8 @@ as for the other `mini-extra` commands.
   per-task/repetition results, cost and decision. Every check, trial and optimizer
   gets a fresh checkout of the recorded SHA; dirty/ignored optimizer files cannot
   affect later generations. The source repository must be clean at initialization.
+  The optimizer process imports its historical version; Bash child processes use
+  the candidate's `src` directory so self-checks test the code being edited.
 * `state.json` is replaced atomically. An OS lock rejects concurrent controllers.
   Cancellation reaps the active subprocess tree. Recovery identifies previously
   owned processes by PID **and creation time**, reaps them and cleans up owned
