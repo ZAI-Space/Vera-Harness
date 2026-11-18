@@ -113,10 +113,16 @@ def experiment_lock(root: Path) -> Iterator[None]:
                 stream.write(b"0")
                 stream.flush()
             stream.seek(0)
-            try:
-                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
-            except OSError as error:
-                raise EvolutionError("Another evolution controller owns this experiment.") from error
+            # Windows may signal process exit before its file locks are released.
+            # Bound the grace period; a live controller still retains ownership.
+            for attempt in range(20):
+                try:
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except PermissionError as error:
+                    if attempt == 19:
+                        raise EvolutionError("Another evolution controller owns this experiment.") from error
+                    time.sleep(0.01)
         else:
             import fcntl
 
