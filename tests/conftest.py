@@ -43,8 +43,9 @@ def reset_global_stats():
 def is_linux_container_available(executable: str) -> bool:
     """Require a running Linux engine, since these fixtures use Linux images."""
     try:
+        os_template = "{{.Host.OS}}" if Path(executable).stem == "podman" else "{{.OSType}}"
         result = subprocess.run(
-            [executable, "info", "--format", "{{.OSType}}"],
+            [executable, "info", "--format", os_template],
             capture_output=True,
             text=True,
             check=True,
