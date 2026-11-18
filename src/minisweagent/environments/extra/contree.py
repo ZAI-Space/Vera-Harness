@@ -4,12 +4,13 @@ import platform
 import shlex
 from dataclasses import asdict, is_dataclass
 from numbers import Number
-from typing import Any, NotRequired, TypedDict
+from typing import Any
 
 from contree_sdk import ContreeSync
 from contree_sdk.config import ContreeConfig
 from contree_sdk.sdk.objects.image import ContreeImageSync
 from pydantic import BaseModel
+from typing_extensions import NotRequired, TypedDict
 
 from minisweagent import Environment
 from minisweagent.exceptions import Submitted
