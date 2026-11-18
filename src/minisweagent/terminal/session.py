@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from minisweagent.environments.sandbox_profiles import SandboxProfiles, resolve_sandbox_profile
 from minisweagent.plugins import PluginManager, load_plugins
 from minisweagent.plugins.runtime import PluginConfig
 from minisweagent.terminal.files import ProjectFiles
@@ -19,7 +20,8 @@ COMMANDS = {
     "/plugin": "Choose installed and enabled plugins",
     "/model": "Choose a configured model profile",
     "/subagent": "Choose a configured role and optional task",
-    "/permissions": "Choose execution policy and sandbox",
+    "/permissions": "Choose confirm, yolo or human mode",
+    "/sandbox": "Choose a user-configured sandbox",
     "/new": "Start a new conversation",
     "/stop": "Stop the current task",
     "/help": "Show commands",
@@ -57,10 +59,37 @@ class TerminalSession:
         self.skills: list[str] = []
         self.mcp: list[str] | None = None
         self.role: str | None = None
+        self.sandbox_name: str | None = config.get("sandbox_profile")
         mode = config.get("agent", {}).get("mode", "confirm")
         self.permission = "auto" if mode == "yolo" else "human" if mode == "human" else "confirm"
         if config.get("permissions", {}).get("mode") == "read-only":
             self.permission = "readonly"
+
+    def set_mode(self, mode: str) -> None:
+        """Select confirm/yolo/human for the next task; never change its execution environment."""
+        if mode not in {"confirm", "yolo", "human"}:
+            raise ToolError("Choose confirm, yolo or human.")
+        self.permission = mode
+
+    def sandbox_status(self) -> dict:
+        """Refresh configured sandboxes for a disabled/enabled frontend picker, without installation."""
+        return SandboxProfiles.from_config(self.config).status(self.files.root) | {"selected": self.sandbox_name}
+
+    def select_sandbox(self, name: str | None) -> None:
+        """Select an available saved sandbox, or explicitly choose local with None.
+
+        Invalid/unavailable choices leave the selection unchanged. The runtime
+        rechecks startup; current tasks keep their already assembled environment.
+        """
+        if name is None:
+            self.sandbox_name = None
+            self.config.pop("sandbox_profile", None)
+            self.config["sandbox"] = {"mode": "local", "workspace": str(self.files.root)}
+            return
+        status = SandboxProfiles.from_config(self.config).check(name, self.files.root)
+        if not status["available"]:
+            raise ToolError(f"Sandbox {name!r} unavailable: {status['reason']}")
+        self.sandbox_name = name
 
     def catalog(self, command: str) -> list[dict]:
         """Return safe names/descriptions without opening external services or exposing secrets."""
@@ -98,10 +127,15 @@ class TerminalSession:
             return [
                 {"name": name, "description": description}
                 for name, description in (
-                    ("readonly", "No Bash or external MCP; file context, skills and configured web reads"),
                     ("confirm", "Confirm actions before execution"),
-                    ("auto", "Execute within the selected runtime policy"),
+                    ("yolo", "Execute without per-action confirmation"),
+                    ("human", "Execute commands entered by the user"),
                 )
+            ]
+        if command == "/sandbox":
+            return [
+                {"name": name, "description": profile.mode.value}
+                for name, profile in SandboxProfiles.from_config(self.config).list_profiles().items()
             ]
         return []
 
@@ -125,6 +159,11 @@ class TerminalSession:
             if argument.strip():
                 raise ToolError(f"{command} takes no arguments.")
             return InputResult(command[1:], "Current task stopped." if command == "/stop" else "New conversation.")
+        if command == "/sandbox":
+            if not argument.strip():
+                return InputResult("message", json.dumps(self.sandbox_status(), ensure_ascii=False))
+            self.select_sandbox(None if argument.strip() == "none" else argument.strip())
+            return InputResult("message", "Execution environment selected for the next task.")
         if not argument.strip():
             rows = self.catalog(command)
             return InputResult(
@@ -136,13 +175,15 @@ class TerminalSession:
             values = argument.split()
             if (
                 len(values) > 2
-                or values[0] not in {"readonly", "confirm", "auto"}
+                or values[0] not in {"readonly", "confirm", "auto", "yolo", "human"}
                 or len(values) == 2
                 and values[1] not in {"local", "docker", "bubblewrap", "auto"}
             ):
-                raise ToolError("Use /permissions readonly|confirm|auto [local|docker|bubblewrap|auto].")
+                raise ToolError("Use /permissions confirm|yolo|human. Choose configured environments with /sandbox.")
             self.permission = values[0]
             if len(values) == 2:
+                self.sandbox_name = None
+                self.config.pop("sandbox_profile", None)
                 self.config.setdefault("sandbox", {})["mode"] = values[1]
             return InputResult("message", "Permissions selected; applies to the next task.")
         if command == "/model":
@@ -187,9 +228,9 @@ class TerminalSession:
     def runtime_config(self) -> dict:
         """Build a detached per-task config; filter MCP after plugin expansion."""
         config = deepcopy(self.config)
-        policy = {"readonly": "read-only", "human": "standard"}.get(self.permission, self.permission)
+        policy = {"readonly": "read-only", "human": "standard", "yolo": "auto"}.get(self.permission, self.permission)
         config["permissions"] = {"mode": policy}
-        mode = {"auto": "yolo", "human": "human"}.get(self.permission, "confirm")
+        mode = {"auto": "yolo", "yolo": "yolo", "human": "human"}.get(self.permission, "confirm")
         config.setdefault("agent", {})["mode"] = mode
         interactive = {
             "default": "interactive",
@@ -201,7 +242,9 @@ class TerminalSession:
             config["agent"]["agent_class"] = interactive[agent_class]
         if self.mcp is not None:
             config["mcp_selection"] = list(self.mcp)
-        return config
+        if self.sandbox_name:
+            config["sandbox_profile"] = self.sandbox_name
+        return resolve_sandbox_profile(config, self.files.root)
 
     def prepare_task(self, text: str) -> str:
         """Attach explicit files and selected skill/role context, without running tools."""

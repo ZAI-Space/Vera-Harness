@@ -10,6 +10,7 @@ from minisweagent.agents.interactive import InteractiveAgent
 from minisweagent.agents.subagents import SubagentConfig, register_subagent_tools
 from minisweagent.environments import get_environment
 from minisweagent.environments.sandbox import SandboxConfig, open_runtime
+from minisweagent.environments.sandbox_profiles import resolve_sandbox_profile
 from minisweagent.models import get_model
 from minisweagent.permissions import PermissionsConfig, ReadOnlyEnvironment, register_readonly_finish
 from minisweagent.plugins import load_plugins
@@ -38,6 +39,8 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
     The input is copied by the plugin adapter. No agent steps execute here. Callers
     own task selection, storage tracking and execution; configuration errors propagate.
     """
+    workspace = config.get("sandbox", {}).get("workspace") or config.get("environment", {}).get("cwd")
+    config = resolve_sandbox_profile(config, Path(workspace) if workspace else None)
     plugins = load_plugins(config)
     config = plugins.config
     permissions = PermissionsConfig.model_validate(config.get("permissions", {}))

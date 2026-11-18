@@ -38,16 +38,18 @@ Use a command without arguments to list configured choices.
 | `/plugin review-kit` | Select installed, already enabled plugins for subsequent runtimes. |
 | `/model fast` | Select a named model profile for subsequent tasks. |
 | `/subagent reviewer [task]` | Request delegation to a configured role; an optional task submits immediately. |
-| `/permissions readonly` | Deny Bash and external MCP in the main agent and every child. |
-| `/permissions confirm [sandbox]` | Require interactive action confirmation. |
-| `/permissions auto [sandbox]` | Execute actions within the configured runtime policy. |
+| `/permissions confirm` | Require action confirmation (subject to the existing Bash whitelist). |
+| `/permissions yolo` | Execute without per-action confirmation. |
+| `/permissions human` | Execute commands entered by the user. |
+| `/sandbox NAME` | Choose a saved, available isolated environment for the next task. |
 | `/new` | End the current conversation and return to task entry. |
 | `/stop` | Stop at the current user-input boundary; exit when entered at idle. |
 | `/help` | Show commands and file selection syntax. |
 
 `/skill`, `/mcp` and `/plugin` accept comma-separated names, `all` or `none`.
-`/subagent none` clears delegation. Sandbox choices are `local`, `docker`,
-`bubblewrap` and `auto`, subject to existing availability checks. Installed
+`/subagent none` clears delegation. `/sandbox` refreshes availability and returns
+configured/disabled state for the picker. `/sandbox none` explicitly chooses
+local host execution. See [sandbox settings](sandbox.md) to add profiles. Installed
 plugins still require approval through plugin management before selection here.
 Disabling an MCP service also removes its tools from delegated roles.
 
@@ -61,7 +63,12 @@ While a model or tool is running, Ctrl+C opens the existing interruption prompt;
 enter `/stop` there. Commands are interpreted only from user input. To submit a
 task starting with a literal slash, prefix it with another slash (`//...`).
 
-Read-only permissions retain file context, skill reads, configured web reads,
+The previous `/permissions auto`, `/permissions readonly` and optional backend
+argument remain accepted for compatibility; the mode picker exposes only
+`confirm`, `yolo` and `human`. Execution environment selection is independent.
+There is no automatic risk classification or delegated approval mode.
+
+The optional read-only restriction retains file context, skill reads, configured web reads,
 delegation, and run logging. They use `task_finish` instead of Bash to finish.
 They require a model adapter supporting registered tools and do not replace
 operating-system isolation. Local mode otherwise has host access; confirmation

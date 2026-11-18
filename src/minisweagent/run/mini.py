@@ -19,6 +19,7 @@ from minisweagent.agents.default import DefaultAgent
 from minisweagent.agents.utils.prompt_user import _multiline_prompt
 from minisweagent.config import builtin_config_dir, get_config_from_spec
 from minisweagent.environments.sandbox import SandboxMode
+from minisweagent.environments.sandbox_profiles import resolve_sandbox_profile
 from minisweagent.plugins import PluginError
 from minisweagent.run.utilities.config import configure_if_first_time
 from minisweagent.runtime import open_agent_runtime
@@ -69,6 +70,7 @@ def main(
     agent_class: str | None = typer.Option(None, "--agent-class", help="Agent class to use (e.g., 'interactive' or 'minisweagent.agents.interactive.InteractiveAgent')", rich_help_panel="Advanced"),
     environment_class: str | None = typer.Option(None, "--environment-class", help="Environment class to use (e.g., 'local' or 'minisweagent.environments.local.LocalEnvironment')", rich_help_panel="Advanced"),
     sandbox_mode: Annotated[SandboxMode | None, typer.Option("--sandbox", help="Choose workspace isolation or explicit local execution.")] = None,
+    sandbox_profile: Annotated[str | None, typer.Option("--sandbox-profile", help="Use a saved sandbox profile.")] = None,
     task: str | None = typer.Option(None, "-t", "--task", help="Task/problem statement", show_default=False),
     skill: Annotated[str | None, typer.Option("--skill", help="Load a local skill into the initial task.")] = None,
     storage_path: Annotated[Path | None, typer.Option("--storage", help="Record this run in a SQLite database.")] = None,
@@ -110,6 +112,16 @@ def main(
     if storage_path is not None:
         configs.append({"storage": {"path": storage_path}})
     config = recursive_merge(*configs)
+    if sandbox_profile is not None:
+        config["sandbox_profile"] = sandbox_profile
+    if sandbox_mode is not None and config.get("sandbox_profile"):
+        raise typer.BadParameter("Choose either --sandbox or --sandbox-profile, not both.")
+    if config.get("sandbox_profile"):
+        workspace = config.get("sandbox", {}).get("workspace") or config.get("environment", {}).get("cwd") or Path.cwd()
+        try:
+            config = resolve_sandbox_profile(config, Path(workspace))
+        except (ToolError, ValidationError) as error:
+            raise typer.BadParameter(str(error)) from None
 
     if reconciliation is not None and (resume_from is None or not reconciliation.strip()):
         raise typer.BadParameter("Supply a nonempty reconciliation with --resume.")

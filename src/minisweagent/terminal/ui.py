@@ -22,6 +22,8 @@ class TerminalCompleter(Completer):
             command, separator, argument = before.partition(" ")
             if not separator:
                 for name, description in COMMANDS.items():
+                    if name == "/sandbox" and not self.session.catalog(name):
+                        continue
                     if name.startswith(command):
                         yield Completion(name + " ", start_position=-len(before), display_meta=description)
                 return
@@ -33,6 +35,8 @@ class TerminalCompleter(Completer):
                 rows += [{"name": name, "description": "Session selection"} for name in ("all", "none")]
             elif command == "/subagent":
                 rows += [{"name": "none", "description": "Clear selected role"}]
+            elif command == "/sandbox" and (rows or self.session.sandbox_name):
+                rows += [{"name": "none", "description": "Use the local host explicitly"}]
             if command != "/subagent" or not argument.strip() or " " not in argument.strip():
                 query = argument.rsplit(",", 1)[-1].lstrip()
                 for row in rows:

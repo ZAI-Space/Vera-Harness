@@ -1,5 +1,83 @@
 # Workspace sandbox
 
+## Saved environments
+
+Sandbox engines and images are installed/configured by the user. Vera never
+downloads Docker, Bubblewrap or images, and does not register detected engines
+as profiles automatically. Users without these tools can continue locally.
+
+Create a configuration file, for example `python-sandbox.yaml`:
+
+```yaml
+mode: docker
+docker_image: python:3.12-slim
+workspace_access: read-write
+timeout: 30
+```
+
+Register it independently of any model:
+
+```bash
+mini-extra sandboxes save python-dev python-sandbox.yaml
+mini-extra sandboxes list
+mini-extra sandboxes check --workspace .
+mini-extra sandboxes save python-dev python-sandbox.yaml --replace
+mini-extra sandboxes remove python-dev
+```
+
+The default store is `sandbox-profiles.sqlite3` under the global config directory.
+`mini-extra sandboxes --store PATH ...` selects a different user-owned store;
+configure `sandbox_profiles.path` to use that store from the runtime.
+Named profiles require an explicit `docker` or `bubblewrap` backend, so their
+identity never changes automatically. Each profile accepts existing SandboxConfig
+fields. Changes are transactional and replacement requires explicit intent.
+
+In the terminal, `/sandbox` returns fresh availability; `/sandbox python-dev`
+selects an available profile for the next task. `/sandbox none` explicitly
+selects local execution. `mini --sandbox-profile python-dev -t 'TASK'` selects
+the same profile without the interactive prompt. A runtime config may also set
+`sandbox_profile: python-dev`. Mixing that selection with `--sandbox` is rejected.
+
+The current project directory is bound when selecting a profile in a terminal.
+Direct runtime callers can supply their project through `sandbox.workspace` or
+`environment.cwd`; otherwise the saved workspace is used. Profile options replace
+the previous sandbox configuration completely. The parent and its Subagents
+share the selected runtime and project boundary. Mid-task changes affect the next
+task; already running environments keep their configuration.
+
+Settings can save profiles even if the engine is offline. Availability checks
+validate the project, backend and cached Docker image without starting containers;
+Bubblewrap uses a bounded namespace probe. A failed startup reports an error and
+never silently runs on the host.
+
+### Backend interface for desktop integration
+
+`SandboxProfiles.save/list_profiles/remove` manage settings. `check/status` probe
+only saved profiles and provide `available`, `code` and `reason`. Reading an empty
+store does not create a database or probe installed engines.
+
+`TerminalSession.sandbox_status()` returns, for example:
+
+```json
+{
+  "configured": false,
+  "enabled": false,
+  "reason": "Configure a sandbox in settings first.",
+  "choices": [],
+  "selected": null
+}
+```
+
+Disable the picker when `enabled` is false. If profiles exist, show each choice
+and disable those with `available: false`, displaying its reason. This is a
+snapshot; call again to refresh after settings or engine changes.
+`TerminalSession.select_sandbox(name)` validates before updating selection;
+`select_sandbox(None)` chooses local explicitly. `set_mode("confirm"|"yolo"|"human")`
+changes operation mode independently. `runtime_config()` produces a detached
+configuration for the next task; these APIs require no frontend or HTTP transport.
+
+## Existing backend selection
+
 Choose a mode when you start a run.
 
 | Mode | Requirements and behavior |
