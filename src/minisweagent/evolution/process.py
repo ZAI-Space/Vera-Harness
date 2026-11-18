@@ -1,5 +1,6 @@
 """Supervise bounded subprocess trees and serialize external experiment control."""
 
+import errno
 import json
 import os
 import signal
@@ -11,6 +12,26 @@ from pathlib import Path
 from uuid import uuid4
 
 from minisweagent.evolution.config import EvolutionError
+
+
+def read_json(path: Path) -> dict:
+    """Read a complete manifest, briefly retrying Windows sharing/access errors.
+
+    Persistent permission failures, missing files and invalid JSON still raise.
+    This is safe alongside atomic replacement; it never accepts partial state.
+    """
+    for _ in range(19):
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except PermissionError as error:
+            if os.name != "nt":
+                raise
+            # Python's CRT-backed open can expose EACCES without a Win32 code.
+            is_access_error = error.winerror in {5, 32, 33} or (error.winerror is None and error.errno == errno.EACCES)
+            if not is_access_error:
+                raise
+            time.sleep(0.01)
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def write_json(path: Path, value: dict) -> None:

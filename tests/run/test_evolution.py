@@ -9,6 +9,7 @@ import os
 import shlex
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -16,7 +17,7 @@ import pytest
 
 from minisweagent.evolution.config import EvolutionConfig, EvolutionError
 from minisweagent.evolution.engine import Experiment
-from minisweagent.evolution.process import _process_stamp, experiment_lock, run_process, write_json
+from minisweagent.evolution.process import _process_stamp, experiment_lock, read_json, run_process, write_json
 from minisweagent.evolution.repository import checkout, commit_candidate, git
 from minisweagent.evolution.runtime import select_runtime
 
@@ -234,6 +235,47 @@ def test_cli_cancellation_reaps_child_and_requires_explicit_resume(source_repo, 
     assert state["spent"] == experiment.config.optimizer_cost_limit
     assert not (Path(state["versions"][-1]["workspace"]) / "optimizer-finished").exists()
     assert _cli(experiment.root, "run", check=False).returncode != 0
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows exclusive file sharing contracts")
+@pytest.mark.parametrize("is_transient", [True, False])
+def test_state_reader_handles_real_windows_sharing_errors(tmp_path, is_transient):
+    """Wait for short sharing conflicts; preserve persistent and JSON errors."""
+    import ctypes
+    from ctypes import wintypes
+
+    path = tmp_path / "state.json"
+    write_json(path, {"status": "running"})
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateFileW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    ]
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    handle = kernel.CreateFileW(str(path), 0x80000000, 0, None, 3, 0x80, None)
+    assert handle != wintypes.HANDLE(-1).value, ctypes.get_last_error()
+    release = threading.Timer(0.05, kernel.CloseHandle, args=(handle,))
+    try:
+        if is_transient:
+            release.start()
+            assert read_json(path) == {"status": "running"}
+        else:
+            with pytest.raises(PermissionError):
+                read_json(path)
+    finally:
+        if is_transient:
+            release.join()
+        else:
+            kernel.CloseHandle(handle)
+    path.write_text("invalid JSON", encoding="utf-8")
+    with pytest.raises(json.JSONDecodeError):
+        read_json(path)
 
 
 def test_process_lease_failure_reaps_started_child(tmp_path):
