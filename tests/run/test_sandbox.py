@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from minisweagent.environments.sandbox import SandboxConfig, SandboxMode, _bubblewrap, _docker, open_runtime
+from tests.run.test_cli_integration import strip_ansi_codes
 from tests.run.test_skill_tools import run_cli
 
 
@@ -39,8 +40,9 @@ def test_cli_auto_requires_a_real_sandbox_and_allows_explicit_local(tmp_path):
     arguments = ("-c", str(config), "-t", "Check execution", "-o", str(tmp_path / "trajectory.json"))
     with pytest.raises(subprocess.CalledProcessError) as failure:
         run_cli(tmp_path, "minisweagent", *arguments, "--sandbox", "auto", **missing_runtime)
-    assert "unavailable" in failure.value.stderr
-    assert "--sandbox local" in failure.value.stderr
+    error = strip_ansi_codes(failure.value.stderr)
+    assert "unavailable" in error
+    assert "--sandbox local" in error
     assert not (tmp_path / "trajectory.json").exists()
 
     result = run_cli(tmp_path, "minisweagent", *arguments, "--sandbox", "local", **missing_runtime)

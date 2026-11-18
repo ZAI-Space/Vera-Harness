@@ -5,24 +5,17 @@ from unittest.mock import patch
 import pytest
 
 from minisweagent.environments.docker import DockerEnvironment, DockerEnvironmentConfig
+from tests.conftest import is_linux_container_available
 
 
 def is_docker_available():
-    """Check if Docker is available and running."""
-    try:
-        subprocess.run(["docker", "version"], capture_output=True, check=True, timeout=5)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        return False
+    """Check whether Docker can run the Linux images used by these tests."""
+    return is_linux_container_available("docker")
 
 
 def is_podman_available():
-    """Check if Podman is available and running."""
-    try:
-        subprocess.run(["podman", "version"], capture_output=True, check=True, timeout=5)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        return False
+    """Check whether Podman can run the Linux images used by these tests."""
+    return is_linux_container_available("podman")
 
 
 # Test parameters for both Docker and Podman

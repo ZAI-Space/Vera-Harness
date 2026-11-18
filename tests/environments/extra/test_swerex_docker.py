@@ -1,17 +1,12 @@
-import subprocess
-
 import pytest
 
 from minisweagent.environments.extra.swerex_docker import SwerexDockerEnvironment
+from tests.conftest import is_linux_container_available
 
 
 def _is_docker_available():
-    """Check if Docker (or podman aliased as docker) is available."""
-    try:
-        subprocess.run(["docker", "version"], capture_output=True, check=True, timeout=5)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        return False
+    """Require the Linux engine needed by the SWE-ReX images."""
+    return is_linux_container_available("docker")
 
 
 @pytest.mark.slow

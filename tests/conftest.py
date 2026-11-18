@@ -40,14 +40,26 @@ def reset_global_stats():
         GLOBAL_MODEL_STATS._n_calls = 0  # noqa: protected-access
 
 
+def is_linux_container_available(executable: str) -> bool:
+    """Require a running Linux engine, since these fixtures use Linux images."""
+    try:
+        result = subprocess.run(
+            [executable, "info", "--format", "{{.OSType}}"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+        )
+        return result.stdout.strip() == "linux"
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
 def _get_container_executable() -> str | None:
     """Return 'docker' or 'podman', whichever is available and running."""
     for exe in ("docker", "podman"):
-        try:
-            subprocess.run([exe, "version"], capture_output=True, check=True, timeout=5)
+        if is_linux_container_available(exe):
             return exe
-        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-            continue
     return None
 
 

@@ -31,7 +31,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install all runtime and test dependencies
-        run: python -m pip install -e '.[full,channels]'
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install -e '.[full,channels]'
+          (Resolve-Path .venv/Scripts).Path | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Verify Git Bash availability
         run: |
           $gitBash = Join-Path $env:ProgramFiles 'Git\bin\bash.exe'
