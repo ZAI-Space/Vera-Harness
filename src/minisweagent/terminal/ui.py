@@ -121,6 +121,14 @@ def bind_session(agent, session, show):
                     }
                 )
             if result.kind == "task":
+                if session.run_mode in {"plan", "goal"}:
+                    raise InterruptAgentFlow(
+                        {
+                            "role": "exit",
+                            "content": "Switching explicit run mode.",
+                            "extra": {"exit_status": "Cancelled", "submission": "", "pending_task": result.task},
+                        }
+                    )
                 return result.task
             show(result.message)
             return None

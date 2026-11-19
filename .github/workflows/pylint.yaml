@@ -41,6 +41,8 @@ jobs:
           /tmp/vera-wheel/bin/mini-extra channels --help
           /tmp/vera-wheel/bin/mini-extra plugins --help
           /tmp/vera-wheel/bin/mini-extra cron --help
+          /tmp/vera-wheel/bin/mini-extra mcp --help
+          /tmp/vera-wheel/bin/mini-extra skills --help
       - name: Preserve installable packages
         uses: actions/upload-artifact@v6
         with:

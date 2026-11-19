@@ -31,8 +31,10 @@ class MCPServerConfig(BaseModel):
     args: list[str] = Field(default_factory=list)
     cwd: str | None = None
     env_from: list[str] = Field(default_factory=list)
+    optional_env_from: list[str] = Field(default_factory=list)
     url: str | None = None
     bearer_token_env: str | None = None
+    headers_from: dict[str, str] = Field(default_factory=dict)
     allow_tools: list[str] | None = None
     timeout: float = Field(default=30, gt=0, le=300)
 
@@ -41,16 +43,30 @@ class MCPServerConfig(BaseModel):
         """Require exactly one transport and reject settings for the other transport."""
         if bool(self.command) == bool(self.url):
             raise ValueError("Set exactly one of command and url.")
-        if self.command and self.bearer_token_env is not None:
-            raise ValueError("bearer_token_env requires a url.")
+        variables = [*self.env_from, *self.optional_env_from, *self.headers_from.values()]
+        if self.bearer_token_env is not None:
+            variables.append(self.bearer_token_env)
+        if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) for name in variables):
+            raise ValueError("Credential references must be valid environment variable names.")
+        if self.command and (self.bearer_token_env is not None or self.headers_from):
+            raise ValueError("HTTP credential settings require a url.")
+        if any(
+            not re.fullmatch(r"[A-Za-z0-9_-]+", name)
+            or name.lower()
+            in {"host", "content-type", "content-length", "accept", "mcp-session-id", "mcp-protocol-version"}
+            for name in self.headers_from
+        ):
+            raise ValueError("Custom headers cannot override HTTP or MCP protocol headers.")
+        if self.bearer_token_env and any(name.lower() == "authorization" for name in self.headers_from):
+            raise ValueError("Choose one Authorization credential source.")
         if self.url:
-            if self.args or self.cwd is not None or self.env_from:
+            if self.args or self.cwd is not None or self.env_from or self.optional_env_from:
                 raise ValueError("args, cwd and env_from require a command.")
             url = urlsplit(self.url)
             if url.scheme not in {"http", "https"} or not url.hostname or url.username is not None or url.fragment:
                 raise ValueError("url must be an HTTP(S) endpoint without credentials or a fragment.")
             if (
-                self.bearer_token_env
+                (self.bearer_token_env or self.headers_from)
                 and url.scheme != "https"
                 and url.hostname not in {"127.0.0.1", "localhost", "::1"}
             ):
@@ -89,12 +105,16 @@ async def _open_session(config: MCPServerConfig) -> AsyncIterator["ClientSession
                     command=config.command,
                     args=config.args,
                     cwd=config.cwd,
-                    env={name: os.environ[name] for name in config.env_from},
+                    env={
+                        name: os.environ[name]
+                        for name in [*config.env_from, *config.optional_env_from]
+                        if name in os.environ
+                    },
                 )
             )
             read, write = await stack.enter_async_context(transport)
         else:
-            headers = {}
+            headers = {name: os.environ[variable] for name, variable in config.headers_from.items()}
             if config.bearer_token_env:
                 headers["Authorization"] = f"Bearer {os.environ[config.bearer_token_env]}"
             client = await stack.enter_async_context(
@@ -182,7 +202,7 @@ def open_mcp_tools(registry: ToolRegistry, servers: dict[str, MCPServerConfig]) 
     with ExitStack() as stack:
         portal = stack.enter_context(start_blocking_portal())
         for name, config in servers.items():
-            for variable in (*config.env_from, config.bearer_token_env):
+            for variable in (*config.env_from, *config.headers_from.values(), config.bearer_token_env):
                 if variable is not None and variable not in os.environ:
                     raise ToolError(f"MCP server {name!r} requires the environment variable {variable!r}.")
             try:

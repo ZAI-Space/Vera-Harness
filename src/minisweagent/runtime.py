@@ -11,7 +11,10 @@ from minisweagent.agents.subagents import SubagentConfig, register_subagent_tool
 from minisweagent.environments import get_environment
 from minisweagent.environments.sandbox import SandboxConfig, open_runtime
 from minisweagent.environments.sandbox_profiles import resolve_sandbox_profile
+from minisweagent.markets.mcp import merge_services
 from minisweagent.models import get_model
+from minisweagent.modes.goals import register_goal_finish
+from minisweagent.modes.plan import plan_registry
 from minisweagent.permissions import PermissionsConfig, ReadOnlyEnvironment, register_readonly_finish
 from minisweagent.plugins import load_plugins
 from minisweagent.scheduler.tools import SchedulerSettings, register_scheduler_tools
@@ -42,7 +45,25 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
     """
     workspace = config.get("sandbox", {}).get("workspace") or config.get("environment", {}).get("cwd")
     config = resolve_sandbox_profile(config, Path(workspace) if workspace else None)
-    plugins = load_plugins(config)
+    planning = config.get("run_mode") == "plan"
+    if planning:
+        # Planning is an explicit capability boundary, not a model-only instruction.
+        config = config | {
+            "plugins": {"enabled": False},
+            "mcp_servers": {},
+            "mcp_selection": [],
+            "web": {},
+            "subagents": {},
+            "scheduler": {"enabled": False},
+        }
+        config = config | {
+            "agent": config.get("agent", {})
+            | {
+                "system_template": "You are planning an implementation. Use project_files and project_read to inspect the workspace. "
+                "Use plan_finish to save the complete Markdown plan and finish. No implementation or external actions are allowed."
+            }
+        }
+    plugins = load_plugins(merge_services(config) if not planning else config)
     config = plugins.config
     scheduled = SchedulerSettings.model_validate(config.get("scheduler", {}))
     permissions = PermissionsConfig.model_validate(config.get("permissions", {}))
@@ -103,7 +124,17 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
             and getattr(model, "supports_tool_registry", True)
         )
         registry = None
-        if has_web_tools or servers or has_skill_tools or subagents.roles or readonly or scheduled.enabled:
+        if planning:
+            registry = plan_registry(workspace)
+        elif (
+            has_web_tools
+            or servers
+            or has_skill_tools
+            or subagents.roles
+            or readonly
+            or scheduled.enabled
+            or config.get("run_mode") == "goal"
+        ):
             registry = make_tool_registry(env)
             configure_web_tools(registry, web)
             stack.enter_context(open_mcp_tools(registry, servers))
@@ -121,6 +152,8 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
                 register_readonly_finish(registry)
             if scheduled.enabled and not readonly:
                 register_scheduler_tools(registry, scheduled, config, workspace, set(catalog))
+            if config.get("run_mode") == "goal":
+                register_goal_finish(registry)
         agent = get_agent(model, env, config.get("agent", {}), default_type=default_type, tool_registry=registry)
         if subagents.roles:
             register_subagent_tools(registry, agent, subagents, model_config, catalog)
@@ -135,4 +168,6 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
             policy = json.dumps(
                 {"runtime": policy, "scheduler": str(scheduled.directory.expanduser().resolve())}, sort_keys=True
             )
+        if config.get("run_mode") in {"plan", "goal"}:
+            policy = json.dumps({"runtime": policy, "run_mode": config["run_mode"]}, sort_keys=True)
         yield AgentRuntime(agent, catalog, workspace.expanduser(), policy, plugins.versions, mode)

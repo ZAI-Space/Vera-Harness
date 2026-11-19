@@ -14,6 +14,7 @@ subcommands = [
     ("minisweagent.run.utilities.config", ["config"], "Manage the global config file"),
     ("minisweagent.run.utilities.memory", ["memory"], "Retain and recall project notes in Hindsight"),
     ("minisweagent.run.utilities.skills", ["skills"], "List and inspect local Agent Skills"),
+    ("minisweagent.run.utilities.mcp", ["mcp"], "Find and add MCP services from the official Registry"),
     ("minisweagent.run.utilities.plugins", ["plugins"], "Install plugins from GitHub and plugin marketplaces"),
     ("minisweagent.run.utilities.sandboxes", ["sandboxes"], "Manage user-configured sandbox environments"),
     ("minisweagent.run.utilities.cron", ["cron"], "Manage scheduled tasks and the scheduler service"),

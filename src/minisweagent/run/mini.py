@@ -6,6 +6,7 @@
 import os
 import sys
 from contextlib import nullcontext
+from copy import deepcopy
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
@@ -20,6 +21,7 @@ from minisweagent.agents.utils.prompt_user import _multiline_prompt
 from minisweagent.config import builtin_config_dir, get_config_from_spec
 from minisweagent.environments.sandbox import SandboxMode
 from minisweagent.environments.sandbox_profiles import resolve_sandbox_profile
+from minisweagent.modes.goals import GoalConversationModel, drive_goal
 from minisweagent.plugins import PluginError
 from minisweagent.run.utilities.config import configure_if_first_time
 from minisweagent.runtime import open_agent_runtime
@@ -148,10 +150,40 @@ def main(
         except ToolError as error:
             raise typer.BadParameter(str(error)) from None
 
+    if session is None and not resume_from and isinstance(run_task, str) and run_task.split(maxsplit=1)[:1] in (["/plan"], ["/goal"]):
+        workspace = config.get("sandbox", {}).get("workspace") or config.get("environment", {}).get("cwd") or Path.cwd()
+        session = TerminalSession(config, Path(workspace))
+        result = session.process(run_task)
+        if result.kind != "task":
+            _show_session_message(result.message)
+            return None
+        run_task = result.task
+
     while True:
         current = session.runtime_config() if session else config
         with completion_context(session) if session else nullcontext():
-            agent = _run_task(current, run_task, skill, resume_from, reconciliation, session)
+            if session is not None and session.run_mode == "goal":
+                def run_goal_turn(prompt, history, remaining):
+                    selected = deepcopy(session.runtime_config())
+                    options = selected.setdefault("agent", {})
+                    options["cost_limit"] = min(options.get("cost_limit") or remaining["cost"], remaining["cost"])
+                    options["wall_time_limit_seconds"] = max(1, int(min(options.get("wall_time_limit_seconds") or remaining["seconds"], remaining["seconds"])))
+                    options["confirm_exit"] = False
+                    if options.get("output_path"):
+                        path = Path(options["output_path"])
+                        options["output_path"] = path.with_name(f"{path.stem}.goal-{uuid4().hex[:8]}{path.suffix}")
+                    return _run_task(selected, session.prepare_task(prompt), skill, None, None, session, history)
+                try:
+                    agent = drive_goal(session, run_goal_turn, _show_session_message)
+                except ToolError as error:
+                    raise typer.BadParameter(str(error)) from None
+            else:
+                agent = _run_task(current, run_task, skill, resume_from, reconciliation, session)
+            if session is not None and session.run_mode in {"plan", "goal"} and agent is not None and agent.messages:
+                pending_task = agent.messages[-1].get("extra", {}).get("pending_task")
+                if pending_task:
+                    run_task = pending_task
+                    continue
             if session is None or exit_immediately or not (sys.stdin and sys.stdin.isatty()):
                 return agent
             console.print("[bold yellow]Next task (/new, /help, @file; Ctrl+D to exit):[/bold yellow]")
@@ -169,7 +201,7 @@ def _show_session_message(message: str) -> None:
     console.print(message, markup=False)
 
 
-def _run_task(config, run_task, skill, resume_from, reconciliation, session=None):
+def _run_task(config, run_task, skill, resume_from, reconciliation, session=None, goal_history=None):
     """Assemble and close one task's resources; terminal session choices stay outside the agent loop."""
     agent_config = config.get("agent", {})
     run_id = uuid4().hex if "storage" in config or resume_from else None
@@ -180,6 +212,8 @@ def _run_task(config, run_task, skill, resume_from, reconciliation, session=None
         storage = StorageConfig.model_validate(config.get("storage", {})) if run_id else None
         with open_agent_runtime(config) as runtime:
             agent = runtime.agent
+            if goal_history is not None:
+                agent.model = GoalConversationModel(agent.model, goal_history)
             if session is not None:
                 bind_session(agent, session, _show_session_message)
             if runtime.mode is not None:

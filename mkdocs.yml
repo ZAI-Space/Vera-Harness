@@ -75,6 +75,7 @@ nav:
       - "Sandbox": sandbox.md
       - "Run storage": storage.md
       - "Scheduled tasks": scheduler.md
+      - "Markets and run modes": markets-and-modes.md
       - "Source evolution": evolution.md
       - "Config": usage/config.md
       - "SWE-bench": usage/swebench.md

@@ -142,6 +142,15 @@ class Source:
     root: Path
     commit: str | None
 
+    def files(self) -> list[str]:
+        """List a bounded source tree for capability discovery without exporting or executing it."""
+        if self.commit is None:
+            return sorted(inventory(self.root))
+        paths = _git(self.root, "ls-tree", "-r", "--name-only", self.commit).splitlines()
+        if len(paths) > 20_000:
+            raise PluginError("Source tree exceeds 20,000 files.")
+        return paths
+
     def contains(self, path: str) -> bool:
         """Check a catalog path in the fetched revision without exporting the repository."""
         path = relative_path(path)

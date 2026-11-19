@@ -1,4 +1,4 @@
-"""Declarative session selection and slash commands, with no terminal or model IO."""
+"""Session selections, explicit capability markets and planning/goal commands without model IO."""
 
 import json
 from copy import deepcopy
@@ -8,6 +8,10 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from minisweagent.environments.sandbox_profiles import SandboxProfiles, resolve_sandbox_profile
+from minisweagent.markets.mcp import MCPRegistry, MCPServices, merge_services
+from minisweagent.markets.skills import SkillMarket
+from minisweagent.modes.goals import GoalConfig, GoalStore
+from minisweagent.modes.plan import plan_prompt
 from minisweagent.plugins import PluginManager, load_plugins
 from minisweagent.plugins.runtime import PluginConfig
 from minisweagent.terminal.files import ProjectFiles
@@ -22,6 +26,8 @@ COMMANDS = {
     "/subagent": "Choose a configured role and optional task",
     "/permissions": "Choose confirm, yolo or human mode",
     "/sandbox": "Choose a user-configured sandbox",
+    "/plan": "Inspect context and save a plan without implementing it",
+    "/goal": "Set, inspect, pause or resume a bounded standing goal",
     "/new": "Start a new conversation",
     "/stop": "Stop the current task",
     "/help": "Show commands",
@@ -33,6 +39,7 @@ class TerminalConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     models: dict[str, dict] = Field(default_factory=dict)
+    session_id: str = Field(default="default", min_length=1, max_length=120)
 
 
 @dataclass(frozen=True)
@@ -47,7 +54,8 @@ class InputResult:
 class TerminalSession:
     """Own session-local choices; changes apply to the next runtime/task only.
 
-    Commands never install plugins, start MCP, query models or write global config.
+    Market search/add are explicit user operations; ordinary selection and completion
+    never access the network, start MCP or query a model.
     An input beginning // escapes slash interpretation. File references are read
     when an actual task is submitted. Exceptions report invalid choices unchanged.
     """
@@ -60,6 +68,11 @@ class TerminalSession:
         self.mcp: list[str] | None = None
         self.role: str | None = None
         self.sandbox_name: str | None = config.get("sandbox_profile")
+        self.run_mode = "normal"
+        self.last_task = ""
+        self.goals = GoalStore(
+            self.files.root, self.settings.session_id, GoalConfig.model_validate(config.get("goal", {}))
+        )
         mode = config.get("agent", {}).get("mode", "confirm")
         self.permission = "auto" if mode == "yolo" else "human" if mode == "human" else "confirm"
         if config.get("permissions", {}).get("mode") == "read-only":
@@ -93,7 +106,16 @@ class TerminalSession:
 
     def catalog(self, command: str) -> list[dict]:
         """Return safe names/descriptions without opening external services or exposing secrets."""
-        plugins = load_plugins(self.config) if command in {"/skill", "/mcp", "/subagent"} else None
+        plugins = (
+            load_plugins(merge_services(self.config, catalog=True) if command == "/mcp" else self.config)
+            if command in {"/skill", "/mcp", "/subagent"}
+            else None
+        )
+        if command == "/goal":
+            return [
+                {"name": action, "description": "Standing goal control"}
+                for action in ("status", "pause", "resume", "clear")
+            ]
         if command == "/skill":
             catalog = discover_skills(SkillConfig.model_validate(self.config.get("skills", {})), self.files.root)
             catalog.update(plugins.skills)
@@ -144,6 +166,8 @@ class TerminalSession:
         if not text.strip():
             return InputResult("message")
         if not text.startswith("/") or text.startswith("//"):
+            self.run_mode = "normal"
+            self.last_task = text[1:] if text.startswith("//") else text
             return InputResult("task", task=self.prepare_task(text[1:] if text.startswith("//") else text))
         values = text.split(maxsplit=1)
         command, argument = values[0], values[1] if len(values) == 2 else ""
@@ -158,7 +182,57 @@ class TerminalSession:
         if command in {"/stop", "/new"}:
             if argument.strip():
                 raise ToolError(f"{command} takes no arguments.")
+            if self.goals.read() and self.goals.status()["status"] == "active":
+                self.goals.control("pause")
+            self.run_mode = "normal"
+            if command == "/new":
+                self.last_task = ""
             return InputResult(command[1:], "Current task stopped." if command == "/stop" else "New conversation.")
+        if command == "/plan":
+            if self.permission == "human":
+                raise ToolError("Planning requires a model. Choose confirm or yolo first.")
+            request = argument.strip() or self.last_task
+            if not request:
+                raise ToolError("Use /plan REQUEST, or submit a task to establish context first.")
+            task = plan_prompt(self.prepare_task(request))
+            if self.goals.status()["status"] == "active":
+                self.goals.control("pause")
+            self.run_mode = "plan"
+            self.last_task = request
+            return InputResult("task", task=task)
+        if command == "/goal":
+            argument = argument.strip()
+            if argument in {"", "status", "show"}:
+                return InputResult("message", json.dumps(self.goals.status(), ensure_ascii=False))
+            if self.permission == "human" and argument not in {"pause", "clear"}:
+                raise ToolError("Goal execution requires a model. Choose confirm or yolo first.")
+            if argument in {"pause", "clear", "resume"}:
+                state = self.goals.control(argument)
+                if argument != "resume":
+                    self.run_mode = "normal"
+                    return InputResult("message", json.dumps(state, ensure_ascii=False))
+            else:
+                objective = argument.removeprefix("-- ")
+                self.prepare_task(objective)  # Reject invalid @references before persisting intent.
+                self.goals.set(objective)
+                self.last_task = objective
+            self.run_mode = "goal"
+            return InputResult("task", task=self.prepare_task(self.goals.read()["objective"]))
+        if command in {"/mcp", "/skill"} and argument.split(maxsplit=1)[:1] in (["search"], ["add"]):
+            action, _, query = argument.partition(" ")
+            if not query.strip():
+                raise ToolError(f"Use {command} {action} QUERY_OR_IDENTIFIER.")
+            if command == "/mcp":
+                registry = MCPRegistry()
+                result = (
+                    registry.search(query)
+                    if action == "search"
+                    else MCPServices.from_config(self.config).add(registry.preview(query))
+                )
+            else:
+                market = SkillMarket()
+                result = market.search(query) if action == "search" else market.install(query)
+            return InputResult("message", json.dumps(result, ensure_ascii=False))
         if command == "/sandbox":
             if not argument.strip():
                 return InputResult("message", json.dumps(self.sandbox_status(), ensure_ascii=False))
@@ -228,6 +302,8 @@ class TerminalSession:
     def runtime_config(self) -> dict:
         """Build a detached per-task config; filter MCP after plugin expansion."""
         config = deepcopy(self.config)
+        if self.run_mode != "normal":
+            config["run_mode"] = self.run_mode
         policy = {"readonly": "read-only", "human": "standard", "yolo": "auto"}.get(self.permission, self.permission)
         config["permissions"] = {"mode": policy}
         mode = {"auto": "yolo", "yolo": "yolo", "human": "human"}.get(self.permission, "confirm")
