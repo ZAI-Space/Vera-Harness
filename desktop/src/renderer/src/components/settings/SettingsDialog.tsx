@@ -1,0 +1,234 @@
+import { LOCAL_ENVIRONMENT } from "@vera/contracts";
+import type { ComponentType, CSSProperties } from "react";
+import { useMemo, useRef } from "react";
+import { EnvironmentContext } from "../../environment-context";
+import { isHarnessConnected } from "../../harness-api";
+import { useT } from "../../i18n";
+import { useEdgeFade } from "../../lib/use-edge-fade";
+import { PluginBoundary } from "../../plugins/PluginBoundary";
+import { EMPTY_CONTRIBUTIONS } from "../../plugins/RegionHost";
+import { type Contribution, useUiPluginRegistry } from "../../plugins/registry";
+import { UI_REGIONS } from "../../plugins/slots";
+import { type SettingsCategory, useLocalSettingsStore as useSettingsStore } from "../../stores/settings";
+import { useUiPluginsStore } from "../../stores/ui-plugins";
+import {
+	ArchiveIcon,
+	DevicesIcon,
+	FileTextIcon,
+	GearIcon,
+	InfoIcon,
+	PuzzleIcon,
+	ShieldIcon,
+	SlidersIcon,
+	SubagentIcon,
+} from "../icons";
+import { AboutPanel } from "./AboutPanel";
+import { AppearancePanel } from "./AppearancePanel";
+import { ArchivedChatsPanel } from "./ArchivedChatsPanel";
+import { BehaviorPanel } from "./BehaviorPanel";
+import { ExtensionsPanel } from "./extensions/ExtensionsPanel";
+import { LanObserverPanel } from "./LanObserverPanel";
+import { McpPanel } from "./mcp/McpPanel";
+import { ProvidersPanel } from "./providers/ProvidersPanel";
+import { SkillsPanel } from "./SkillsPanel";
+import { SubagentsPanel } from "./subagents/SubagentsPanel";
+
+const STATIC_CATEGORIES = [
+	"appearance",
+	"behavior",
+	"subagents",
+	"archived",
+	"models",
+	"skills",
+	"mcp",
+	"extensions",
+	"lan",
+	"about",
+] as const satisfies readonly SettingsCategory[];
+
+const CATEGORY_ICONS = {
+	appearance: GearIcon,
+	behavior: ShieldIcon,
+	subagents: SubagentIcon,
+	archived: ArchiveIcon,
+	models: SlidersIcon,
+	skills: FileTextIcon,
+	mcp: SubagentIcon,
+	extensions: PuzzleIcon,
+	lan: DevicesIcon,
+	about: InfoIcon,
+} satisfies Record<(typeof STATIC_CATEGORIES)[number], ComponentType<{ size?: number }>>;
+
+/** 面板注册表：新增分类 = 写一个面板组件 + 在这里登记（未登记显示 coming soon） */
+const PANELS: Partial<Record<SettingsCategory, ComponentType>> = {
+	appearance: AppearancePanel,
+	behavior: BehaviorPanel,
+	subagents: SubagentsPanel,
+	archived: ArchivedChatsPanel,
+	models: ProvidersPanel,
+	skills: SkillsPanel,
+	mcp: McpPanel,
+	extensions: ExtensionsPanel,
+	lan: LanObserverPanel,
+	about: AboutPanel,
+};
+
+/** settings.panel 贡献的分类 id：plugin:<pluginName>:<contributionId>（spec §17） */
+function pluginCategoryId(pluginName: string, contributionId: string): SettingsCategory {
+	return `plugin:${pluginName}:${contributionId}`;
+}
+
+/** 由分类 id 反查 settings.panel 贡献；非 plugin: 前缀或已不存在返回 null */
+function findPluginContribution(category: SettingsCategory, list: Contribution[] | undefined) {
+	if (!category.startsWith("plugin:")) return null;
+	const rest = category.slice("plugin:".length);
+	const sep = rest.indexOf(":");
+	if (sep < 0) return null;
+	const pluginName = rest.slice(0, sep);
+	const contributionId = rest.slice(sep + 1);
+	return list?.find((c) => c.pluginName === pluginName && c.id === contributionId) ?? null;
+}
+
+/** 设置弹窗：只在打开时挂载（弹窗体里的滚动容器需要在挂载时就能拿到 ref —— useEdgeFade 不会因
+    元素后出现而重跑） */
+export function SettingsDialog() {
+	const open = useSettingsStore((s) => s.open);
+	if (!open) return null;
+	return <SettingsEnvironment />;
+}
+
+/** 本机设置弹窗；执行环境选择随 SSH 功能一并移除。 */
+function SettingsEnvironment() {
+	return (
+		<EnvironmentContext.Provider value={LOCAL_ENVIRONMENT}>
+			<SettingsDialogBody />
+		</EnvironmentContext.Provider>
+	);
+}
+
+function SettingsDialogBody() {
+	const t = useT();
+	const setOpen = useSettingsStore((s) => s.setOpen);
+	const category = useSettingsStore((s) => s.category);
+	const setCategory = useSettingsStore((s) => s.setCategory);
+
+	// settings.panel 贡献：动态分类（插件停用/卸载即消失）；稳定引用（空用模块级 EMPTY）
+	// 全局总开关关闭时隐藏插件分类（与 RegionHost 同一开关语义；当前正在看的分类回落 comingSoon 空态）
+	const masterOn = useUiPluginsStore((s) => s.config.enabled);
+	const registryCategories = useUiPluginRegistry((s) => s.contributions[UI_REGIONS.SettingsPanel]);
+	const pluginCategories = masterOn ? (registryCategories ?? EMPTY_CONTRIBUTIONS) : EMPTY_CONTRIBUTIONS;
+	// 贡献边界 key 带 loadNonce（与 RegionHost 一致）：热重载换新边界实例，settings.panel 贡献崩溃后可恢复
+	const pluginNonces = useUiPluginRegistry((s) => s.loadNonces);
+
+	const activePluginContribution = useMemo(
+		() => findPluginContribution(category, pluginCategories),
+		[category, pluginCategories],
+	);
+
+	// 两列各自是滚动容器：分割线只留左导航右缘那条（`.fade-rule-v`），内容区的边界改由滚动淡出表达
+	const navRef = useRef<HTMLElement>(null);
+	const contentRef = useRef<HTMLDivElement>(null);
+	useEdgeFade(navRef);
+	useEdgeFade(contentRef);
+
+	const Panel = PANELS[category];
+
+	return (
+		<div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/20" role="dialog" aria-modal>
+			<div className="flex h-[70vh] w-[720px] flex-col overflow-hidden rounded-xl bg-surface shadow-dialog">
+				{/* 顶栏底边不画 1px 实线（与对话页顶栏同一决策）：下面的内容滚动时用边界淡出区分 */}
+				<div className="flex shrink-0 items-center justify-between px-4 py-3">
+					<h2 className="text-ui-14 leading-[calc(1.25_/_0.875)] font-semibold text-ink">
+						{t("settings.title")}
+					</h2>
+					<button
+						type="button"
+						className="rounded-lg px-2 py-1 text-ink-faint transition-colors hover:bg-hover hover:text-ink-2"
+						onClick={() => setOpen(false)}
+						aria-label={t("common.close")}
+					>
+						✕
+					</button>
+				</div>
+				<div className="flex min-h-0 flex-1">
+					{/* 与内容的分界：中段实、两头淡出的发丝线（`.fade-rule-v`，同左栏） */}
+					<nav
+						ref={navRef}
+						className="fade-rule-v edge-fade w-44 shrink-0 overflow-y-auto p-2"
+						style={{ "--edge-fade-size": "16px" } as CSSProperties}
+					>
+						{STATIC_CATEGORIES.map((id) => {
+							const Icon = CATEGORY_ICONS[id];
+							return (
+								<button
+									key={id}
+									disabled={isHarnessConnected() && (id === "lan" || id === "extensions")}
+									title={
+										isHarnessConnected() && (id === "lan" || id === "extensions")
+											? "Unavailable in this VERA runtime"
+											: undefined
+									}
+									type="button"
+									className={`mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-ui-13 transition-colors ${
+										category === id
+											? "bg-hover font-medium text-ink"
+											: "text-ink-dim hover:bg-hover hover:text-ink"
+									}`}
+									onClick={() => setCategory(id)}
+								>
+									<span className="flex w-3.5 shrink-0 items-center justify-center">
+										<Icon size={14} />
+									</span>
+									<span className="min-w-0">{t(`settings.category.${id}`)}</span>
+								</button>
+							);
+						})}
+						{/* 插件自带设置页分类：标题取 contribution.title（插件自定义字符串，不走宿主 i18n） */}
+						{pluginCategories.map((c) => {
+							const id = pluginCategoryId(c.pluginName, c.id);
+							return (
+								<button
+									key={id}
+									type="button"
+									className={`mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-ui-13 transition-colors ${
+										category === id
+											? "bg-hover font-medium text-ink"
+											: "text-ink-dim hover:bg-hover hover:text-ink"
+									}`}
+									onClick={() => setCategory(id)}
+								>
+									<span className="flex w-3.5 shrink-0 items-center justify-center">
+										<PuzzleIcon size={14} />
+									</span>
+									<span className="truncate">{c.title ?? c.pluginName}</span>
+								</button>
+							);
+						})}
+					</nav>
+					<div
+						ref={contentRef}
+						className="edge-fade min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3"
+						style={{ "--edge-fade-size": "20px" } as CSSProperties}
+					>
+						{Panel ? (
+							<Panel />
+						) : activePluginContribution ? (
+							// 插件设置页：包 PluginBoundary（崩溃 → null，与其他贡献同一套隔离语义）
+							<PluginBoundary
+								key={`${activePluginContribution.pluginName}:${activePluginContribution.id}:${
+									pluginNonces[activePluginContribution.pluginName] ?? 0
+								}`}
+								pluginName={activePluginContribution.pluginName}
+								label={category}
+							>
+								<activePluginContribution.component />
+							</PluginBoundary>
+						) : (
+							<p className="py-8 text-center text-ui-13 text-ink-faint">{t("settings.comingSoon")}</p>
+						)}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}

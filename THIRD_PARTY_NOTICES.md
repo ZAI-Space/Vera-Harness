@@ -1,5 +1,13 @@
 # Third-party notices
 
+## Desktop frontend
+
+The desktop retains the original Percho MIT notice in
+[desktop/third_party/percho-LICENSE](desktop/third_party/percho-LICENSE).
+Adapted PI-Desktop components retain their LGPL-3.0 license and source attribution in
+[desktop/third_party/pi-desktop/NOTICE.md](desktop/third_party/pi-desktop/NOTICE.md).
+The Python Runtime's MIT license does not relicense those LGPL components.
+
 ## mini-swe-agent
 
 VERA derives from mini-swe-agent. The original copyright and MIT permission

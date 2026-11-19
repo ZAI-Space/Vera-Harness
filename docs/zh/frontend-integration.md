@@ -2,31 +2,63 @@
 
 # 前端对接
 
-!!! abstract "共享能力，明确传输边界"
+!!! abstract "同一 Runtime，两个入口"
 
-    已有终端和可复用 Python 接口，尚不提供完整桌面 HTTP/WebSocket 服务。显示名称一致不代表已完成联调。不要通过解析终端彩色文字获取状态。
+    仓库包含 `desktop/` Electron + React 桌面端与独立 Python 桌面服务，终端入口继续保留。Electron 不导入智能体 SDK，renderer 不执行工具。
+
+## 启动桌面端
+
+使用 Python 3.12、Node.js 24 LTS 和 Bash；Windows 使用 Git Bash。先安装依赖：
+
+```bash
+uv venv --python 3.12
+uv pip install -e '.[full,channels]'
+cd desktop
+npm ci
+cd ..
+```
+
+PowerShell：`powershell -File scripts/start-desktop.ps1`。Git Bash、Linux/macOS Bash：`bash scripts/start-desktop.sh`。Windows 的 Bash 入口由 PowerShell 脚本负责进程生命周期。已有后端配置可通过 Windows 的 `-Config path.yaml` 或 Unix 的 `--config path.yaml` 传入。智能体任务需先在模型设置中配置并选择模型；`human` 可直接执行手动输入的 Bash 命令。
+
+启动器只管理自己启动的服务及子进程，使用带认证的回环连接文件，构建桌面端并在退出时清理连接文件，不安装 Docker 或 Bubblewrap。
 
 ## 接口地图
 
-| 前端动作 | 后端接口 | 要点 |
+| 界面操作 | 请求与返回字段 | 后端边界 |
 | --- | --- | --- |
-| @搜索/添加 | ProjectFiles.list/attach | 项目内路径、UTF-8、大小/敏感文件限制 |
-| /命令选择 | TerminalSession.catalog/process/runtime_config | 下一任务生效，运行中不重配 |
-| 执行 | open_agent_runtime + agent.run | 宿主管理生命周期、审批和取消 |
-| 状态事件 | StatefulAgent.subscribe/state | 副本，回调不改执行 |
-| 历史/恢复 | RunStore | unknown 必须核对，不自动重放 |
-| 能力市场 | SkillMarket/MCPRegistry/MCPServices | 显式添加和选择，凭据留后端 |
-| 插件 | PluginManager | 安装不等于启用 |
-| 沙箱设置 | SandboxProfiles | 只显示已配置选项并检查可用性 |
-| 持续目标 | GoalStore/drive_goal | 每个聊天独立 session_id |
-| 定时任务 | JobStore/Scheduler | 独立服务所有权，结果本地存储 |
+| 新建会话 | `createSession({options:{cwd,provider?,modelId?,thinkingLevel?}})` → `SessionMeta` | `DesktopStore` |
+| 历史与恢复 | `getSessionBaseline({sessionId})` → `meta,sequence,hydrationToken,transcript,permissionMode` | `Sessions`、SQLite |
+| 发送与停止 | `prompt({sessionId,text,document?,images?})`、`abort({sessionId})` | 独立 worker、`open_agent_runtime` |
+| 审批 | `requestId,answer`；可附匹配的 `sessionId` → 已裁决事件 | 按会话绑定的 stdin 回复，仅允许一次或拒绝 |
+| 文件附件 | `listProjectFiles({cwd})` → 项目相对路径；输入文档使用 `file.path` | `ProjectFiles` |
+| 模型配置 | 连接标识、协议、地址、模型定义；凭据仅回传是否已配置 | `Providers`、私有凭据库 |
+| 角色编辑 | 名称、指令、模型引用、工具、技能与预算 | `SubagentConfig`、共享 Runtime |
+| Skill / MCP 市场 | 显式搜索、预览、安装或添加；MCP 保存后默认停用 | `SkillMarket`、`MCPRegistry` |
+| MCP 配置 | 用户级、stdio 或 URL、direct 暴露、启用状态 | 下次任务中的 Python MCP SDK |
+| 插件 | GitHub / Gitee 市场、安装、启用、停用、卸载 | `PluginManager` |
+| 沙箱 | 配置与可用性、原因；不可用项禁选 | `SandboxProfiles` |
+| 定时任务 | 频率、项目、模型、时区 → 任务与运行快照 | `JobStore`、独立调度服务 |
+| Plan / Goal | `/plan`、`/goal` 与模式选择 | 复用已有模块，不替换循环 |
+| 导出、分支与撤回 | 展示历史、目标消息之前的模型上下文 | SQLite、不可变运行凭据 |
 
-## 审批与环境
+完整 TypeScript 契约位于 `desktop/src/contracts/`，Python 分发位于 `src/vera/desktop/`。界面偏好保存在 Electron 用户目录；后端配置、会话、安全展示导出、凭据库和运行记录保存在 VERA 私有桌面状态目录。
 
-明确展示 confirm、yolo、human，human 是手动命令，不是“完全审批”。plan 只提供只读查看和计划写入，goal 沿用当前权限。沙箱是另一个选择器；没有配置或不可用时禁用并显示原因，不从聊天强装后端。开始执行时重新校验工作区与可用性。
+## 传输与流式输出
 
-## 适配层责任
+服务仅监听 `127.0.0.1`。`/health`、`/invoke`、`/events?after=<cursor>` 均需 bearer token，并拒绝跨来源浏览器请求。token 仅存在 Electron 主进程。成功返回 `{result: ...}`；失败返回明确错误，不表示操作完成。
 
-为消息定义任务/会话 ID、事件封装、取消所有权和审批请求/答复。阻塞任务放后台执行线程或进程，转发事件到 UI/网络线程，完成/异常都关闭 Runtime。每个聊天独立 ID、每次运行新轨迹路径，重连后继续如实表达 unknown。
+长轮询在事件到达时立即唤醒。服务商 SSE 片段在回复完成前转换为 `thinking_delta`、`text_delta` 和工具参数增量；工具边界与 `turn_end` 保持顺序。完整回复仍由原模型解析器校验，校验完成前不会执行工具。PI-Desktop 调研与展示规则见[流式呈现](desktop-streaming.md)。
 
-返回安全目录与状态，不能向不可信客户端暴露完整配置、token、JobStore 内部定义/执行快照或堆栈。公开接口不表示远程授权已经完成。实际 UI 验收覆盖 @文件、三种权限、各能力选择、沙箱灰态、状态、取消、恢复、计划、目标、多会话与传输重启；后端单测不能替代。
+事件包含 `sessionId,sequence,event`。游标缺口或服务重启触发基线恢复，不自动重放有副作用的请求。停止会终止所属 worker 进程树，保留已收到的文字并清理审批。会话之间有独立 worker 和模型上下文；运行期间可排队一条后续消息。
+
+## 权限与边界
+
+`confirm` 请求审批，`yolo` 不逐项审批，`human` 执行用户手动输入的命令。当前审批提供允许一次和拒绝，尚未开放持久命令白名单编辑。沙箱是用户配置的隔离环境，没有可用后端时禁用选择，不自动下载安装。
+
+后台定时任务需明确选择 `yolo`，每次使用独立上下文。保存后保持暂停，再手动启用；手动任务使用立即运行。调度携带本机时区，并将界面的周一序号转换为 cron 序号。调度服务有独立生命周期，关闭桌面不会停止已启用的调度。
+
+OAuth 账号订阅、SSH、局域网远程控制、PI 扩展、codemode/deferred MCP 和手动上下文压缩尚未由当前适配器提供，界面入口禁用或明确拒绝不支持的操作。MCP 配置从下次任务生效，设置页不伪报常驻连接状态。这些限制与已有 Hindsight 记忆及上下文模块分开。
+
+## 验证
+
+仓库包含真实 HTTP/进程、SSE 流式、审批、中止、持久化与调度适配测试。TypeScript 集成测试消费实际 Python worker 产生的事件，核对最终展示投影。Electron 联调另行检查实际正文、工具审批、Bash 输出和思考折叠。当前这些验证使用本机协议测试服务，不消耗付费模型额度；外部服务商与市场可达性仍需相应凭据及网络验收。

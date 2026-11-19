@@ -1,0 +1,52 @@
+name: Desktop integration
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      VERA_SILENT_STARTUP: '1'
+      PYTHONUTF8: '1'
+      VERA_PYTHON: python
+      LITELLM_LOCAL_MODEL_COST_MAP: 'True'
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install Python runtime for the real worker contract test
+        run: python -m pip install -e '..[full,channels]'
+      - name: Install locked desktop dependencies
+        run: npm ci
+      - name: Validate execution boundary
+        run: npm run check:boundary
+      - name: Check formatting and lint
+        run: npm run lint
+      - name: Check TypeScript contracts
+        run: npm run typecheck
+      - name: Run frontend and Python-worker integration tests
+        run: npm test
+      - name: Build Electron frontend
+        run: npm run build

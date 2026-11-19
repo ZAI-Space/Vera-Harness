@@ -69,7 +69,7 @@ Tab 选择候选，Esc 后 Enter 提交多行输入。权限、运行模式与�
 ## 文档与集成
 
 - [中文文档](docs/zh/index.md) / [English documentation](docs/index.md)：两版页面互相链接。
-- [前端对接](docs/zh/frontend-integration.md)：会话、状态、能力选择、审批与存储边界。已有 Python 接口；桌面传输层和真实 UI 联调需要另行完成。
+- [前端对接](docs/zh/frontend-integration.md)：会话、状态、能力选择、审批与存储边界。已接入独立桌面服务、流式回复与审批，包含启动方法和已验证边界。
 - [命名迁移](docs/zh/advanced/v2_migration.md)：正式命名为 `vera`、`VERA_*` 和 `vera.yaml`，说明历史配置的兼容读取范围。
 - [文档维护](docs/zh/documentation.md)：逐页检查清单与过期内容修订。
 

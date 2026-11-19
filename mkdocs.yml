@@ -102,6 +102,7 @@ nav:
         - "FAQ": faq.md
         - "Contributing": contributing.md
         - "Frontend integration": frontend-integration.md
+        - "Desktop streaming": desktop-streaming.md
         - "Documentation maintenance": documentation.md
         - "Security": SECURITY.md
       - API Reference:
@@ -179,6 +180,7 @@ nav:
         - "常见问题": zh/faq.md
         - "参与开发": zh/contributing.md
         - "前端对接": zh/frontend-integration.md
+        - "桌面流式呈现": zh/desktop-streaming.md
         - "文档维护": zh/documentation.md
         - "安全": zh/SECURITY.md
       - API 参考:

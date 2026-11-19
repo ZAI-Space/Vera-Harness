@@ -69,7 +69,7 @@ Tab selects candidates; Esc then Enter submits multiline input. Permissions, run
 ## Documentation and integration
 
 - [English documentation](docs/index.md) / [中文文档](docs/zh/index.md), with paired page links.
-- [Frontend integration](docs/frontend-integration.md): sessions, state, selections, approval and storage boundaries. Python APIs exist; a desktop transport and real UI acceptance still require implementation.
+- [Frontend integration](docs/frontend-integration.md): sessions, state, selections, approval and storage boundaries. Includes the desktop service, streamed replies, approvals, startup instructions and validation boundaries.
 - [Naming migration](docs/advanced/v2_migration.md): preferred `vera`, `VERA_*` and `vera.yaml` names, with explicit historical settings compatibility.
 - [Documentation maintenance](docs/documentation.md): per-page review map and stale-content corrections.
 

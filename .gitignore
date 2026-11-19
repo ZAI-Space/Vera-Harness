@@ -181,6 +181,12 @@ poetry.toml
 # ruff
 .ruff_cache/
 
+# Desktop dependencies and generated Electron bundles
+desktop/node_modules/
+desktop/out/
+desktop/coverage/
+desktop/*.log
+
 # LSP config files
 pyrightconfig.json
 
