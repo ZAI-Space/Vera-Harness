@@ -12,7 +12,7 @@ def _make_model_from_fixture(text_outputs: list[str], cost_per_call: float = 1.0
     """Create a DeterministicModel from trajectory fixture data (raw text outputs)."""
 
     def parse_command(text: str) -> list[dict]:
-        match = re.search(r"```vera_bash_command\s*\n(.*?)\n```", text, re.DOTALL)
+        match = re.search(r"```(?:vera|mswea)_bash_command\s*\n(.*?)\n```", text, re.DOTALL)
         return [{"command": match.group(1)}] if match else []
 
     return DeterministicModel(
