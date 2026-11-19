@@ -140,6 +140,13 @@ def recover_processes(root: Path) -> None:
         if lease["status"] == "running":
             if lease["stamp"] and _process_stamp(lease["pid"]) == lease["stamp"]:
                 _kill_tree(lease["pid"])
+                # Sending SIGKILL is asynchronous. Confirm the old owner has
+                # exited before publishing recovery or dispatching new work.
+                deadline = time.monotonic() + 5
+                while _process_stamp(lease["pid"]) == lease["stamp"]:
+                    if time.monotonic() >= deadline:
+                        raise EvolutionError(f"Process {lease['pid']} did not exit during recovery.")
+                    time.sleep(0.01)
             lease["status"] = "interrupted"
             write_json(path, lease)
 

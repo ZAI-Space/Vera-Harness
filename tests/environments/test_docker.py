@@ -179,7 +179,7 @@ def test_docker_environment_cwd_parameter_override(executable):
 
     try:
         result = env.execute({"command": "pwd"}, cwd="/tmp")
-        assert result["returncode"] == 0
+        assert result["returncode"] == 0, result
         assert "/tmp" in result["output"]
     finally:
         env.cleanup()
