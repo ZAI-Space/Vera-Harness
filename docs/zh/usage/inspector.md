@@ -15,3 +15,7 @@ vera-extra inspector
 vera-extra inspector /path/to/run.traj.json
 vera-extra inspector /path/to/results
 ```
+
+## API 参考
+
+::: vera.run.utilities.inspector

@@ -48,7 +48,7 @@ Here's a few popular models and the required API keys:
 [bold yellow]You can leave any setting blank to skip it.[/bold yellow]
 
 More information at https://github.com/zml-mis/Vera-Harness/blob/dev/docs/quickstart.md
-To find the best model, check the leaderboard at https://swebench.com/
+Model adapter guidance: https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/quickstart.md
 """
 
 

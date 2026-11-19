@@ -21,7 +21,7 @@
 示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```bash
-python -m pip install -e '.[full,channels]'
+python -m pip install -e '.[full,channels]' build twine
 python -m ruff format --check src tests
 python -m ruff check src tests
 python -m pytest -n 2 -ra

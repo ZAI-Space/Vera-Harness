@@ -4,7 +4,7 @@
 
 !!! abstract "Interactive terminal"
 
-    `vera` starts the terminal. `python -m vera` uses the same command. Existing `vera` and `python -m vera` entries remain aliases. Run it in the project whose files you want to attach.
+    `vera` starts the terminal. `python -m vera` uses the same command. Legacy `mini` and `mini-swe-agent` commands remain aliases to this CLI. Run it in the project whose files you want to attach.
 
 ## Command line options
 

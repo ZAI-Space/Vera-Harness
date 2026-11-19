@@ -10,7 +10,7 @@
 
 ## 状态和事件
 
-状态包括 idle、running、querying、executing、waiting_for_input、completed、stopped、failed、cancelled。completed 对应 Submitted，预算等正常停机对应 stopped，格式失败/逃逸异常为 failed。消息、计数、费用、等待工具、退出原因来自原 Agent。run 再次执行会替换对话，但原类计数和墙钟基线不自动重置。
+状态包括 idle、running、querying、executing、waiting_for_input、completed、stopped、failed、cancelled。completed 对应 Submitted，预算等其余正常停机对应 stopped；正常返回 Cancelled 或逃逸 KeyboardInterrupt 对应 cancelled；连续格式失败/其余逃逸异常为 failed。消息、计数、费用、等待工具、退出原因来自原 Agent。run 再次执行会替换对话，但原类计数和墙钟基线不自动重置。
 
 事件包括 agent/turn/query/tools 的 start/end、messages_added、input_requested/received。序号跨运行增加，通知在状态更新后同步发送，每个订阅者得到脱离实时状态的副本。订阅者异常记录日志，不改变执行；订阅回调不能推进或修改 Agent。直接 step/query 也可观察，而 is_running 专指 run 包装范围。
 

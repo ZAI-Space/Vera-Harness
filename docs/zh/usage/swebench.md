@@ -25,3 +25,7 @@ vera-extra swebench --help
 vera-extra swebench --subset verified --split test --slice 0:5 --workers 1 -m openai/YOUR_MODEL -o ./results/pilot
 vera-extra swebench-single --subset verified --split test --instance 0 -m openai/YOUR_MODEL
 ```
+
+## API 参考
+
+::: vera.run.benchmarks.swebench

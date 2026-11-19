@@ -6,7 +6,7 @@
 
 ## 市场和安装
 
-GitHub 使用 openai/plugins 市场，Gitee 使用已固定的镜像快照。国内快照与 GitHub 的内容/版本可以不同；固定版本、来源及来源类型见下面保留的配置与命令。选择只影响后续搜索/安装，不改变已启用插件。外部仓库按安装时的提交固定，同仓库子目录按目录所在提交固定。
+GitHub 使用 openai/plugins 市场，Gitee 使用已固定的镜像快照。国内快照与 GitHub 的内容/版本可以不同；GitHub 市场来自 `openai/plugins` 当前 HEAD（`openai-curated`）；Gitee 来源为 `https://gitee.com/mirrors/claude-code`，固定提交 `1718a574950cd8979b27b3e21f5e82760b10e8e0`（tag `v2.1.45`，市场名 `claude-code-plugins`）。此快照的目录和插件包均从 Gitee 下载，refresh 只刷新固定快照，不自动升级版本；更新预置快照需修改 `plugins/manager.py`。选择只影响后续搜索/安装，不改变已启用插件。外部仓库按安装时的提交固定，同仓库子目录按目录所在提交固定。
 
 市场支持已声明的相对目录、local、url、git-subdir、github，以及 GitHub/Gitee HTTPS Git 来源；不支持的 npm 等条目可见但不能安装。NOT_AVAILABLE 明确不可用，不自动回退。刷新目录和更新插件是两项操作。更新或回滚改变内容后禁用该版本，用户重新启用才加载；移除市场不删除已安装包。
 

@@ -13,3 +13,7 @@ ProgramBench 使用独立数据集、实例初始化和程序评测流程，需�
 ```bash
 vera-extra programbench --help
 ```
+
+## API 参考
+
+::: vera.run.benchmarks.programbench

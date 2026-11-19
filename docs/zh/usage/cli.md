@@ -31,3 +31,7 @@ Explain @src/main.py
 /plan Design a change before implementing it
 /goal Complete the change and verify it
 ```
+
+## API 参考
+
+::: vera.run.cli

@@ -8,7 +8,7 @@
 
 ## 参考与选择策略
 
-参考 SICA 的历史优化器、独立目标、归档和重复评测，以及 auto-harness 的单一假设、受保护评测设施、回归集与停滞停止。当前使用 Git 归档/分离工作区，验证集正增益才提升，持平不提升；holdout 只在显式调用时评测，不反馈自动搜索。固定 upstream 提交、差异和适配器命令见下方保留配置。
+参考 SICA 的历史优化器、独立目标、归档和重复评测，以及 auto-harness 的单一假设、受保护评测设施、回归集与停滞停止。当前使用 Git 归档/分离工作区，验证集正增益才提升，持平不提升；holdout 只在显式调用时评测，不反馈自动搜索。参考固定源码：[SICA runner，ed8275d](https://github.com/MaximeRobeyns/self_improving_coding_agent/blob/ed8275dca4d3c5dbf77229964351fe9b424797dc/runner.py) 与 [auto-harness，52360db](https://github.com/neosigmaai/auto-harness/blob/52360dbbeb8cea8886d90778e634a145c51da735/program_templates/base.md)。
 
 ## 初始化和代际过程
 
@@ -26,7 +26,7 @@ Docker/Bubblewrap 包裹整个历史优化 Python 进程，不只隔离 Bash。�
 
 ## 真实 auto-harness 适配
 
-在候选目录外准备指定干净上游检出和可信 factory，返回 Runner 并连接候选的真实 VERA Runtime，不能仍调用示例 Agent。通用上游没有统一实际费用接口，适配器按声明界计费，遗漏任务算零。设置专用 checkout 环境变量可实测该接口；本地协议/CLI 测试不替代真实 benchmark 或模型效果。
+在候选目录外准备 `https://github.com/neosigmaai/auto-harness.git` 的干净检出，并执行 `git checkout 52360dbbeb8cea8886d90778e634a145c51da735`。可信绝对路径 `factory.py:create` 接受 `(upstream, candidate, split)`，返回 `upstream.BenchmarkRunner`，连接候选的真实 VERA Runtime，不能仍调用示例 Agent。适配器会校验上游 SHA 与干净状态；`VERA_AUTO_HARNESS_CHECKOUT` 指向此检出可运行真实上游接口测试。通用上游没有统一实际费用接口，适配器按声明界计费，遗漏任务算零。设置专用 checkout 环境变量可实测该接口；本地协议/CLI 测试不替代真实 benchmark 或模型效果。
 
 ## 配置、命令与源码示例
 

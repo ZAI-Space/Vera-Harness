@@ -9,7 +9,7 @@
 ## Development setup
 
 ```bash
-python -m pip install -e '.[full,channels]'
+python -m pip install -e '.[full,channels]' build twine
 python -m ruff format --check src tests
 python -m ruff check src tests
 python -m pytest -n 2 -ra

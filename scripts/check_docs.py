@@ -22,14 +22,30 @@ def check() -> list[str]:
             errors.append(f"{source.relative_to(ROOT)}: missing Chinese counterpart")
         elif not re.search(r"[\u4e00-\u9fff]", translated.read_text(encoding="utf-8")):
             errors.append(f"{translated.relative_to(ROOT)}: missing Chinese content")
+        else:
+            original_api = set(re.findall(r"^::: (\S+)", source.read_text(encoding="utf-8"), re.M))
+            translated_api = set(re.findall(r"^::: (\S+)", translated.read_text(encoding="utf-8"), re.M))
+            if original_api != translated_api:
+                errors.append(f"{translated.relative_to(ROOT)}: API references differ from English")
     for translated in (DOCS / "zh").rglob("*.md"):
         if not (DOCS / translated.relative_to(DOCS / "zh")).is_file():
             errors.append(f"{translated.relative_to(ROOT)}: missing English counterpart")
-    pages = [*DOCS.rglob("*.md"), ROOT / "README.md", ROOT / "README.en.md", *(ROOT / "src").rglob("README.md")]
+    pages = [
+        *DOCS.rglob("*.md"),
+        *DOCS.rglob("*.html"),
+        ROOT / "README.md",
+        ROOT / "README.en.md",
+        *(ROOT / "src").rglob("README.md"),
+    ]
     for source in pages:
         text = source.read_text(encoding="utf-8")
         relative = source.relative_to(ROOT).as_posix()
-        if source.name != "_footer.md" and relative.startswith("docs/") and "[English]" not in text:
+        if (
+            source.suffix == ".md"
+            and source.name != "_footer.md"
+            and relative.startswith("docs/")
+            and "[English]" not in text
+        ):
             errors.append(f"{relative}: missing language switch")
         if (
             "<img" in text
@@ -41,7 +57,14 @@ def check() -> list[str]:
         # Historical names belong only to the explicit migration guide or cache explanation.
         if any(
             word in text
-            for word in ("mini-swe-agent.com", "mini-swe-agent-banner", "mini_square.svg", "klieret.short.gy")
+            for word in (
+                "mini-swe-agent.com",
+                "github.com/SWE-agent/mini-swe-agent",
+                "minimal-agent.com",
+                "mini-swe-agent-banner",
+                "mini_square.svg",
+                "klieret.short.gy",
+            )
         ):
             errors.append(f"{relative}: obsolete public branding/link")
         without_code = re.sub(r"```.*?```", "", text, flags=re.S)
@@ -50,6 +73,10 @@ def check() -> list[str]:
         for raw in links:
             target = raw.strip().strip("<>").split(' "', 1)[0]
             address = urlsplit(target)
+            if address.netloc.lower() == "github.com":
+                repository_path = re.fullmatch(r"/zml-mis/Vera-Harness/(?:blob|tree)/(?:dev|main)/(.+)", address.path)
+                if repository_path and not (ROOT / unquote(repository_path[1])).exists():
+                    errors.append(f"{relative}: obsolete repository link {target}")
             if address.scheme or address.netloc or not address.path or address.path.startswith("/"):
                 continue
             resolved = (source.parent / unquote(address.path)).resolve()

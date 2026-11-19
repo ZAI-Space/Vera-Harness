@@ -59,9 +59,9 @@ used by the existing agent. State observation does not configure a model.
 | `executing` | Inside an existing action batch |
 | `waiting_for_input` | Inside the existing slash-command/confirmation input method |
 | `completed` | The original run returned `Submitted` |
-| `stopped` | The original run returned another stop result, including a budget limit |
+| `stopped` | The original run returned another stop result, including a budget limit, excluding completion, cancellation and repeated format failure |
 | `failed` | Repeated format errors, or an exception escaped the original run |
-| `cancelled` | An uncaught `KeyboardInterrupt` escaped the original run |
+| `cancelled` | The run returned `Cancelled`, or an uncaught `KeyboardInterrupt` escaped the original run |
 
 Snapshots include messages, cost, model-call count, consecutive-format-error
 count, observed turn count, pending batch tool ids, exit status and error text.
