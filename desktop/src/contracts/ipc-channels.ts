@@ -1,7 +1,6 @@
 import { CACHE_WARMING_MODES, type CacheWarmingInfo, type CacheWarmingMode } from "./cache-warming";
 import type { ChannelSubscriptionsSnapshot } from "./channel-subscriptions";
 import type { ComposerDocument } from "./composer-document";
-import type { EnvironmentRef } from "./environment";
 import type { EnvironmentUiState } from "./environment-ui-state";
 import type {
 	ExtensionDialogRequest,
