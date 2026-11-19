@@ -1,4 +1,6 @@
 site_name: VERA Documentation · 文档
+exclude_docs: |
+  overrides/
 theme:
   name: material
   icon:

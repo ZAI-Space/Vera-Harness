@@ -2,7 +2,7 @@
 
 # Hindsight 项目记忆
 
-使用运行中的 Hindsight 服务和项目专用 bank。默认本地地址 http://127.0.0.1:8888；云服务使用其地址和 bank 范围密钥。Hindsight 的模型独立于 VERA 任务模型配置。设置 HINDSIGHT_BANK_ID、HINDSIGHT_BASE_URL，通过 hindsight/hindsight_interactive 适配器启用。
+使用运行中的 Hindsight 服务和项目专用 bank。默认本地地址为 `http://127.0.0.1:8888`；云服务使用其地址和 bank 范围密钥。Hindsight 的模型独立于 VERA 任务模型配置。设置 HINDSIGHT_BANK_ID、HINDSIGHT_BASE_URL，通过 hindsight/hindsight_interactive 适配器启用。
 
 ## 记忆范围与上下文
 
