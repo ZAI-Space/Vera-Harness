@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 import threading
@@ -7,6 +8,16 @@ from pathlib import Path
 import pytest
 
 from vera.models import GLOBAL_MODEL_STATS
+
+
+def create_symlink(link: Path, target: Path, *, target_is_directory: bool = False) -> None:
+    """Create a real link, skipping only when Windows denies symlink privileges."""
+    try:
+        link.symlink_to(target, target_is_directory=target_is_directory)
+    except OSError as error:
+        if os.name == "nt" and error.winerror == 1314:
+            pytest.skip("Enable Windows Developer Mode or grant symlink privileges")
+        raise
 
 
 def pytest_addoption(parser):

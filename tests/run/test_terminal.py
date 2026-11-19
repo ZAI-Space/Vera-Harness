@@ -1,7 +1,6 @@
 """Exercise project selection and terminal commands with real files and prompt input."""
 
 import json
-import os
 import subprocess
 import time
 from copy import deepcopy
@@ -13,6 +12,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 
+from tests.conftest import create_symlink
 from tests.run.test_plugins import write_market, write_plugin
 from tests.run.test_skill_tools import write_skill
 from vera.agents.interactive import InteractiveAgent
@@ -91,11 +91,10 @@ def test_file_limits_binary_and_deleted_selections(tmp_path, session):
         session.process("Read @src/hello.py")
 
 
-@pytest.mark.skipif(os.name == "nt", reason="Windows symlinks require developer mode")
 def test_project_links_cannot_escape_workspace(tmp_path, session):
     outside = tmp_path.parent / f"{tmp_path.name}-outside.txt"
     outside.write_text("outside project", encoding="utf-8")
-    (tmp_path / "linked.txt").symlink_to(outside)
+    create_symlink(tmp_path / "linked.txt", outside)
     assert "linked.txt" not in session.files.list()
     with pytest.raises(ToolError, match="unavailable"):
         session.process("Read @linked.txt")

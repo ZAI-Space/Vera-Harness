@@ -10,6 +10,7 @@ from threading import Thread
 
 import pytest
 
+from tests.conftest import create_symlink
 from tests.run.test_web_tools import FINISH_CALL, _model_response
 from vera.tools import ToolError, ToolRegistry
 from vera.tools.skills import SkillConfig, discover_skills, register_skill_tools
@@ -65,12 +66,11 @@ def test_catalog_discovery_precedence_search_and_pagination(tmp_path):
         )
 
 
-@pytest.mark.skipif(os.name == "nt", reason="Creating Windows symlinks may require developer mode")
 def test_linked_attachments_stay_in_skill_directory(tmp_path):
     skill_dir = write_skill(tmp_path / ".agents" / "skills", "review-work", "workflow")
     outside = tmp_path / "outside.md"
     outside.write_text("Do not expose this file", encoding="utf-8")
-    (skill_dir / "references" / "alias.md").symlink_to(outside)
+    create_symlink(skill_dir / "references" / "alias.md", outside)
     selected = discover_skills(SkillConfig(), tmp_path)["review-work"]
     assert selected.view()["files"] == ["references/guide.md"]
     with pytest.raises(ToolError, match="Skill file is unavailable"):

@@ -1,7 +1,6 @@
 """Exercise package lifecycle, hostile sources, real MCP dispatch and CLI market installation."""
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -12,6 +11,7 @@ from threading import Thread
 
 import pytest
 
+from tests.conftest import create_symlink
 from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_storage import _write_config
 from tests.run.test_web_tools import FINISH_CALL, _model_response
@@ -366,16 +366,21 @@ def test_real_git_archive_exports_pinned_tree_and_rejects_submodules(tmp_path):
         Source(str(repository), repository, git("rev-parse", "HEAD")).export("plugins/review", tmp_path / "bad-export")
 
 
-@pytest.mark.skipif(os.name == "nt", reason="Windows symlink creation requires developer mode")
-def test_local_links_and_case_aliases_cannot_enter_packages(tmp_path):
+def test_local_links_cannot_enter_packages(tmp_path):
     package = write_plugin(tmp_path / "source")
-    (package / "escape").symlink_to(tmp_path, target_is_directory=True)
+    create_symlink(package / "escape", tmp_path, target_is_directory=True)
     manager = PluginManager(tmp_path / "store")
     with pytest.raises(PluginError, match="link"):
         manager.install(str(package))
-    (package / "escape").unlink()
+
+
+def test_case_aliases_cannot_enter_packages(tmp_path):
+    package = write_plugin(tmp_path / "source")
     (package / "FILE.txt").write_text("one")
     (package / "file.txt").write_text("two")
+    if (package / "FILE.txt").read_text() == "two":
+        pytest.skip("Case-insensitive filesystem cannot hold distinct case aliases")
+    manager = PluginManager(tmp_path / "store")
     with pytest.raises(PluginError, match="collision"):
         manager.install(str(package))
 
