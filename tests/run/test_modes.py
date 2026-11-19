@@ -8,14 +8,14 @@ from copy import deepcopy
 import pytest
 import yaml
 
-from minisweagent.exceptions import InterruptAgentFlow
-from minisweagent.modes.goals import GoalConfig, GoalStore, conversation_messages
-from minisweagent.runtime import open_agent_runtime
-from minisweagent.terminal.session import TerminalSession
-from minisweagent.terminal.ui import bind_session
-from minisweagent.tools import ToolError
 from tests.run.test_skill_tools import run_cli
 from tests.run.test_terminal_runtime import runtime_profile, terminal_model  # noqa: F401
+from vera.exceptions import InterruptAgentFlow
+from vera.modes.goals import GoalConfig, GoalStore, conversation_messages
+from vera.runtime import open_agent_runtime
+from vera.terminal.session import TerminalSession
+from vera.terminal.ui import bind_session
+from vera.tools import ToolError
 
 
 def mode_config(tmp_path, terminal_model):
@@ -37,7 +37,7 @@ def cli_mode(tmp_path, config, task):
     path = tmp_path / "modes.yaml"
     path.write_text(yaml.safe_dump(config), encoding="utf-8")
     try:
-        return run_cli(tmp_path, "minisweagent", "-c", str(path), "-t", task, "--exit-immediately")
+        return run_cli(tmp_path, "vera", "-c", str(path), "-t", task, "--exit-immediately")
     except subprocess.CalledProcessError as error:
         raise AssertionError(error.stdout + "\n" + error.stderr) from error
 
@@ -104,7 +104,7 @@ def test_goal_cli_continues_same_context_until_evidence_based_judge_completes(tm
         for request in terminal_model["requests"]
         if request["model"] == "judge"
     )
-    from minisweagent.storage import RunStore
+    from vera.storage import RunStore
 
     assert len(RunStore(tmp_path / "runs.sqlite3").list_runs()) == 2
 
@@ -176,7 +176,7 @@ def test_in_task_plan_switch_exits_before_reassembling_capabilities(tmp_path, te
 
 
 def test_goal_transcript_completes_final_tool_batch_without_mutating_original():
-    from minisweagent.models.openrouter_model import OpenRouterModel
+    from vera.models.openrouter_model import OpenRouterModel
 
     model = OpenRouterModel(model_name="fixture")
     messages = [
@@ -199,8 +199,8 @@ def test_goal_transcript_completes_final_tool_batch_without_mutating_original():
 
 
 def test_goal_runtime_changes_stop_at_boundary_before_another_model_call(tmp_path, terminal_model):
-    from minisweagent.modes.goals import drive_goal
-    from minisweagent.run.mini import _run_task
+    from vera.modes.goals import drive_goal
+    from vera.run.cli import _run_task
 
     config = mode_config(tmp_path, terminal_model)
     session = TerminalSession(config, tmp_path)
@@ -220,7 +220,7 @@ def test_goal_runtime_changes_stop_at_boundary_before_another_model_call(tmp_pat
 
 
 def test_responses_goal_transcript_fills_only_missing_tool_receipts():
-    from minisweagent.models.openrouter_response_model import OpenRouterResponseModel
+    from vera.models.openrouter_response_model import OpenRouterResponseModel
 
     model = OpenRouterResponseModel(model_name="fixture")
     first = {"type": "function_call", "call_id": "first", "name": "project_read", "arguments": "{}"}
@@ -241,7 +241,7 @@ def test_responses_goal_transcript_fills_only_missing_tool_receipts():
 
 
 def test_goal_judge_receives_actual_responses_api_tool_evidence(tmp_path, terminal_model):
-    from minisweagent.modes.goals import judge_goal
+    from vera.modes.goals import judge_goal
 
     config = mode_config(tmp_path, terminal_model)
     terminal_model["actions"]["judge"] = [("goal_verdict", {"verdict": "done", "reason": "Verified command result"})]

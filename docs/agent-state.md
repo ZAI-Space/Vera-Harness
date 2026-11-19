@@ -1,3 +1,5 @@
+[English](agent-state.md) · [简体中文](zh/agent-state.md)
+
 # Agent state observation
 
 State is an opt-in observation layer. The original `DefaultAgent.run()` loop,
@@ -32,7 +34,7 @@ through Python, using `StatefulAgent` instead of `DefaultAgent`, or
 `StatefulInteractiveAgent` instead of `InteractiveAgent`:
 
 ```python
-from minisweagent.agents.stateful import StatefulAgent
+from vera.agents.stateful import StatefulAgent
 
 agent = StatefulAgent(model, environment, **agent_config)
 unsubscribe = agent.subscribe(

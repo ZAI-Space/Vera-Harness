@@ -22,4 +22,6 @@ jobs:
       - name: Install documentation dependencies
         run: python -m pip install -e '.[full,channels]'
       - name: Build documentation strictly without deploying
-        run: python -m mkdocs build --strict
+        run: |
+          python scripts/check_docs.py
+          python -m mkdocs build --strict

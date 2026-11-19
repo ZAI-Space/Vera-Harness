@@ -1,15 +1,17 @@
+[English](inspector.md) · [简体中文](../../zh/reference/run/inspector.md)
+
 # Inspector
 
 !!! note "Trajectory Inspector"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/run/utilities/inspector.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/run/utilities/inspector.py)
 
     ??? note "Full source code"
 
         ```python
-        --8<-- "src/minisweagent/run/utilities/inspector.py"
+        --8<-- "src/vera/run/utilities/inspector.py"
         ```
 
-::: minisweagent.run.utilities.inspector
+::: vera.run.utilities.inspector
 
 {% include-markdown "../../_footer.md" %}

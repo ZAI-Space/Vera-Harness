@@ -5,11 +5,11 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from minisweagent.models import GLOBAL_MODEL_STATS
-from minisweagent.models.openrouter_model import (
+from vera.models import GLOBAL_MODEL_STATS
+from vera.models.openrouter_model import (
     OpenRouterAuthenticationError,
 )
-from minisweagent.models.openrouter_textbased_model import (
+from vera.models.openrouter_textbased_model import (
     OpenRouterTextbasedModel,
 )
 
@@ -19,7 +19,7 @@ def mock_response():
     """Create a mock successful OpenRouter API response."""
     # Response must include bash block to avoid FormatError from parse_action
     return {
-        "choices": [{"message": {"content": "```mswea_bash_command\necho '2+2 equals 4'\n```"}}],
+        "choices": [{"message": {"content": "```vera_bash_command\necho '2+2 equals 4'\n```"}}],
         "usage": {
             "prompt_tokens": 16,
             "completion_tokens": 13,
@@ -41,7 +41,7 @@ def mock_response_no_cost():
     """Create a mock OpenRouter API response without cost information."""
     # Response must include bash block to avoid FormatError from parse_action
     return {
-        "choices": [{"message": {"content": "```mswea_bash_command\necho '2+2 equals 4'\n```"}}],
+        "choices": [{"message": {"content": "```vera_bash_command\necho '2+2 equals 4'\n```"}}],
         "usage": {"prompt_tokens": 16, "completion_tokens": 13, "total_tokens": 29},
     }
 
@@ -82,7 +82,7 @@ def test_openrouter_model_successful_query(mock_response):
             assert payload["temperature"] == 0.7
 
             # Verify response
-            assert result["content"] == "```mswea_bash_command\necho '2+2 equals 4'\n```"
+            assert result["content"] == "```vera_bash_command\necho '2+2 equals 4'\n```"
             assert result["extra"]["actions"] == [{"command": "echo '2+2 equals 4'"}]
             assert result["extra"]["response"] == mock_response
 
@@ -109,7 +109,7 @@ def test_openrouter_model_authentication_error():
                 model._query(messages)
 
             assert "Authentication failed" in str(exc_info.value)
-            assert "mini-extra config set OPENROUTER_API_KEY" in str(exc_info.value)
+            assert "vera-extra config set OPENROUTER_API_KEY" in str(exc_info.value)
 
 
 def test_openrouter_model_no_cost_information(mock_response_no_cost):
@@ -128,7 +128,7 @@ def test_openrouter_model_no_cost_information(mock_response_no_cost):
                 model.query(messages)
 
             assert "No valid cost information available" in str(exc_info.value)
-            assert "MSWEA_COST_TRACKING='ignore_errors'" in str(exc_info.value)
+            assert "VERA_COST_TRACKING='ignore_errors'" in str(exc_info.value)
 
 
 def test_openrouter_model_free_model_zero_cost(mock_response_no_cost):
@@ -149,7 +149,7 @@ def test_openrouter_model_free_model_zero_cost(mock_response_no_cost):
             result = model.query(messages)
 
             # Verify response
-            assert result["content"] == "```mswea_bash_command\necho '2+2 equals 4'\n```"
+            assert result["content"] == "```vera_bash_command\necho '2+2 equals 4'\n```"
             assert result["extra"]["actions"] == [{"command": "echo '2+2 equals 4'"}]
             assert result["extra"]["response"] == mock_response_no_cost
 

@@ -1,3 +1,5 @@
+[English](subagents.md) · [简体中文](zh/subagents.md)
+
 # Subagents
 
 Define roles in a YAML overlay, then give the main agent a task. A role describes when to delegate, how the child should behave and which tools and skills it can access.
@@ -22,10 +24,10 @@ subagents:
 ```
 
 ```bash
-mini -c mini.yaml -c roles.yaml -t "Ask the documentation-reviewer to review the command-line examples"
+vera -c vera.yaml -c roles.yaml -t "Ask the documentation-reviewer to review the command-line examples"
 ```
 
-Use any tool-calling model adapter supported by `mini`. Omit `model` to construct a fresh instance of the parent's model configuration. A role that sets `model` supplies its own complete model config. Set `skills` to names from the [local skill catalog](skills.md). Each role sees only its own configured skills. `tools` accepts registered names, including web or MCP tools configured in the parent run. Bash gives the role the runtime's normal shell access, including writes.
+Use any tool-calling model adapter supported by `vera`. Omit `model` to construct a fresh instance of the parent's model configuration. A role that sets `model` supplies its own complete model config. Set `skills` to names from the [local skill catalog](skills.md). Each role sees only its own configured skills. `tools` accepts registered names, including web or MCP tools configured in the parent run. Bash gives the role the runtime's normal shell access, including writes.
 
 The parent discovers roles with `subagents_list` and invokes `subagent_run` with a role name and a self-contained task. The call waits for the result. Each child starts with its role instructions and task, and shares the parent's environment and already-open tool connections. Interactive authorization uses the parent's current mode. The main agent receives a summary, status, turn and cost counts, and a trajectory path when trajectory output is enabled.
 

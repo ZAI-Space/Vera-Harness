@@ -1,17 +1,19 @@
+[English](contree.md) · [简体中文](../../zh/reference/environments/contree.md)
+
 # ConTree
 
 !!! note "ConTree Environment class"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/environments/extra/contree.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/environments/extra/contree.py)
     - Requires [ConTree](https://contree.dev) token
 
     ??? note "Full source code"
 
         ```python
-        --8<-- "src/minisweagent/environments/extra/contree.py"
+        --8<-- "src/vera/environments/extra/contree.py"
         ```
 
-::: minisweagent.environments.extra.contree
+::: vera.environments.extra.contree
 
 This environment executes commands in [ConTree](https://contree.dev) sandboxes using [ConTree SDK](https://github.com/nebius/contree-sdk)
 
@@ -19,7 +21,7 @@ This environment executes commands in [ConTree](https://contree.dev) sandboxes u
 
 1. Install the dependencies:
    ```bash
-   pip install "mini-swe-agent[contree]"
+   python -m pip install -e '.[contree]'
    ```
 
 2. Set up ConTree token and base_url:
@@ -30,16 +32,15 @@ This environment executes commands in [ConTree](https://contree.dev) sandboxes u
 
 ## Usage
 
-Run mini-swe-agent like with any other environment:
+Run VERA like with any other environment:
 ```
-mini-extra swebench \
+vera-extra swebench \
     --subset verified \
     --split test \
-    --workers 100
+    --workers 1 \
     --environment-class contree
 ```
 
 It can be specified both through cli parameter or by setting `environment_class` to `contree` in your swebench.yaml config
 
 {% include-markdown "../../_footer.md" %}
-

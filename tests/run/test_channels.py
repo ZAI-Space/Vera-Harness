@@ -9,12 +9,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from minisweagent.channels import AccountConfig, ChannelConfig, ChannelError
-from minisweagent.channels.credentials import CredentialStore
-from minisweagent.channels.gateway import ChannelGateway, authorized, gateway_lock
-from minisweagent.channels.store import ChannelStore, chunks
-from minisweagent.channels.weixin import WeixinClient, api_origin, login, normalize_message
 from tests.run.channel_fixture import feishu_event, feishu_socket, provider_service, weixin_message
+from vera.channels import AccountConfig, ChannelConfig, ChannelError
+from vera.channels.credentials import CredentialStore
+from vera.channels.gateway import ChannelGateway, authorized, gateway_lock
+from vera.channels.store import ChannelStore, chunks
+from vera.channels.weixin import WeixinClient, api_origin, login, normalize_message
 
 
 def test_weixin_login_pin_wire_headers_and_reply_context(tmp_path):
@@ -126,7 +126,7 @@ def test_delivery_uncertainty_and_revoked_permission_are_not_retried(tmp_path):
 
 def test_feishu_pairing_requires_private_correct_code_and_protects_app_credentials(tmp_path):
     pytest.importorskip("lark_oapi")
-    from minisweagent.channels.feishu import pair_account
+    from vera.channels.feishu import pair_account
 
     events = []
     with feishu_socket(events) as socket, provider_service(ws_url=socket["url"]) as service:
@@ -205,10 +205,10 @@ def start_gateway(tmp_path, service, channel, *, agent_profile=None, model_envir
     environment = (
         os.environ
         | {
-            "MSWEA_SILENT_STARTUP": "1",
+            "VERA_SILENT_STARTUP": "1",
             "LITELLM_LOCAL_MODEL_COST_MAP": "True",
-            "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config"),
-            "MSWEA_TEST_MODEL_URL": service["base_url"] + "/model",
+            "VERA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config"),
+            "VERA_TEST_MODEL_URL": service["base_url"] + "/model",
             "PYTHONPATH": os.pathsep.join([str(repository / "src"), str(repository)]),
             "FEISHU_APP_ID": "fake-app",
             "FEISHU_APP_SECRET": "fake-app-secret",
@@ -217,7 +217,7 @@ def start_gateway(tmp_path, service, channel, *, agent_profile=None, model_envir
     )
     output = (tmp_path / "gateway.log").open("wb")
     process = subprocess.Popen(
-        [sys.executable, "-m", "minisweagent.run.utilities.channels", "start", "--config", str(config)],
+        [sys.executable, "-m", "vera.run.utilities.channels", "start", "--config", str(config)],
         env=environment,
         cwd=tmp_path,
         stdout=output,

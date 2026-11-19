@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from minisweagent.models.test_models import make_output
-from minisweagent.utils.windows_bash import find_git_bash
+from vera.models.test_models import make_output
+from vera.utils.windows_bash import find_git_bash
 
 pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows startup entry points")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -43,7 +43,7 @@ def test_startup_forwards_quoted_arguments_and_runs_agent(tmp_path, entry):
     arguments = ["-c", str(config_path), "-t", task, "-o", str(trajectory_path)]
     if entry == "powershell":
         script = tmp_path / "launch.ps1"
-        script.write_text('& "$env:MSWEA_TEST_PROJECT_ROOT/start.cmd" @args\nexit $LASTEXITCODE\n', encoding="utf-8")
+        script.write_text('& "$env:VERA_TEST_PROJECT_ROOT/start.cmd" @args\nexit $LASTEXITCODE\n', encoding="utf-8")
         command = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), *arguments]
     elif entry == "cmd":
         command = [os.environ["COMSPEC"], "/d", "/c", str(PROJECT_ROOT / "start.cmd"), *arguments]
@@ -54,9 +54,9 @@ def test_startup_forwards_quoted_arguments_and_runs_agent(tmp_path, entry):
         cwd=tmp_path,
         env=os.environ
         | {
-            "MSWEA_CONFIGURED": "true",
-            "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "config"),
-            "MSWEA_TEST_PROJECT_ROOT": str(PROJECT_ROOT),
+            "VERA_CONFIGURED": "true",
+            "VERA_GLOBAL_CONFIG_DIR": str(tmp_path / "config"),
+            "VERA_TEST_PROJECT_ROOT": str(PROJECT_ROOT),
         },
         capture_output=True,
         encoding="utf-8",
@@ -71,8 +71,8 @@ def test_startup_forwards_quoted_arguments_and_runs_agent(tmp_path, entry):
 
 def test_explicit_missing_bash_fails_before_download(tmp_path):
     result = subprocess.run(
-        [sys.executable, str(PROJECT_ROOT / "src/minisweagent/utils/windows_bash.py"), "--help"],
-        env=os.environ | {"MSWEA_BASH_PATH": str(tmp_path / "missing/bash.exe")},
+        [sys.executable, str(PROJECT_ROOT / "src/vera/utils/windows_bash.py"), "--help"],
+        env=os.environ | {"VERA_BASH_PATH": str(tmp_path / "missing/bash.exe")},
         capture_output=True,
         text=True,
         timeout=10,

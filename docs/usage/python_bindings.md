@@ -1,30 +1,21 @@
+[English](python_bindings.md) · [简体中文](../zh/usage/python_bindings.md)
+
 # Python bindings
 
-!!! abstract "Overview"
+!!! abstract "Reuse the shared Runtime"
 
-    This page shows the most basic example of how to use mini-SWE-agent as a Python library.
-    For more advanced usage, subclassing, and mix & match of components, see [subclassing and more](../advanced/cookbook.md).
-
-## Hello world
+    Use `open_agent_runtime` when a caller needs the same plugins, MCP, Skills, Subagents and sandbox policies as the terminal. The context owns connections and must remain open for the run.
 
 ```python
-import logging
+from vera.config import get_config_from_spec
+from vera.runtime import open_agent_runtime
 
-from minisweagent.agents.default import DefaultAgent
-from minisweagent.models import get_model
-from minisweagent.environments.local import LocalEnvironment
-
-logging.basicConfig(level=logging.DEBUG)
-task = "Write a hello world program"
-model_name = "anthropic/claude-sonnet-4-5-20250929"
-
-agent = DefaultAgent(
-    get_model(input_model_name=model_name),
-    LocalEnvironment(),
-)
-
-# Run the agent
-agent.run(task)
+config = get_config_from_spec("vera.yaml")
+config["model"] = {"model_class": "litellm", "model_name": "openai/YOUR_MODEL"}
+with open_agent_runtime(config) as runtime:
+    result = runtime.agent.run("Inspect the project and report findings")
 ```
 
-{% include-markdown "../_footer.md" %}
+For a noninteractive caller, choose an appropriate agent config and explicit permissions; an interactive confirmation prompt needs a human input adapter. For observation select `stateful` or `stateful_interactive`. Default templates come from the built-in YAML: constructing `DefaultAgent` without `system_template` and `instance_template` is not a complete example.
+
+The implementation now lives in the `vera` namespace. Update inherited `minisweagent.*` imports and custom class paths to `vera.*`; compatibility aliases cover CLI names, not old Python modules. See [subclassing](../advanced/cookbook.md), [state](../agent-state.md), and [frontend boundaries](../frontend-integration.md).

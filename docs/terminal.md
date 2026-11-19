@@ -1,6 +1,8 @@
+[English](terminal.md) · [简体中文](zh/terminal.md)
+
 # Terminal file context and commands
 
-Run `mini` (or `start.cmd` in Windows, `./scripts/start.sh` in Bash) inside
+Run `vera` (or `start.cmd` in Windows, `./scripts/start.sh` in Bash) inside
 the project. The initial prompt accepts tasks, project file references and commands.
 Use Tab to complete a file or command; use Esc followed by Enter to submit the
 multiline prompt. Existing `/h`, `/m`, `/u`, `/c` and `/y` controls remain available
@@ -23,7 +25,7 @@ are deduplicated. The complete selection is validated before submitting a task.
 Quoted file contents are context and grant no additional execution permissions.
 Use `\@` to keep a literal mention; email addresses are left alone.
 
-`mini -t 'Review @src/main.py'` supports the same references. A resumed run uses
+`vera -t 'Review @src/main.py'` supports the same references. A resumed run uses
 its saved task instead of re-reading files.
 
 ## Session commands
@@ -96,10 +98,14 @@ complete model configuration, following the existing provider schema.
 
 ## Shared integration boundary
 
-`minisweagent.terminal.session.TerminalSession` handles catalogs, input parsing,
+`vera.terminal.session.TerminalSession` handles catalogs, input parsing,
 per-task configuration and explicit context preparation without prompt-toolkit
 or model requests. `InputResult` distinguishes messages, tasks, new conversations
 and stop requests. `ProjectFiles` supplies workspace file completion and bounded
 context. `terminal.ui` adapts those interfaces to the existing prompts, while
 `open_agent_runtime` enforces capabilities. A desktop transport can reuse these
 interfaces when its frontend is ready.
+
+## Markets and explicit modes
+
+Use `/mcp search/add` and `/skill search/add` for explicit market operations. `/plan` saves a planning-only task and `/goal` runs a bounded standing objective. See [markets and modes](markets-and-modes.md). These controls remain independent of confirm/yolo/human and sandbox selection.

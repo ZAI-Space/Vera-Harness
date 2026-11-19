@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from minisweagent.models import GLOBAL_MODEL_STATS
+from vera.models import GLOBAL_MODEL_STATS
 
 
 def pytest_addoption(parser):
@@ -68,12 +68,12 @@ def _get_container_executable() -> str | None:
 def container_executable(monkeypatch):
     """Provide the available container executable, skip if neither docker nor podman is available.
 
-    Sets MSWEA_DOCKER_EXECUTABLE so DockerEnvironment uses the right executable.
+    Sets VERA_DOCKER_EXECUTABLE so DockerEnvironment uses the right executable.
     """
     exe = _get_container_executable()
     if exe is None:
         pytest.skip("Neither docker nor podman is available")
-    monkeypatch.setenv("MSWEA_DOCKER_EXECUTABLE", exe)
+    monkeypatch.setenv("VERA_DOCKER_EXECUTABLE", exe)
     return exe
 
 

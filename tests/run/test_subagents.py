@@ -9,10 +9,10 @@ from threading import Thread
 import pytest
 import yaml
 
-from minisweagent.agents.interactive import InteractiveAgent
-from minisweagent.storage import RunStore
 from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_web_tools import FINISH_CALL, _model_response
+from vera.agents.interactive import InteractiveAgent
+from vera.storage import RunStore
 
 
 class RejectChildBashAgent(InteractiveAgent):
@@ -104,9 +104,9 @@ def test_cli_delegates_fresh_contexts_with_scoped_runtime(tmp_path, with_mcp, re
         try:
             run_cli(
                 tmp_path,
-                "minisweagent",
+                "vera",
                 "-c",
-                "mini.yaml",
+                "vera.yaml",
                 "-c",
                 str(config),
                 "-t",
@@ -121,7 +121,7 @@ def test_cli_delegates_fresh_contexts_with_scoped_runtime(tmp_path, with_mcp, re
                 str(database),
                 "-o",
                 str(trajectory),
-                MSWEA_TEST_MODEL_URL=f"http://127.0.0.1:{server.server_port}",
+                VERA_TEST_MODEL_URL=f"http://127.0.0.1:{server.server_port}",
             )
         finally:
             server.shutdown()

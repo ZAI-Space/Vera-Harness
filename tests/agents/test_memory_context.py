@@ -4,10 +4,10 @@ from copy import deepcopy
 
 import pytest
 
-from minisweagent.agents.hindsight import HindsightAgent
-from minisweagent.environments.local import LocalEnvironment
-from minisweagent.memory.context import compact_context
-from minisweagent.models.test_models import DeterministicModel, make_output
+from vera.agents.hindsight import HindsightAgent
+from vera.environments.local import LocalEnvironment
+from vera.memory.context import compact_context
+from vera.models.test_models import DeterministicModel, make_output
 
 
 @pytest.mark.parametrize("responses_api", [False, True])

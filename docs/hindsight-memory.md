@@ -1,3 +1,5 @@
+[English](hindsight-memory.md) · [简体中文](zh/hindsight-memory.md)
+
 # Hindsight project memory
 
 Use a running [Hindsight service](https://github.com/vectorize-io/hindsight) and
@@ -11,15 +13,15 @@ From Git Bash in the project directory:
 ```bash
 export HINDSIGHT_BANK_ID=harness-project
 export HINDSIGHT_BASE_URL=http://127.0.0.1:8888
-./.venv/Scripts/mini-extra.exe memory retain 'Run local regression tests with pytest.'
-./.venv/Scripts/mini-extra.exe memory recall 'How do I run regression tests?'
+./.venv/Scripts/vera-extra.exe memory retain 'Run local regression tests with pytest.'
+./.venv/Scripts/vera-extra.exe memory recall 'How do I run regression tests?'
 bash scripts/start.sh --agent-class hindsight_interactive
 ```
 
 PowerShell uses `$env:HINDSIGHT_BANK_ID = 'harness-project'`,
 `$env:HINDSIGHT_BASE_URL = 'http://127.0.0.1:8888'`, and
-`./start.cmd --agent-class hindsight_interactive`. The `mini-extra` commands work
-in PowerShell too. On Linux, use `.venv/bin/mini-extra`.
+`./start.cmd --agent-class hindsight_interactive`. The `vera-extra` commands work
+in PowerShell too. On Linux, use `.venv/bin/vera-extra`.
 
 For authentication, set `HINDSIGHT_API_KEY_FILE` to the path of a file containing
 only the key, or set `HINDSIGHT_API_KEY` in the process environment. Keep credential
@@ -36,13 +38,13 @@ error and uses the available context. For noninteractive tasks, use
 | Current session | Agent messages and tool results | Remain in the complete trajectory. Set `agent.context_budget_chars` to compact older groups before each model query. |
 | Project | Hindsight facts, experiences and consolidated observations | Set `HINDSIGHT_BANK_ID` or `agent.memory_bank_id`. Use a distinct bank and scoped key per project. |
 | Shared across projects | A dedicated Hindsight bank containing reusable knowledge | Opt in with `agent.memory_shared_bank_id`. The same task query is sent to this bank, which the Agent reads and the operator curates. |
-| Subagent | A dedicated primary bank, with an optional explicitly supplied parent or shared bank | Give each child its own `memory_bank_id` through its constructor or agent config. Python callers can pass separate `memory` and `shared_memory` clients with their own credentials. The scheduler determines the child's IDs and permissions. |
+| Independently constructed Hindsight agents | A dedicated primary bank and optional shared bank | Python callers can construct Hindsight agents with separate `memory_bank_id`, `memory` and `shared_memory` clients. Built-in role delegation currently constructs `StatefulAgent` children and does not expose Hindsight bank configuration. |
 
 For example, enable a shared bank and a soft 24,000-character model context budget:
 
 ```bash
 bash scripts/start.sh --agent-class hindsight_interactive \
-  -c mini.yaml -c agent.memory_shared_bank_id=harness-shared \
+  -c vera.yaml -c agent.memory_shared_bank_id=harness-shared \
   -c agent.context_budget_chars=24000
 ```
 
@@ -66,12 +68,12 @@ task benefits from synthesis and you accept the extra model call at Hindsight.
 The default remains observation-preferred recall. For the manual workflow:
 
 ```bash
-./.venv/Scripts/mini-extra.exe memory retain 'The project switched to pnpm.' \
+./.venv/Scripts/vera-extra.exe memory retain 'The project switched to pnpm.' \
   --document-id package-manager-decision --context 'Verified against pnpm-lock.yaml'
-./.venv/Scripts/mini-extra.exe memory recall 'Which package manager is current?' --json-output
-./.venv/Scripts/mini-extra.exe memory reflect 'Which convention is current, and what supports it?' --json-output
-./.venv/Scripts/mini-extra.exe memory invalidate FACT_ID 'Verified obsolete against the workspace'
-./.venv/Scripts/mini-extra.exe memory restore FACT_ID
+./.venv/Scripts/vera-extra.exe memory recall 'Which package manager is current?' --json-output
+./.venv/Scripts/vera-extra.exe memory reflect 'Which convention is current, and what supports it?' --json-output
+./.venv/Scripts/vera-extra.exe memory invalidate FACT_ID 'Verified obsolete against the workspace'
+./.venv/Scripts/vera-extra.exe memory restore FACT_ID
 ```
 
 Retain accepts curated notes with optional source context, document ID and tags.

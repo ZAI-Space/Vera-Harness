@@ -1,59 +1,45 @@
+[English](control_flow.md) · [简体中文](../zh/advanced/control_flow.md)
+
 # Agent control flow
-
-!!! note "Understanding AI agent basics"
-
-    We also recently created a long tutorial on understanding the basics of building an AI agent: [View it here](https://minimal-agent.com).
 
 !!! abstract "Understanding the default agent"
 
     * This guide shows the control flow of the default agent.
-    * After this, you're ready to [remix & extend mini](cookbook.md)
+    * After this, you're ready to [extend VERA](cookbook.md)
 
-The following diagram shows the control flow of the mini agent:
+The following diagram shows the control flow of the VERA agent:
 
 ```mermaid
 flowchart TD
-    subgraph run["<b><code>Agent.run(task)</code></b>"]
-        direction TB
-        A["<b><code>Initialize messages</code></b>"] --> B
-        B["<b><code>Agent.step</code></b>"] --> C{"<b><code>Exception?</code></b>"}
-        C -->|Yes| D["<b><code>Agent.add_messages</code></b><br/>(also re-raises exceptions that don't inherit from InterruptAgentFlow)"]
-        C -->|No| E{"<b><code>messages[-1].role == exit?</code></b>"}
-        D --> E
-        E -->|No| B
-        E -->|Yes| F["<b><code>Return result</code></b>"]
-    end
-
-    subgraph step["<b><code>Agent.step()</code></b><br>Single iteration</br>"]
-        direction TB
-        S1["<b><code>Agent.query</code></b>"] --> S2["<b><code>Agent.execute_actions</code></b>"]
-    end
-
-    subgraph query["<b><code>Agent.query()</code></b><br>Also checks for cost limits</br><br></br>"]
-        direction TB
-        Q3["<b><code>Model.query</code></b>"] --> Q4["<b><code>Agent.add_messages</code></b>"]
-    end
-
-    subgraph execute_actions["<b><code>Agent.execute_actions(message)</code></b>"]
-        direction TB
-        E2["<b><code>Environment.execute</code></b><br/>Also raises the Submitted exception if we're done"] --> E3["<b><code>Model.format_observation_messages</code></b>"]
-        E3 --> E4["<b><code>Agent.add_messages</code></b>"]
-    end
-
-    B -.-> step
-    S1 -.-> query
-    S2 -.-> execute_actions
+    A["run: initialize or restore messages"] --> B["check cancellation / step"]
+    B --> Q["query: enforce limits, call model, append response"]
+    Q --> E["execute_actions / _execute_action"]
+    E --> R{"RunRecord active?"}
+    R -->|Yes| J["Journal dispatch and receipt"]
+    R -->|No| D["_dispatch_action"]
+    J --> D
+    D --> T{"ToolRegistry configured?"}
+    T -->|Yes| U["ToolRegistry.execute"]
+    T -->|No, command action| V["Environment.execute"]
+    U --> O["Format and append observations"]
+    V --> O
+    O --> K["Checkpoint finished step"]
+    K --> S["Save trajectory in finally"]
+    B -. "Flow exception: append messages" .-> S
+    S --> X{"Last message role is exit?"}
+    X -->|No| B
+    X -->|Yes| F["Return exit metadata"]
 ```
 
 And here is the code that implements it:
 
 ??? note "Default agent class"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/agents/default.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/agents/default.py)
     - [API reference](../reference/agents/default.md)
 
     ```python
-    --8<-- "src/minisweagent/agents/default.py"
+    --8<-- "src/vera/agents/default.py"
     ```
 
 Essentially, `DefaultAgent.run` calls `DefaultAgent.step` in a loop until the agent has finished its task.
@@ -68,7 +54,7 @@ def step(self) -> list[dict]:
 It does the following:
 
 1. Queries the model for a response based on the current messages (`DefaultAgent.query`, calling `Model.query`)
-2. Executes all actions in the response (`DefaultAgent.execute_actions`, calling `Environment.execute` for each action)
+2. Executes all actions in the response (`DefaultAgent.execute_actions`, using `_execute_action` for each action). An active `RunRecord` journals dispatch and receipts; `_dispatch_action` routes through `ToolRegistry` when configured, otherwise it executes command actions through the environment
 3. Formats the observation messages via `Model.format_observation_messages`
 4. Adds the observations to the messages
 
@@ -86,7 +72,7 @@ And `execute_actions`:
 
 ```python
 def execute_actions(self, message: dict) -> list[dict]:
-    outputs = [self.env.execute(action) for action in message.get...
+    outputs = [self._execute_action(action) for action in message.get("extra", {}).get("actions", [])]
     return self.add_messages(*self.model.format_observation_messages(...))
 ```
 
@@ -105,7 +91,7 @@ This uses exceptions that inherit from `InterruptAgentFlow`. All these exception
 
 - `LimitsExceeded` is raised when we hit a cost or step limit
 - `FormatError` is raised when the output from the LM is not in the expected format
-- `TimeoutError` is raised when the action took too long to execute
+- `TimeExceeded` exits when the agent wall-clock limit is reached at a query boundary. A local command timeout is caught by `LocalEnvironment` and returned as an error observation, rather than a flow exception
 - `UserInterruption` is raised when the user interrupts the agent
 
 The `DefaultAgent.run` method catches these exceptions and handles them by adding the corresponding messages to the messages list. The loop continues until a message with `role="exit"` is added.

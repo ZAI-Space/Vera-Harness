@@ -12,8 +12,8 @@ from time import monotonic, sleep
 import pytest
 import yaml
 
-from minisweagent.tools import ToolError, ToolRegistry, ToolSpec
-from minisweagent.tools.mcp import open_mcp_tools, parse_mcp_servers
+from vera.tools import ToolError, ToolRegistry, ToolSpec
+from vera.tools.mcp import open_mcp_tools, parse_mcp_servers
 
 pytest.importorskip("mcp")
 
@@ -161,13 +161,13 @@ def test_cli_routes_mcp_and_bash_with_selective_environment(tmp_path, http_serve
         [
             sys.executable,
             "-m",
-            "minisweagent",
+            "vera",
             "--model-class",
             "tests.run.test_web_tools.LocalFixtureModel",
             "--model",
             "fixture",
             "-c",
-            "mini.yaml",
+            "vera.yaml",
             "-c",
             str(config),
             "--exit-immediately",
@@ -179,10 +179,10 @@ def test_cli_routes_mcp_and_bash_with_selective_environment(tmp_path, http_serve
         ],
         env=os.environ
         | {
-            "MSWEA_CONFIGURED": "true",
+            "VERA_CONFIGURED": "true",
             "MCP_TEST_ALLOWED": "yes",
             "MCP_TEST_PRIVATE": "yes",
-            "MSWEA_TEST_MODEL_URL": f"{url}/model",
+            "VERA_TEST_MODEL_URL": f"{url}/model",
         },
         capture_output=True,
         timeout=30,

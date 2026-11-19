@@ -2,6 +2,7 @@
 
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import time
@@ -10,10 +11,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from minisweagent.storage import RunStore
 from tests.run.test_skill_tools import run_cli
+from vera.storage import RunStore
 
-RUNS_CLI = "minisweagent.run.utilities.mini_extra"
+RUNS_CLI = "vera.run.utilities.extra"
 
 
 def _write_config(path, *commands, **agent_config):
@@ -69,16 +70,14 @@ def test_cli_lists_independent_runs_and_preserves_default_trajectories(tmp_path)
         encoding="utf-8",
     )
     for index in range(2):
-        result = run_cli(tmp_path, "minisweagent", "-c", str(config), "--storage", str(database), "-t", f"Task {index}")
+        result = run_cli(tmp_path, "vera", "-c", str(config), "--storage", str(database), "-t", f"Task {index}")
         assert "Run ID:" in result.stdout
 
     with pytest.raises(subprocess.CalledProcessError) as failure:
-        run_cli(
-            tmp_path, "minisweagent", "-c", str(config), "--storage", str(database), "-o", str(database), "-t", "Task"
-        )
+        run_cli(tmp_path, "vera", "-c", str(config), "--storage", str(database), "-o", str(database), "-t", "Task")
     assert "need separate paths" in failure.value.stderr
 
-    cli = "minisweagent.run.utilities.mini_extra"
+    cli = "vera.run.utilities.extra"
     runs = json.loads(run_cli(tmp_path, cli, "runs", "list", "--db", str(database)).stdout)
     assert len(runs) == 2
     paths = [Path(run["trajectory_path"]) for run in runs]
@@ -102,10 +101,10 @@ def test_abrupt_exit_leaves_unknown_receipt(tmp_path):
 import os
 import sys
 from pathlib import Path
-from minisweagent.agents.default import DefaultAgent
-from minisweagent.environments.local import LocalEnvironment
-from minisweagent.models import get_model
-from minisweagent.storage import RunStore
+from vera.agents.default import DefaultAgent
+from vera.environments.local import LocalEnvironment
+from vera.models import get_model
+from vera.storage import RunStore
 
 class ExitDuringDispatch(DefaultAgent):
     def _dispatch_action(self, action):
@@ -135,10 +134,10 @@ with RunStore(Path(sys.argv[1])).track(agent):
     _write_config(config, "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT")
     arguments = ("-c", str(config), "--storage", str(database), "--resume", run["id"])
     with pytest.raises(subprocess.CalledProcessError) as failure:
-        run_cli(tmp_path, "minisweagent", *arguments)
+        run_cli(tmp_path, "vera", *arguments)
     assert "--reconcile" in failure.value.stderr
     assert len(store.list_runs()) == 1
-    run_cli(tmp_path, "minisweagent", *arguments, "--reconcile", "The marker exists. Leave it in place.")
+    run_cli(tmp_path, "vera", *arguments, "--reconcile", "The marker exists. Leave it in place.")
     continuation, interrupted = store.list_runs()
     assert continuation["resumed_from"] == interrupted["id"]
     assert continuation["status"] == "completed"
@@ -148,7 +147,7 @@ with RunStore(Path(sys.argv[1])).track(agent):
     assert "The marker exists" in messages[2]["content"]
     assert len(store.get_run(continuation["id"])["tool_calls"]) == 1
     with pytest.raises(subprocess.CalledProcessError) as failure:
-        run_cli(tmp_path, "minisweagent", *arguments, "--reconcile", "Verified")
+        run_cli(tmp_path, "vera", *arguments, "--reconcile", "Verified")
     assert "already has a continuation" in failure.value.stderr
 
 
@@ -158,9 +157,9 @@ def test_cancel_and_resume_without_replaying_completed_actions(tmp_path):
     _write_config(config, "printf once >> effect.txt; sleep 8", "printf unexpected > should-not-run")
     trajectory = tmp_path / "cancelled.json"
     arguments = ("-c", str(config), "--storage", str(database))
-    env = os.environ | {"MSWEA_CONFIGURED": "true", "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config")}
+    env = os.environ | {"VERA_CONFIGURED": "true", "VERA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config")}
     process = subprocess.Popen(
-        [sys.executable, "-m", "minisweagent", *arguments, "-t", "Original task", "-o", str(trajectory)],
+        [sys.executable, "-m", "vera", *arguments, "-t", "Original task", "-o", str(trajectory)],
         env=env,
         cwd=tmp_path,
         stdout=subprocess.PIPE,
@@ -177,7 +176,7 @@ def test_cancel_and_resume_without_replaying_completed_actions(tmp_path):
             time.sleep(0.05)
         original_id = store.list_runs()[0]["id"]
         with pytest.raises(subprocess.CalledProcessError) as failure:
-            run_cli(tmp_path, "minisweagent", *arguments, "--resume", original_id, "--reconcile", "Inspect first.")
+            run_cli(tmp_path, "vera", *arguments, "--resume", original_id, "--reconcile", "Inspect first.")
         assert "Cannot acquire the lock" in failure.value.stderr
         run_cli(tmp_path, RUNS_CLI, "runs", "cancel", original_id, "--db", str(database))
         _, stderr = process.communicate(timeout=15)
@@ -192,7 +191,7 @@ def test_cancel_and_resume_without_replaying_completed_actions(tmp_path):
     assert [call["status"] for call in original["tool_calls"]] == ["returned"]
     assert not (tmp_path / "should-not-run").exists()
     _write_config(config, "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT")
-    run_cli(tmp_path, "minisweagent", *arguments, "--resume", original_id)
+    run_cli(tmp_path, "vera", *arguments, "--resume", original_id)
     [continuation, _] = store.list_runs()
     assert continuation["resumed_from"] == original_id
     assert continuation["status"] == "completed"
@@ -205,5 +204,34 @@ def test_cancel_and_resume_without_replaying_completed_actions(tmp_path):
 def test_reading_missing_database_does_not_create_it(tmp_path):
     missing = tmp_path / "missing.sqlite3"
     with pytest.raises(subprocess.CalledProcessError):
-        run_cli(tmp_path, "minisweagent.run.utilities.mini_extra", "runs", "list", "--db", str(missing))
+        run_cli(tmp_path, "vera.run.utilities.extra", "runs", "list", "--db", str(missing))
     assert not missing.exists()
+
+
+def test_resume_inherited_namespace_preserves_configuration_checks(tmp_path):
+    """Resume an old checkpoint only when the namespace is its sole difference."""
+    database = tmp_path / "inherited.sqlite3"
+    config = tmp_path / "run.yaml"
+    _write_config(config, "printf once >> effect.txt", step_limit=1)
+    arguments = ("-c", str(config), "--storage", str(database))
+    run_cli(tmp_path, "vera", *arguments, "-t", "Original task")
+    store = RunStore(database)
+    original = store.list_runs()[0]
+    assert original["status"] == "stopped"
+    with sqlite3.connect(database) as connection:
+        adapter, runtime = connection.execute("SELECT adapter, runtime FROM checkpoints").fetchone()
+        connection.execute(
+            "UPDATE checkpoints SET adapter = ?, runtime = ?",
+            (adapter.replace("vera.", "minisweagent.", 1), runtime.replace("vera.", "minisweagent.", 1) + "changed"),
+        )
+    _write_config(config, "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT")
+    with pytest.raises(subprocess.CalledProcessError) as failure:
+        run_cli(tmp_path, "vera", *arguments, "--resume", original["id"])
+    assert "original workspace, execution configuration and model adapter" in failure.value.stderr
+    with sqlite3.connect(database) as connection:
+        connection.execute("UPDATE checkpoints SET runtime = ?", (runtime.replace("vera.", "minisweagent.", 1),))
+    run_cli(tmp_path, "vera", *arguments, "--resume", original["id"])
+    continuation, _ = store.list_runs()
+    assert continuation["status"] == "completed"
+    assert continuation["resumed_from"] == original["id"]
+    assert (tmp_path / "effect.txt").read_text(encoding="utf-8") == "once"

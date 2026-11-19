@@ -7,15 +7,15 @@ import time
 import pytest
 import yaml
 
-from minisweagent.environments.sandbox import SandboxConfig, SandboxMode, _bubblewrap, _docker, open_runtime
 from tests.run.test_cli_integration import strip_ansi_codes
 from tests.run.test_skill_tools import run_cli
+from vera.environments.sandbox import SandboxConfig, SandboxMode, _bubblewrap, _docker, open_runtime
 
 
 def test_cli_auto_requires_a_real_sandbox_and_allows_explicit_local(tmp_path):
     missing_runtime = {
-        "MSWEA_DOCKER_EXECUTABLE": str(tmp_path / "missing-docker"),
-        "MSWEA_BUBBLEWRAP_EXECUTABLE": str(tmp_path / "missing-bwrap"),
+        "VERA_DOCKER_EXECUTABLE": str(tmp_path / "missing-docker"),
+        "VERA_BUBBLEWRAP_EXECUTABLE": str(tmp_path / "missing-bwrap"),
     }
     config = tmp_path / "test.yaml"
     config.write_text(
@@ -39,27 +39,27 @@ def test_cli_auto_requires_a_real_sandbox_and_allows_explicit_local(tmp_path):
     )
     arguments = ("-c", str(config), "-t", "Check execution", "-o", str(tmp_path / "trajectory.json"))
     with pytest.raises(subprocess.CalledProcessError) as failure:
-        run_cli(tmp_path, "minisweagent", *arguments, "--sandbox", "auto", **missing_runtime)
+        run_cli(tmp_path, "vera", *arguments, "--sandbox", "auto", **missing_runtime)
     error = strip_ansi_codes(failure.value.stderr)
     assert "unavailable" in error
     assert "--sandbox local" in error
     assert not (tmp_path / "trajectory.json").exists()
 
-    result = run_cli(tmp_path, "minisweagent", *arguments, "--sandbox", "local", **missing_runtime)
+    result = run_cli(tmp_path, "vera", *arguments, "--sandbox", "local", **missing_runtime)
     assert "Execution mode: local (host access)" in result.stdout
     assert (tmp_path / "trajectory.json").is_file()
 
     if _docker(SandboxConfig()) is not None:
-        result = run_cli(tmp_path, "minisweagent", *arguments, "--sandbox", "docker")
+        result = run_cli(tmp_path, "vera", *arguments, "--sandbox", "docker")
         assert "Execution mode: docker" in result.stdout
     if _bubblewrap() is not None:
         result = run_cli(
             tmp_path,
-            "minisweagent",
+            "vera",
             *arguments,
             "--sandbox",
             "auto",
-            MSWEA_DOCKER_EXECUTABLE=missing_runtime["MSWEA_DOCKER_EXECUTABLE"],
+            VERA_DOCKER_EXECUTABLE=missing_runtime["VERA_DOCKER_EXECUTABLE"],
         )
         assert "Execution mode: bubblewrap" in result.stdout
 
@@ -81,7 +81,7 @@ def test_cli_rejects_unapproved_external_tools_before_starting_runtime(tmp_path)
         encoding="utf-8",
     )
     with pytest.raises(subprocess.CalledProcessError) as failure:
-        run_cli(tmp_path, "minisweagent", "-c", str(config), "-t", "Check authorization")
+        run_cli(tmp_path, "vera", "-c", str(config), "-t", "Check authorization")
     error = failure.value.stderr
     for field in ("sandbox.host_mcp_servers", "sandbox.remote_mcp_servers", "sandbox.allow_web_tools"):
         assert field in error
@@ -90,7 +90,7 @@ def test_cli_rejects_unapproved_external_tools_before_starting_runtime(tmp_path)
     settings["sandbox"].update(host_mcp_servers=["local-docs"], remote_mcp_servers=["remote-api"], allow_web_tools=True)
     config.write_text(yaml.safe_dump(settings), encoding="utf-8")
     with pytest.raises(subprocess.CalledProcessError) as failure:
-        run_cli(tmp_path, "minisweagent", "-c", str(config), "-t", "Check authorization")
+        run_cli(tmp_path, "vera", "-c", str(config), "-t", "Check authorization")
     assert "Sandbox workspace is not a directory" in failure.value.stderr
 
 
@@ -109,7 +109,7 @@ def test_workspace_read_only_credentials_and_shell_network(tmp_path, isolated_mo
     workspace.mkdir()
     (workspace / "inside.txt").write_text("VISIBLE", encoding="utf-8")
     (tmp_path / "outside.txt").write_text("PRIVATE", encoding="utf-8")
-    token = "MSWEA_SANDBOX_TEST_SECRET"
+    token = "VERA_SANDBOX_TEST_SECRET"
     previous = os.environ.get(token)
     os.environ[token] = "not-for-the-shell"
     try:
@@ -119,7 +119,7 @@ def test_workspace_read_only_credentials_and_shell_network(tmp_path, isolated_mo
         ):
             assert mode == isolated_mode.value
             result = env.execute(
-                {"command": 'cat inside.txt && test ! -e ../outside.txt && test -z "$MSWEA_SANDBOX_TEST_SECRET"'}
+                {"command": 'cat inside.txt && test ! -e ../outside.txt && test -z "$VERA_SANDBOX_TEST_SECRET"'}
             )
             assert result["returncode"] == 0, result
             assert result["output"] == "VISIBLE"

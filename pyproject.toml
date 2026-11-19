@@ -4,16 +4,15 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "mini-swe-agent"
+name = "vera-harness"
 dynamic = ["version"]
-description = "Mini SWE Agent - A simple AI software engineering agent"
+description = "VERA - Modular agent harness for terminal and desktop integrations"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE.md"}
 keywords = ["nlp", "agents", "code"]
 authors = [
-    {name = "Kilian Lieret", email = "kilian.lieret@posteo.de" },
-    {name = "Carlos E. Jimenez", email = "carlosej@princeton.edu" },
+    {name = "VERA contributors"},
 ]
 
 # Classifiers help users find your project by categorizing it.
@@ -54,11 +53,11 @@ dependencies = [
 
 [project.optional-dependencies]
 full = [
-    "mini-swe-agent[dev]",
+    "vera-harness[dev]",
     "swe-rex>=1.4.0",
-    "mini-swe-agent[modal]",
-    "mini-swe-agent[contree]",
-    "mini-swe-agent[mcp]",
+    "vera-harness[modal]",
+    "vera-harness[contree]",
+    "vera-harness[mcp]",
 ]
 
 mcp = ["mcp>=1.30,<2", "anyio>=4", "httpx>=0.27"]
@@ -91,29 +90,31 @@ contree = [
 ]
 
 [project.urls]
-Documentation = "https://mini-swe-agent.com/latest/"
-Repository = "https://github.com/SWE-agent/mini-swe-agent"
-"Bug Tracker" = "https://github.com/SWE-agent/mini-swe-agent/issues"
+Documentation = "https://github.com/zml-mis/Vera-Harness/tree/dev/docs"
+Repository = "https://github.com/zml-mis/Vera-Harness"
+"Bug Tracker" = "https://github.com/zml-mis/Vera-Harness/issues"
 
 [project.scripts]
-mini = "minisweagent.run.mini:app"
-mini-swe-agent = "minisweagent.run.mini:app"
-mini-extra = "minisweagent.run.utilities.mini_extra:main"
-mini-e= "minisweagent.run.utilities.mini_extra:main"
+vera = "vera.run.cli:app"
+vera-extra = "vera.run.utilities.extra:main"
+mini = "vera.run.cli:app"
+mini-swe-agent = "vera.run.cli:app"
+mini-extra = "vera.run.utilities.extra:main"
+mini-e= "vera.run.utilities.extra:main"
 
 [tool.setuptools]
 include-package-data = true
 license-files = ["LICENSE.md", "THIRD_PARTY_NOTICES.md"]
 
 [tool.setuptools.dynamic]
-version = {attr = "minisweagent.__version__"}
+version = {attr = "vera.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["minisweagent*"]
+include = ["vera*"]
 
 [tool.setuptools.package-data]
-minisweagent = ["config/**/*"]
+vera = ["config/**/*"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

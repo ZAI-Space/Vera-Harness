@@ -9,10 +9,10 @@ from threading import Thread
 
 import pytest
 
-from minisweagent.agents.hindsight import HindsightAgent
-from minisweagent.environments.local import LocalEnvironment
-from minisweagent.memory.hindsight import HindsightMemory
-from minisweagent.models.test_models import DeterministicModel, make_output
+from vera.agents.hindsight import HindsightAgent
+from vera.environments.local import LocalEnvironment
+from vera.memory.hindsight import HindsightMemory
+from vera.models.test_models import DeterministicModel, make_output
 
 
 @pytest.fixture
@@ -88,12 +88,12 @@ def test_retain_and_recall_across_cli_processes(memory_service, tmp_path):
         "HINDSIGHT_BASE_URL": endpoint,
         "HINDSIGHT_BANK_ID": "test-project",
         "HINDSIGHT_API_KEY_FILE": str(key_file),
-        "MSWEA_CONFIGURED": "true",
-        "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "config"),
-        "MSWEA_SILENT_STARTUP": "1",
+        "VERA_CONFIGURED": "true",
+        "VERA_GLOBAL_CONFIG_DIR": str(tmp_path / "config"),
+        "VERA_SILENT_STARTUP": "1",
     }
     note = "Run unit tests with pytest. {{ template_text }}"
-    memory_cli = [sys.executable, "-m", "minisweagent.run.utilities.mini_extra", "memory"]
+    memory_cli = [sys.executable, "-m", "vera.run.utilities.extra", "memory"]
     subprocess.run([*memory_cli, "retain", note], env=environ, check=True, capture_output=True, timeout=30)
     recalled = subprocess.run(
         [*memory_cli, "recall", "How do I run tests?"], env=environ, check=True, capture_output=True, timeout=30
@@ -121,7 +121,7 @@ def test_retain_and_recall_across_cli_processes(memory_service, tmp_path):
         [
             sys.executable,
             "-m",
-            "minisweagent",
+            "vera",
             "--agent-class",
             "hindsight_interactive",
             "-c",

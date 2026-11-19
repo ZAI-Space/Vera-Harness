@@ -1,15 +1,17 @@
+[English](test_models.md) · [简体中文](../../zh/reference/models/test_models.md)
+
 # Test Models
 
 !!! note "Test Models class"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/models/test_models.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/models/test_models.py)
 
     ??? note "Full source code"
 
         ```python
-        --8<-- "src/minisweagent/models/test_models.py"
+        --8<-- "src/vera/models/test_models.py"
         ```
 
-::: minisweagent.models.test_models
+::: vera.models.test_models
 
 {% include-markdown "../../_footer.md" %}

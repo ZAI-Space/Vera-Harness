@@ -10,13 +10,13 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from minisweagent.agents.default import DefaultAgent
-from minisweagent.agents.interactive import InteractiveAgent
-from minisweagent.environments.local import LocalEnvironment
-from minisweagent.models.openrouter_model import OpenRouterModel
-from minisweagent.models.openrouter_response_model import OpenRouterResponseModel
-from minisweagent.tools import ToolSpec, make_tool_registry
-from minisweagent.tools.web import firecrawl_provider, register_web_tools, searxng_provider, tavily_provider
+from vera.agents.default import DefaultAgent
+from vera.agents.interactive import InteractiveAgent
+from vera.environments.local import LocalEnvironment
+from vera.models.openrouter_model import OpenRouterModel
+from vera.models.openrouter_response_model import OpenRouterResponseModel
+from vera.tools import ToolSpec, make_tool_registry
+from vera.tools.web import firecrawl_provider, register_web_tools, searxng_provider, tavily_provider
 
 PAGE = "https://example.org/docs"
 WEB_CALLS = [("web_search", {"query": "pytest documentation", "limit": 2}), ("web_extract", {"url": PAGE})]
@@ -165,7 +165,7 @@ class LocalFixtureModel(OpenRouterModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._api_url = os.environ["MSWEA_TEST_MODEL_URL"]
+        self._api_url = os.environ["VERA_TEST_MODEL_URL"]
 
 
 def test_cli_enables_only_configured_web_capabilities(web_service, tmp_path):
@@ -175,7 +175,7 @@ def test_cli_enables_only_configured_web_capabilities(web_service, tmp_path):
         [
             sys.executable,
             "-m",
-            "minisweagent",
+            "vera",
             "--agent-class",
             "interactive",
             "--model-class",
@@ -183,7 +183,7 @@ def test_cli_enables_only_configured_web_capabilities(web_service, tmp_path):
             "-m",
             "fixture",
             "-c",
-            "mini.yaml",
+            "vera.yaml",
             "-c",
             "web.search_provider=searxng",
             "--exit-immediately",
@@ -194,7 +194,7 @@ def test_cli_enables_only_configured_web_capabilities(web_service, tmp_path):
             str(trajectory),
         ],
         env=os.environ
-        | {"MSWEA_TEST_MODEL_URL": base_url + "/search-only", "SEARXNG_URL": base_url, "MSWEA_CONFIGURED": "true"},
+        | {"VERA_TEST_MODEL_URL": base_url + "/search-only", "SEARXNG_URL": base_url, "VERA_CONFIGURED": "true"},
         capture_output=True,
         timeout=30,
     )

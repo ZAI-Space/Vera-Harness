@@ -1,16 +1,16 @@
-# mini-SWE-agent overview
+# VERA overview
 
-- mini-SWE-agent implements an AI software engineering agent that solves github issues and similar programming challenges
+- VERA is a modular agent harness sharing Runtime capabilities across terminal, channels and scheduled tasks.
 - The idea of this project is to write the simplest, smallest, most readable agent.
 
 The project is structured as
 
 ```bash
-minisweagent/__init__  # Protocols/interfaces for all base classes
-minisweagent/agents  # Agent control flow & loop
-minisweagent/environments  # Executing agent actions
-minisweagent/models  # LM interfaces
-minisweagent/run  # Run scripts that serve as an entry point
+vera/__init__  # Protocols/interfaces for all base classes
+vera/agents  # Agent control flow & loop
+vera/environments  # Executing agent actions
+vera/models  # LM interfaces
+vera/run  # Run scripts that serve as an entry point
 ```
 
 - The project embraces polymorphism: Every individual class should be simple, but we offer alternatives

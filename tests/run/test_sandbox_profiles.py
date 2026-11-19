@@ -12,16 +12,16 @@ import yaml
 from prompt_toolkit.document import Document
 from pydantic import ValidationError
 
-from minisweagent.environments.sandbox import SandboxConfig, _bubblewrap, _docker
-from minisweagent.environments.sandbox_profiles import SandboxProfiles, resolve_sandbox_profile
-from minisweagent.runtime import open_agent_runtime
-from minisweagent.storage import RunStore
-from minisweagent.terminal.session import TerminalSession
-from minisweagent.terminal.ui import TerminalCompleter
-from minisweagent.tools import ToolError
 from tests.run.test_skill_tools import run_cli
 from tests.run.test_terminal_runtime import runtime_profile
 from tests.run.test_terminal_runtime import terminal_model as terminal_model
+from vera.environments.sandbox import SandboxConfig, _bubblewrap, _docker
+from vera.environments.sandbox_profiles import SandboxProfiles, resolve_sandbox_profile
+from vera.runtime import open_agent_runtime
+from vera.storage import RunStore
+from vera.terminal.session import TerminalSession
+from vera.terminal.ui import TerminalCompleter
+from vera.tools import ToolError
 
 
 def test_profile_lifecycle_validation_and_project_binding(tmp_path):
@@ -121,26 +121,24 @@ def test_modes_are_independent_from_sandbox_and_empty_picker_is_disabled(tmp_pat
 def test_settings_cli_and_missing_backends_disable_choices_without_installing(tmp_path):
     store = tmp_path / "user settings/profiles.sqlite3"
     missing = {
-        "MSWEA_DOCKER_EXECUTABLE": str(tmp_path / "not-installed-docker"),
-        "MSWEA_BUBBLEWRAP_EXECUTABLE": str(tmp_path / "not-installed-bwrap"),
+        "VERA_DOCKER_EXECUTABLE": str(tmp_path / "not-installed-docker"),
+        "VERA_BUBBLEWRAP_EXECUTABLE": str(tmp_path / "not-installed-bwrap"),
     }
     arguments = ("sandboxes", "--store", str(store))
-    assert json.loads(run_cli(tmp_path, "minisweagent.run.utilities.mini_extra", *arguments, "list").stdout) == {}
+    assert json.loads(run_cli(tmp_path, "vera.run.utilities.extra", *arguments, "list").stdout) == {}
     assert not store.exists()
     config = tmp_path / "profile.yaml"
     config.write_text(yaml.safe_dump({"mode": "docker", "workspace": str(tmp_path)}), encoding="utf-8")
-    run_cli(tmp_path, "minisweagent.run.utilities.mini_extra", *arguments, "save", "python-dev", str(config))
+    run_cli(tmp_path, "vera.run.utilities.extra", *arguments, "save", "python-dev", str(config))
     profiles = SandboxProfiles(store)
     profiles.save("linux-dev", {"mode": "bubblewrap", "workspace": str(tmp_path)})
-    status = json.loads(
-        run_cli(tmp_path, "minisweagent.run.utilities.mini_extra", *arguments, "check", **missing).stdout
-    )
+    status = json.loads(run_cli(tmp_path, "vera.run.utilities.extra", *arguments, "check", **missing).stdout)
     assert status["configured"] and not status["enabled"]
     assert len(status["choices"]) == 2 and all(row["code"] == "backend_unavailable" for row in status["choices"])
     selection = tmp_path / "choose_profile.py"
     selection.write_text(
         "import json\nfrom pathlib import Path\n"
-        "from minisweagent.terminal.session import TerminalSession\n"
+        "from vera.terminal.session import TerminalSession\n"
         f"session=TerminalSession({{'sandbox_profiles':{{'path':{str(store)!r}}}}},Path.cwd())\n"
         "try: session.select_sandbox('python-dev')\n"
         "except ValueError as error: print(str(error))\n"
@@ -158,7 +156,7 @@ def test_settings_cli_and_missing_backends_disable_choices_without_installing(tm
         timeout=15,
     )
     assert "unavailable" in result.stdout
-    run_cli(tmp_path, "minisweagent.run.utilities.mini_extra", *arguments, "remove", "python-dev")
+    run_cli(tmp_path, "vera.run.utilities.extra", *arguments, "remove", "python-dev")
     assert set(profiles.list_profiles()) == {"linux-dev"}
 
 
@@ -218,7 +216,7 @@ def test_named_profile_executes_shared_parent_child_runtime(tmp_path, terminal_m
     profile.write_text(yaml.safe_dump(config), encoding="utf-8")
     completed = run_cli(
         tmp_path,
-        "minisweagent",
+        "vera",
         "-c",
         str(profile),
         "--sandbox-profile",
@@ -248,12 +246,12 @@ def test_cli_selects_saved_profile_and_rejects_conflicting_flags(tmp_path):
         with pytest.raises(subprocess.CalledProcessError) as error:
             run_cli(
                 tmp_path,
-                "minisweagent",
+                "vera",
                 "-c",
                 str(profile),
                 "-t",
                 "Run",
                 *extra,
-                MSWEA_DOCKER_EXECUTABLE=str(tmp_path / "missing-docker"),
+                VERA_DOCKER_EXECUTABLE=str(tmp_path / "missing-docker"),
             )
         assert expected in error.value.stderr

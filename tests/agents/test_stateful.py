@@ -5,14 +5,14 @@ import json
 import pytest
 from jinja2 import UndefinedError
 
-from minisweagent.agents import get_agent
-from minisweagent.agents.default import DefaultAgent
-from minisweagent.agents.interactive import InteractiveAgent
-from minisweagent.agents.state import AgentStatus
-from minisweagent.agents.stateful import StatefulAgent
-from minisweagent.environments.local import LocalEnvironment
-from minisweagent.exceptions import FormatError
-from minisweagent.models.test_models import DeterministicModel, make_output
+from vera.agents import get_agent
+from vera.agents.default import DefaultAgent
+from vera.agents.interactive import InteractiveAgent
+from vera.agents.state import AgentStatus
+from vera.agents.stateful import StatefulAgent
+from vera.environments.local import LocalEnvironment
+from vera.exceptions import FormatError
+from vera.models.test_models import DeterministicModel, make_output
 
 CONFIG = {"system_template": "Use Bash.", "instance_template": "{{task}}", "cost_limit": 0}
 FINISH = {"command": "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT; echo done"}

@@ -9,17 +9,17 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 import pytest
 
-from minisweagent.markets.mcp import MCPRegistry, MCPServices, merge_services
-from minisweagent.markets.skills import SkillMarket, install_skill_snapshot, remove_market_skill
-from minisweagent.plugins.source import open_source
-from minisweagent.runtime import open_agent_runtime
-from minisweagent.terminal.session import TerminalSession
-from minisweagent.tools import ToolError, ToolRegistry
-from minisweagent.tools.mcp import open_mcp_tools, parse_mcp_servers
-from minisweagent.tools.skills import SkillConfig, discover_skills
 from tests.run.test_mcp_tools import ECHO_CALL, http_server  # noqa: F401
 from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_terminal_runtime import runtime_profile
+from vera.markets.mcp import MCPRegistry, MCPServices, merge_services
+from vera.markets.skills import SkillMarket, install_skill_snapshot, remove_market_skill
+from vera.plugins.source import open_source
+from vera.runtime import open_agent_runtime
+from vera.terminal.session import TerminalSession
+from vera.tools import ToolError, ToolRegistry
+from vera.tools.mcp import open_mcp_tools, parse_mcp_servers
+from vera.tools.skills import SkillConfig, discover_skills
 
 
 @pytest.fixture
@@ -249,5 +249,5 @@ def test_skill_market_search_snapshot_assets_discovery_and_safe_removal(tmp_path
 
 def test_market_cli_help_never_starts_a_model_or_service(tmp_path):
     for command in ("mcp", "skills"):
-        result = run_cli(tmp_path, "minisweagent.run.utilities.mini_extra", command, "--help")
+        result = run_cli(tmp_path, "vera.run.utilities.extra", command, "--help")
         assert "search" in result.stdout and ("add" if command == "mcp" else "install") in result.stdout

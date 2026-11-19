@@ -1,3 +1,5 @@
+[English](markets-and-modes.md) · [简体中文](zh/markets-and-modes.md)
+
 # Capability markets and explicit run modes
 
 The market flow follows Hermes' separation between discovery, inspection and installation. The default MCP source is the [official MCP Registry](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/official-registry-api.md); the default Skill source is [skills.sh](https://github.com/vercel-labs/skills). Plugin marketplace sources remain GitHub and Gitee.
@@ -7,30 +9,30 @@ Search never starts a service or executes downloaded code. Inspect the publisher
 `/mcp` and `/skill` select installed capabilities for the next task. Market discovery and installation are settings operations, independent of model calls. The Python market interfaces are also intended for the desktop's settings UI.
 
 ```bash
-mini-extra mcp search context7
-mini-extra mcp inspect io.github.upstash/context7
-mini-extra mcp add io.github.upstash/context7
-mini-extra mcp list
-mini-extra mcp remove context7
-mini-extra skills search find-skills
-mini-extra skills inspect vercel-labs/skills/find-skills
-mini-extra skills install vercel-labs/skills/find-skills --ref COMMIT_SHA
-mini-extra skills remove find-skills
+vera-extra mcp search context7
+vera-extra mcp inspect io.github.upstash/context7
+vera-extra mcp add io.github.upstash/context7
+vera-extra mcp list
+vera-extra mcp remove context7
+vera-extra skills search find-skills
+vera-extra skills inspect vercel-labs/skills/find-skills
+vera-extra skills install vercel-labs/skills/find-skills --ref COMMIT_SHA
+vera-extra skills remove find-skills
 ```
 
 The terminal accepts `/mcp search QUERY`, `/mcp add IDENTIFIER`, `/skill search QUERY`, and `/skill add OWNER/REPO/SKILL`. Afterwards `/mcp NAME` or `/skill NAME` selects it. Tab completion only reads local catalogs; it never performs a network search. The CLI's `inspect` previews transport/instructions before addition. MCP entries needing arguments accept `--input NAME=VALUE`; API headers accept `--header-env HEADER=ENV_NAME`. `--version` pins the selected MCP publisher record. Unsupported custom transports/runtime templates require manual configuration rather than guessing commands.
 
-MCP saved settings default to `mcp-services` under Vera's global config directory; a host may choose `mcp_services.directory`. Existing `mcp_servers` entries take precedence. Settings alone never activate a saved service: set `mcp_selection` explicitly or choose `/mcp`. npm/PyPI stdio entries require Node.js/npx or uv/uvx, respectively, and resolve/download the pinned package when first started. Adding settings does not install these prerequisites. HTTP bearer and custom API headers reference environment variables, require HTTPS for remote services, and cannot override protocol headers. OAuth login and MCP bundle/OCI transports are not implemented by this market adapter.
+MCP saved settings default to `mcp-services` under VERA's global config directory; a host may choose `mcp_services.directory`. Existing `mcp_servers` entries take precedence. Settings alone never activate a saved service: set `mcp_selection` explicitly or choose `/mcp`. npm/PyPI stdio entries require Node.js/npx or uv/uvx, respectively, and resolve/download the pinned package when first started. Adding settings does not install these prerequisites. HTTP bearer and custom API headers reference environment variables, require HTTPS for remote services, and cannot override protocol headers. OAuth login and MCP bundle/OCI transports are not implemented by this market adapter.
 
-Skills install in Vera's existing user skill directory, so existing discovery, selection and runtime skill tools can use them immediately. Removal only accepts unchanged market-owned snapshots. Modified local skills are preserved. Market records and downloaded instructions are publisher content, not trusted host instructions.
+Skills install in VERA's existing user skill directory, so existing discovery, selection and runtime skill tools can use them immediately. Removal only accepts unchanged market-owned snapshots. Modified local skills are preserved. Market records and downloaded instructions are publisher content, not trusted host instructions.
 
 ## Run modes
 
 Run mode and permissions are separate. Choosing a goal does not grant `yolo`; the configured `confirm`, `yolo` or `human` mode still controls execution. Sandbox selection is independent of both.
 
-Hermes' [`/plan`](https://github.com/NousResearch/hermes-agent/blob/fe8b920cae0980cef854f478236f525aaf2b93ce/agent/plan_prompt.py) requests a saved Markdown plan for one turn. Vera's plan tools inspect project files and save the final plan under `.vera/plans/`. Planning does not implement the task or invoke shell/MCP mutations. The plan should explain the goal, relevant files, implementation steps, exact validation commands, risks and open questions.
+Hermes' [`/plan`](https://github.com/NousResearch/hermes-agent/blob/fe8b920cae0980cef854f478236f525aaf2b93ce/agent/plan_prompt.py) requests a saved Markdown plan for one turn. VERA's plan tools inspect project files and save the final plan under `.vera/plans/`. Planning does not implement the task or invoke shell/MCP mutations. The plan should explain the goal, relevant files, implementation steps, exact validation commands, risks and open questions.
 
-Hermes' [`/goal`](https://github.com/NousResearch/hermes-agent/blob/fe8b920cae0980cef854f478236f525aaf2b93ce/website/docs/user-guide/features/goals.md) keeps a standing objective, judges progress at turn boundaries, and continues within a finite budget. Vera uses the same pattern outside the existing Agent Loop. Goals have explicit status, pause/resume/clear controls, a persisted conversation, and bounded turns, cost and duration. Judge failure cannot be treated as completion. A blocked goal waits for user intervention.
+Hermes' [`/goal`](https://github.com/NousResearch/hermes-agent/blob/fe8b920cae0980cef854f478236f525aaf2b93ce/website/docs/user-guide/features/goals.md) keeps a standing objective, judges progress at turn boundaries, and continues within a finite budget. VERA uses the same pattern outside the existing Agent Loop. Goals have explicit status, pause/resume/clear controls, a persisted conversation, and bounded turns, cost and duration. Judge failure cannot be treated as completion. A blocked goal waits for user intervention.
 
 Plan mode applies to one submitted task. Goal mode continues until completion, blocking, user pause/cancellation or a budget limit. Opening a plan while a goal is active pauses that goal; it does not authorize implementation after the plan is written.
 
@@ -45,7 +47,7 @@ Plan mode applies to one submitted task. Goal mode continues until completion, b
 
 `/goal -- TEXT` escapes a control word at the beginning of an objective. `/plan` without a request uses the last submitted task; without prior context it asks for an explicit request. Ordinary subsequent tasks leave plan/goal mode. `/stop` pauses an active goal and cancels the current task. During execution, pause applies at the next turn boundary; cancellation/confirmation use the existing agent controls. Switching to planning inside an approval prompt stops the old task before assembling the restricted planning runtime. Human mode requires selecting confirm/yolo before either model-driven mode.
 
-Use `mini -t '/plan REQUEST' --exit-immediately` or `mini -t '/goal OBJECTIVE' --exit-immediately` for the same modes from the command line. Native tool-calling model adapters are required. Both model execution and the goal judge incur provider costs; HTTP protocol tests with local peers are not a paid provider acceptance test.
+Use `vera -t '/plan REQUEST' --exit-immediately` or `vera -t '/goal OBJECTIVE' --exit-immediately` for the same modes from the command line. Native tool-calling model adapters are required. Both model execution and the goal judge incur provider costs; HTTP protocol tests with local peers are not a paid provider acceptance test.
 
 Goal configuration is host-owned:
 

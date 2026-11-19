@@ -1,16 +1,16 @@
 import re
 from unittest.mock import patch
 
-from minisweagent.models.test_models import DeterministicModel, make_output
-from minisweagent.run.hello_world import main
 from tests.conftest import assert_observations_match
+from vera.models.test_models import DeterministicModel, make_output
+from vera.run.hello_world import main
 
 
 def _make_model_from_fixture(text_outputs: list[str], cost_per_call: float = 1.0, **kwargs) -> DeterministicModel:
     """Create a DeterministicModel from trajectory fixture data (raw text outputs)."""
 
     def parse_command(text: str) -> list[dict]:
-        match = re.search(r"```mswea_bash_command\s*\n(.*?)\n```", text, re.DOTALL)
+        match = re.search(r"```vera_bash_command\s*\n(.*?)\n```", text, re.DOTALL)
         return [{"command": match.group(1)}] if match else []
 
     return DeterministicModel(
@@ -27,8 +27,8 @@ def test_run_hello_world_end_to_end(local_test_data):
     expected_observations = local_test_data["expected_observations"]
 
     with (
-        patch("minisweagent.run.hello_world.LitellmModel") as mock_model_class,
-        patch.dict("os.environ", {"MSWEA_MODEL_NAME": "tardis"}),
+        patch("vera.run.hello_world.LitellmModel") as mock_model_class,
+        patch.dict("os.environ", {"VERA_MODEL_NAME": "tardis"}),
     ):
         mock_model_class.return_value = _make_model_from_fixture(model_responses)
         agent = main(task="Blah blah blah")

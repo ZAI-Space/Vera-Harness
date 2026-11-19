@@ -1,3 +1,5 @@
+[English](windows.md) · [简体中文](zh/windows.md)
+
 # Windows and Bash startup
 
 Requires Python 3.10 or newer. Windows uses Git for Windows Bash; Linux uses its
@@ -25,22 +27,22 @@ Arguments and the caller's working directory are preserved. Windows uses
 
 ## Git Bash discovery and installation
 
-The Windows launcher checks `MSWEA_BASH_PATH`, the user cache, the Git installation
+The Windows launcher checks `VERA_BASH_PATH`, the user cache, the Git installation
 on PATH, the Git for Windows registry entries and standard installation paths.
 It does not select `C:\Windows\System32\bash.exe`, which can launch WSL.
 
 If Git Bash is missing, the launcher downloads full PortableGit from the official
 Git for Windows GitHub release, verifies its published SHA256 digest, and extracts
-it into `%LOCALAPPDATA%\mini-swe-agent\git`. Installation does not need administrator
+it into `%LOCALAPPDATA%\VERA\git`. Installation does not need administrator
 privileges or change system PATH. Later starts work with the cached copy. Download
 or verification failures stop startup with an error; an unverified archive is
 never executed. Offline first-time setup requires manually installing Git for
-Windows or copying a complete portable installation and setting `MSWEA_BASH_PATH`.
+Windows or copying a complete portable installation and setting `VERA_BASH_PATH`.
 
 For a custom installation, in PowerShell:
 
 ```powershell
-$env:MSWEA_BASH_PATH = 'D:\Tools\Git\bin\bash.exe'
+$env:VERA_BASH_PATH = 'D:\Tools\Git\bin\bash.exe'
 .\start.cmd
 ```
 
@@ -73,22 +75,4 @@ Linux benchmark images are outside the native Windows local-execution contract.
 The startup tests use deterministic model responses and real Bash commands, with
 no paid model calls. `.github/workflows/windows.yaml` covers Python 3.10 and 3.12.
 
-Validation on 2026-11-17 used Windows x64, Python 3.12.13 and Git Bash 5.3.15:
-
-- The command above passed 244 tests. One existing POSIX-only process-group test
-  was skipped; the new Windows descendant-process regression passed.
-- Environment/agent factory, trajectory-save and inspector checks passed another
-  38 tests. Ruff lint/format and wheel/source builds passed.
-- A fresh PortableGit download, SHA256 verification, extraction, cached reuse and
-  `start.cmd --help` using that extracted copy were exercised in an isolated
-  `.venv/portable-git-smoke` directory.
-- An interactive Windows terminal reached `What do you want to do?` without a
-  model request, and a visible Git Bash window was opened for inspection.
-- Linux/WSL standard-library probes passed for execution, exit codes, partial
-  timeout output and startup-script syntax. These were not a full Linux test run.
-
-Python 3.10, ARM64 and hosted GitHub Actions were not part of that local validation.
-No real model/API quality result is claimed by those checks. At that point the
-repository had no remote, so checks ran directly. The repository now uses
-`https://github.com/zml-mis/Vera-Harness.git`; pull requests targeting `dev` or
-`main` run the complete Windows suite on Python 3.10 and 3.12.
+The test commands above exercise the current candidate. Historical Windows checks are not a substitute for rerunning the modified startup entries. Optional Linux images/backends, ARM64 and paid provider tests require separate evidence. Repository CI declares Python 3.10 and 3.12 jobs; local testing does not establish that a remote job ran for this SHA.

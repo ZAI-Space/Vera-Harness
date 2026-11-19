@@ -5,16 +5,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from minisweagent.exceptions import FormatError
-from minisweagent.models.utils.actions_text import parse_regex_actions
-from minisweagent.models.utils.actions_toolcall import parse_toolcall_actions
-from minisweagent.models.utils.actions_toolcall_response import (
+from vera.exceptions import FormatError
+from vera.models.utils.actions_text import parse_regex_actions
+from vera.models.utils.actions_toolcall import parse_toolcall_actions
+from vera.models.utils.actions_toolcall_response import (
     finish_reason_from_responses_api,
     parse_toolcall_actions_response,
 )
 
 _TEMPLATE = "{% if finish_reason == 'length' %}cut off{% else %}{{ error }}{% endif %}"
-# mirrors the production condition in mini.yaml / swebench.yaml / programbench.yaml
+# mirrors the production condition in vera.yaml / swebench.yaml / programbench.yaml
 _TOOLCALL_TEMPLATE = (
     "{% if finish_reason is defined and (finish_reason == 'length' "
     "or (finish_reason == 'tool_calls' and not has_tool_calls)) %}cut off{% else %}{{ error }}{% endif %}"

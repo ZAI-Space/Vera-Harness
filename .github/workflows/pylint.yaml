@@ -36,13 +36,13 @@ jobs:
           python -m venv /tmp/vera-wheel
           /tmp/vera-wheel/bin/python -m pip install dist/*.whl
           cd /tmp
-          /tmp/vera-wheel/bin/mini --help
-          /tmp/vera-wheel/bin/mini-extra --help
-          /tmp/vera-wheel/bin/mini-extra channels --help
-          /tmp/vera-wheel/bin/mini-extra plugins --help
-          /tmp/vera-wheel/bin/mini-extra cron --help
-          /tmp/vera-wheel/bin/mini-extra mcp --help
-          /tmp/vera-wheel/bin/mini-extra skills --help
+          /tmp/vera-wheel/bin/vera --help
+          /tmp/vera-wheel/bin/vera-extra --help
+          /tmp/vera-wheel/bin/vera-extra channels --help
+          /tmp/vera-wheel/bin/vera-extra plugins --help
+          /tmp/vera-wheel/bin/vera-extra cron --help
+          /tmp/vera-wheel/bin/vera-extra mcp --help
+          /tmp/vera-wheel/bin/vera-extra skills --help
       - name: Preserve installable packages
         uses: actions/upload-artifact@v6
         with:

@@ -1,6 +1,8 @@
+[English](plugins.md) · [简体中文](zh/plugins.md)
+
 # Plugins
 
-The independent `minisweagent.plugins` module manages capability packages and two
+The independent `vera.plugins` module manages capability packages and two
 marketplace sources: **GitHub and Gitee**. It adapts packages to Skills, MCP and Subagent modules;
 it does not change Agent Loop. Commands do not need a model or API key.
 
@@ -10,22 +12,22 @@ Run these commands from PowerShell, Git Bash or a Linux shell after activating t
 project's Python environment:
 
 ```shell
-mini-extra plugins marketplace use github
-mini-extra plugins marketplace search remotion
-mini-extra plugins install remotion
-mini-extra plugins show remotion
-mini-extra plugins enable remotion
-mini --skill remotion-remotion-best-practices
+vera-extra plugins marketplace use github
+vera-extra plugins marketplace search remotion
+vera-extra plugins install remotion
+vera-extra plugins show remotion
+vera-extra plugins enable remotion
+vera --skill remotion-remotion-best-practices
 ```
 
 For the domestic source, use:
 
 ```shell
-mini-extra plugins marketplace use gitee
-mini-extra plugins marketplace search frontend
-mini-extra plugins install frontend-design
-mini-extra plugins enable frontend-design
-mini --skill frontend-design-frontend-design
+vera-extra plugins marketplace use gitee
+vera-extra plugins marketplace search frontend
+vera-extra plugins install frontend-design
+vera-extra plugins enable frontend-design
+vera --skill frontend-design-frontend-design
 ```
 
 No market URL or custom source configuration is needed. GitHub uses OpenAI's
@@ -54,16 +56,16 @@ policies do not install or activate packages automatically.
 Refresh and update are separate operations:
 
 ```shell
-mini-extra plugins marketplace list
-mini-extra plugins marketplace refresh openai-curated
-mini-extra plugins update remotion
-mini-extra plugins show remotion
-mini-extra plugins enable remotion
-mini-extra plugins disable remotion
-mini-extra plugins rollback remotion FULL_DIGEST_FROM_SHOW
-mini-extra plugins enable remotion
-mini-extra plugins uninstall remotion
-mini-extra plugins marketplace remove openai-curated
+vera-extra plugins marketplace list
+vera-extra plugins marketplace refresh openai-curated
+vera-extra plugins update remotion
+vera-extra plugins show remotion
+vera-extra plugins enable remotion
+vera-extra plugins disable remotion
+vera-extra plugins rollback remotion FULL_DIGEST_FROM_SHOW
+vera-extra plugins enable remotion
+vera-extra plugins uninstall remotion
+vera-extra plugins marketplace remove openai-curated
 ```
 
 Updating changed files or rolling back disables the selected version until explicitly
@@ -76,9 +78,9 @@ marketplace again. Restart a run to change its loaded plugin set.
 ## Direct packages and store selection
 
 ```shell
-mini-extra plugins install owner/repository --path plugins/example --ref v1.0.0
-mini-extra plugins install owner/repository --source gitee --path plugins/example
-mini-extra plugins --directory ./my-plugin-store list
+vera-extra plugins install owner/repository --path plugins/example --ref v1.0.0
+vera-extra plugins install owner/repository --source gitee --path plugins/example
+vera-extra plugins --directory ./my-plugin-store list
 ```
 
 Repository downloads require Git, including Git for Windows on Windows. There is no
@@ -88,7 +90,7 @@ Remote sources use only the selected committed tree and never checkout submodule
 or run Git hooks. The developer Python API also supports local fixture packages for
 testing; the marketplace CLI has no custom-host or self-hosting setup flow.
 
-By default, `mini` loads explicitly enabled packages in the global config directory's
+By default, `vera` loads explicitly enabled packages in the global config directory's
 `plugins` store. Configuration can restrict this selection, but cannot approve a
 disabled package:
 
@@ -114,7 +116,7 @@ review-kit/
   plugin.json
   skills/review/SKILL.md
   mcp.json                 # optional
-  subagents.json           # optional Vera extension
+  subagents.json           # optional VERA extension
 ```
 
 ```json
@@ -133,7 +135,7 @@ and `.claude-plugin/plugin.json`; those may declare `skills` (path/list) and `mc
 precedence. A portable `extensions.com.openai` object supplies OpenAI-specific
 settings; otherwise a Codex overlay can supply them. These aren't merged.
 
-An MCP file wraps entries in `mcpServers`. Existing Vera MCP settings apply, plus
+An MCP file wraps entries in `mcpServers`. Existing VERA MCP settings apply, plus
 portable `type: stdio` / `streamable-http` and compatible `http`. For example:
 
 ```json
@@ -157,7 +159,7 @@ The compatible HTTP `Authorization: Bearer ${ENV_NAME}` header is also supported
 Literal env mappings, arbitrary headers and OAuth/client-side input placeholders
 require adaptation to these existing MCP settings.
 
-The optional Vera `subagents` field is a role mapping or a relative JSON filename;
+The optional VERA `subagents` field is a role mapping or a relative JSON filename;
 each value uses the existing SubagentRole schema. Roles declare local skill names
 and can refer to bundled MCP tools as `mcp:SERVER/TOOL`. Ordinary registered tools
 such as `bash` retain their runtime names. A role inherits the parent model unless

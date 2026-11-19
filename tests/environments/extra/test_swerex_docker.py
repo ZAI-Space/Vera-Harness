@@ -1,7 +1,7 @@
 import pytest
 
-from minisweagent.environments.extra.swerex_docker import SwerexDockerEnvironment
 from tests.conftest import is_linux_container_available
+from vera.environments.extra.swerex_docker import SwerexDockerEnvironment
 
 
 def _is_docker_available():

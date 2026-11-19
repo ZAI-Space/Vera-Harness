@@ -1,8 +1,10 @@
+[English](sandbox.md) · [简体中文](zh/sandbox.md)
+
 # Workspace sandbox
 
 ## Saved environments
 
-Sandbox engines and images are installed/configured by the user. Vera never
+Sandbox engines and images are installed/configured by the user. VERA never
 downloads Docker, Bubblewrap or images, and does not register detected engines
 as profiles automatically. Users without these tools can continue locally.
 
@@ -18,15 +20,15 @@ timeout: 30
 Register it independently of any model:
 
 ```bash
-mini-extra sandboxes save python-dev python-sandbox.yaml
-mini-extra sandboxes list
-mini-extra sandboxes check --workspace .
-mini-extra sandboxes save python-dev python-sandbox.yaml --replace
-mini-extra sandboxes remove python-dev
+vera-extra sandboxes save python-dev python-sandbox.yaml
+vera-extra sandboxes list
+vera-extra sandboxes check --workspace .
+vera-extra sandboxes save python-dev python-sandbox.yaml --replace
+vera-extra sandboxes remove python-dev
 ```
 
 The default store is `sandbox-profiles.sqlite3` under the global config directory.
-`mini-extra sandboxes --store PATH ...` selects a different user-owned store;
+`vera-extra sandboxes --store PATH ...` selects a different user-owned store;
 configure `sandbox_profiles.path` to use that store from the runtime.
 Named profiles require an explicit `docker` or `bubblewrap` backend, so their
 identity never changes automatically. Each profile accepts existing SandboxConfig
@@ -34,7 +36,7 @@ fields. Changes are transactional and replacement requires explicit intent.
 
 In the terminal, `/sandbox` returns fresh availability; `/sandbox python-dev`
 selects an available profile for the next task. `/sandbox none` explicitly
-selects local execution. `mini --sandbox-profile python-dev -t 'TASK'` selects
+selects local execution. `vera --sandbox-profile python-dev -t 'TASK'` selects
 the same profile without the interactive prompt. A runtime config may also set
 `sandbox_profile: python-dev`. Mixing that selection with `--sandbox` is rejected.
 
@@ -88,16 +90,16 @@ Choose a mode when you start a run.
 | `local` | Runs as the current host user, with the host filesystem, environment and network permissions. On Windows it uses Git Bash. Choose this mode for projects you trust. |
 
 ```bash
-mini --sandbox auto
-mini --sandbox bubblewrap
-mini --sandbox docker
-mini --sandbox local
+vera --sandbox auto
+vera --sandbox bubblewrap
+vera --sandbox docker
+vera --sandbox local
 ```
 
-Existing setups without a sandbox configuration keep their current environment. Vera probes local tools when asked to isolate a run. It leaves installation and image pulls to the user.
+Existing setups without a sandbox configuration keep their current environment. VERA probes local tools when asked to isolate a run. It leaves installation and image pulls to the user.
 Choose a trusted Linux image with Bash and any build tools your project needs.
 
-Put recurring choices in a YAML overlay and launch with `mini -c mini.yaml -c sandbox.yaml`.
+Put recurring choices in a YAML overlay and launch with `vera -c vera.yaml -c sandbox.yaml`.
 
 ```yaml
 sandbox:

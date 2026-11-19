@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from minisweagent.environments.docker import DockerEnvironment, DockerEnvironmentConfig
 from tests.conftest import is_linux_container_available
+from vera.environments.docker import DockerEnvironment, DockerEnvironmentConfig
 
 
 def is_docker_available():

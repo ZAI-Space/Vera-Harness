@@ -16,12 +16,6 @@ from threading import Thread
 import pytest
 import yaml
 
-from minisweagent.channels.store import ChannelStore
-from minisweagent.environments.sandbox import SandboxConfig, _bubblewrap, _docker
-from minisweagent.evolution.process import _process_stamp
-from minisweagent.memory.hindsight import HindsightMemory
-from minisweagent.plugins import PluginManager
-from minisweagent.storage import RunStore
 from tests.agents.test_hindsight import memory_service as memory_service
 from tests.run.channel_fixture import feishu_event, feishu_socket, provider_service, weixin_message
 from tests.run.test_channels import start_gateway, stop_gateway, wait_for
@@ -29,6 +23,12 @@ from tests.run.test_plugins import write_market, write_plugin
 from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_web_tools import FINISH_CALL, _model_response
 from tests.run.test_web_tools import web_service as web_service
+from vera.channels.store import ChannelStore
+from vera.environments.sandbox import SandboxConfig, _bubblewrap, _docker
+from vera.evolution.process import _process_stamp
+from vera.memory.hindsight import HindsightMemory
+from vera.plugins import PluginManager
+from vera.storage import RunStore
 
 ROLE = "review-kit-reviewer"
 MCP_TOOL = "mcp_review-kit-fixture_echo"
@@ -165,7 +165,7 @@ def assembly(tmp_path, memory_service, web_service):
                 "memory": memory_requests,
                 "search": search_requests,
                 "environment": {
-                    "MSWEA_TEST_MODEL_URL": f"http://127.0.0.1:{server.server_port}",
+                    "VERA_TEST_MODEL_URL": f"http://127.0.0.1:{server.server_port}",
                     "HINDSIGHT_BASE_URL": memory_url,
                     "HINDSIGHT_BANK_ID": "test-project",
                     "HINDSIGHT_API_KEY_FILE": str(key),
@@ -209,9 +209,9 @@ def test_complete_runtime_assembly_across_entry_points(tmp_path, assembly, entry
     if entry.startswith("cli"):
         run_cli(
             tmp_path,
-            "minisweagent",
+            "vera",
             "-c",
-            "mini.yaml",
+            "vera.yaml",
             "-c",
             str(profile),
             "-t",
@@ -298,9 +298,9 @@ def test_complete_runtime_assembly_across_entry_points(tmp_path, assembly, entry
     if is_resume:
         run_cli(
             tmp_path,
-            "minisweagent",
+            "vera",
             "-c",
-            "mini.yaml",
+            "vera.yaml",
             "-c",
             str(profile),
             "--storage",
@@ -327,9 +327,9 @@ def test_complete_runtime_assembly_across_entry_points(tmp_path, assembly, entry
         with pytest.raises(subprocess.CalledProcessError) as error:
             run_cli(
                 tmp_path,
-                "minisweagent",
+                "vera",
                 "-c",
-                "mini.yaml",
+                "vera.yaml",
                 "-c",
                 str(profile),
                 "--storage",
@@ -350,7 +350,7 @@ def test_assembly_permissions_fail_before_model_tools_or_memory(tmp_path, assemb
     config = tmp_path / "denied.yaml"
     config.write_text(yaml.safe_dump(assembly["profile"]), encoding="utf-8")
     with pytest.raises(subprocess.CalledProcessError) as error:
-        run_cli(tmp_path, "minisweagent", "-c", str(config), "-t", PARENT_TASK, **assembly["environment"])
+        run_cli(tmp_path, "vera", "-c", str(config), "-t", PARENT_TASK, **assembly["environment"])
     assert "sandbox.host_mcp_servers" in error.value.stderr and "sandbox.allow_web_tools" in error.value.stderr
     assert not assembly["observed"]["parent"] and not assembly["search"]
     assert len(assembly["memory"]) == 1

@@ -6,7 +6,7 @@ project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 case "$(uname -s)" in
     MINGW*|MSYS*)
         git_root="$(cygpath -m /)"
-        export MSWEA_BASH_PATH="${MSWEA_BASH_PATH:-${git_root%/}/bin/bash.exe}"
+        export VERA_BASH_PATH="${VERA_BASH_PATH:-${git_root%/}/bin/bash.exe}"
         export PYTHONUTF8="${PYTHONUTF8:-1}"
         export PYTHONIOENCODING="${PYTHONIOENCODING:-utf-8}"
         venv_python="$project_root/.venv/Scripts/python.exe"
@@ -19,7 +19,7 @@ case "$(uname -s)" in
 esac
 
 if [[ ! -f "$venv_python" ]]; then
-    bootstrap_python="${MSWEA_BOOTSTRAP_PYTHON:-}"
+    bootstrap_python="${VERA_BOOTSTRAP_PYTHON:-}"
     if [[ -z "$bootstrap_python" ]]; then
         bootstrap_python="$(command -v python3 || command -v python || true)"
     fi
@@ -30,7 +30,7 @@ if [[ ! -f "$venv_python" ]]; then
     "$bootstrap_python" -m venv "$project_root/.venv"
 fi
 
-if ! "$venv_python" -c 'from importlib.metadata import distribution; distribution("mini-swe-agent")' >/dev/null 2>&1; then
+if ! "$venv_python" -c 'from importlib.metadata import distribution; distribution("vera-harness")' >/dev/null 2>&1; then
     if command -v uv >/dev/null 2>&1; then
         uv pip install --python "$venv_python" -e "$project_root"
     else
@@ -43,6 +43,6 @@ if [[ "${use_winpty:-false}" == true ]]; then
         echo 'An interactive Mintty session requires winpty. Use Windows Terminal or reinstall full Git for Windows.' >&2
         exit 1
     fi
-    exec winpty "$venv_python" -m minisweagent "$@"
+    exec winpty "$venv_python" -m vera "$@"
 fi
-exec "$venv_python" -m minisweagent "$@"
+exec "$venv_python" -m vera "$@"

@@ -1,20 +1,22 @@
+[English](interactive.md) · [简体中文](../../zh/reference/agents/interactive.md)
+
 # Interactive
 
 !!! note "InteractiveAgent class"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/agents/interactive.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/agents/interactive.py)
 
     ??? note "Full source code"
 
         ```python
-        --8<-- "src/minisweagent/agents/interactive.py"
+        --8<-- "src/vera/agents/interactive.py"
         ```
 
 !!! tip "See also"
 
     * This agent subclass builds on top of the [default agent](default.md), make sure to read that first.
-    * This class powers the `mini` command line tool, see [usage](../../usage/mini.md) for more details.
+    * This class powers the `vera` command line tool, see [usage](../../usage/cli.md) for more details.
 
-::: minisweagent.agents.interactive
+::: vera.agents.interactive
 
 {% include-markdown "../../_footer.md" %}

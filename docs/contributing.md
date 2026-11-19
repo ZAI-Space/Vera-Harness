@@ -1,31 +1,29 @@
-# ❤️ Contributing
+[English](contributing.md) · [简体中文](zh/contributing.md)
 
-We happily accept contributions!
+# Contributing
 
-## Areas of help
+!!! abstract "Keep changes correct, readable, consistent and small"
 
-- Documentation, examples, tutorials, etc. In particular, we're looking for
-    - examples of how this library is used in the wild
-    - additional examples for the [cookbook](advanced/cookbook.md)
-- Support for more models (anything where `litellm` doesn't work out of the box)
-- Support for more environments & deployments (e.g., run it as a github action, etc.)
-- Take a look at the [issues](https://github.com/SWE-agent/mini-swe-agent/issues) and look for issues marked `good-first-issue` or `help-wanted` (please read the guidelines below first)
-
-## Design & Architecture
-
-- `mini-swe-agent` aims to stay minimalistic, hackable, and of high quality code.
-- To extend features, we prefer to add a new version of the one of the four components (see [cookbook](advanced/cookbook.md)), rather than making the existing components more complex.
-- Components should be relatively self-contained, but if there are utilities that might be shared, add a `utils` folder (like [this one](https://github.com/SWE-agent/mini-swe-agent/tree/main/src/minisweagent/models/utils)). But keep it simple!
-- If your component is a bit more specific, add it into an `extra` folder (like [this one](https://github.com/SWE-agent/mini-swe-agent/tree/main/src/minisweagent/run/extra))
-- Our target audience is anyone who doesn't shy away from modifying a bit of code (especially a run script) to get what they want.
-- Therefore, not everything needs to be configurable with the config files, but it should be easy to create a run script that makes use of it.
-- Many LMs write very verbose code -- please clean it up! Same goes for the tests. They should still be concise and readable.
-- Please install `pre-commit` (`pip install pre-commit && pre-commit install`) and run it before committing. This will enforce our style guide.
+    Read the relevant implementation, callers and tests before editing. Extend the existing Runtime and capability modules. Keep the Agent Loop independent of UI and optional services.
 
 ## Development setup
 
-Make sure to follow the dev setup instructions in [quickstart.md](quickstart.md).
+```bash
+python -m pip install -e '.[full,channels]'
+python -m ruff format --check src tests
+python -m ruff check src tests
+python -m pytest -n 2 -ra
+python -m build
+python -m mkdocs build --strict
+python scripts/check_docs.py
+```
 
-After that you can run `pytest` with `pytest -n auto` (this parallelizes the tests across all cores for speedup).
+Use actual files, subprocesses and explicit local protocol peers for new integration tests. Report unavailable backends and paid-provider scope separately. A passing skipped test is not validation of that backend.
 
-{% include-markdown "_footer.md" %}
+## Branches and delivery
+
+`dev` integrates daily work; `main` is for releases, hotfixes and production rollback. Create task branches from `dev`, named `<type>/-<kebab-case>`, and submit focused PRs to `dev`. Use conventional commits. Synchronize the target before merging and rerun affected checks. Squash daily work; release `dev` to `main` with a merge commit. Follow the current repository/user collaboration rules for branch protection and review.
+
+## Documentation
+
+Every public guide has English and Chinese versions. Preserve headings, admonitions, tables, runnable examples and API references. Update both language pages for behavior changes, retain exact config identifiers, and run the documentation checker plus strict build. Do not insert credentials or claim verification that did not run. [Documentation maintenance](documentation.md) lists the review map.

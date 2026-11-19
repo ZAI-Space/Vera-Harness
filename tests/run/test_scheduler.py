@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from minisweagent.scheduler.config import JobSpec, next_occurrence, parse_schedule
-from minisweagent.scheduler.engine import Scheduler
-from minisweagent.scheduler.store import JobStore
-from minisweagent.tools import ToolError
+from vera.scheduler.config import JobSpec, next_occurrence, parse_schedule
+from vera.scheduler.engine import Scheduler
+from vera.scheduler.store import JobStore
+from vera.tools import ToolError
 
 BASE = datetime(2026, 11, 19, tzinfo=timezone.utc).timestamp()
 

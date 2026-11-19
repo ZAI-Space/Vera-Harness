@@ -12,15 +12,15 @@ from threading import Thread
 
 import pytest
 
-from minisweagent.plugins import PluginError, PluginManager, load_plugins
-from minisweagent.plugins.manifest import load_bundle
-from minisweagent.plugins.source import PluginSource, Source, filesystem_path, normalize_source, relative_path
-from minisweagent.storage import RunStore
-from minisweagent.tools import ToolRegistry
-from minisweagent.tools.mcp import mcp_tool_name, open_mcp_tools, parse_mcp_servers
 from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_storage import _write_config
 from tests.run.test_web_tools import FINISH_CALL, _model_response
+from vera.plugins import PluginError, PluginManager, load_plugins
+from vera.plugins.manifest import load_bundle
+from vera.plugins.source import PluginSource, Source, filesystem_path, normalize_source, relative_path
+from vera.storage import RunStore
+from vera.tools import ToolRegistry
+from vera.tools.mcp import mcp_tool_name, open_mcp_tools, parse_mcp_servers
 
 
 def write_plugin(root: Path, name: str = "review-kit", *, layout: str = "portable") -> Path:
@@ -286,7 +286,7 @@ def test_resume_rejects_changed_plugin_content_before_any_new_action(tmp_path):
     database = tmp_path / "runs.sqlite3"
     run_cli(
         tmp_path,
-        "minisweagent",
+        "vera",
         "-c",
         str(config),
         "--storage",
@@ -303,7 +303,7 @@ def test_resume_rejects_changed_plugin_content_before_any_new_action(tmp_path):
     with pytest.raises(subprocess.CalledProcessError) as failure:
         run_cli(
             tmp_path,
-            "minisweagent",
+            "vera",
             "-c",
             str(config),
             "--storage",
@@ -432,7 +432,7 @@ def test_actual_cli_market_install_parent_skill_mcp_and_subagent(tmp_path):
         )
     )
     write_market(tmp_path / "market", [{"name": "review-kit", "source": "./plugins/review"}])
-    module = "minisweagent.run.utilities.mini_extra"
+    module = "vera.run.utilities.extra"
     PluginManager(tmp_path / "user-config/plugins").add_marketplace(str(tmp_path / "market"))
     assert "review-kit@team-market" in run_cli(tmp_path, module, "plugins", "marketplace", "search", "review").stdout
     run_cli(tmp_path, module, "plugins", "install", "review-kit@team-market", "--enable")
@@ -468,7 +468,7 @@ def test_actual_cli_market_install_parent_skill_mcp_and_subagent(tmp_path):
         try:
             run_cli(
                 tmp_path,
-                "minisweagent",
+                "vera",
                 "-t",
                 "Plugin parent task",
                 "-m",
@@ -481,7 +481,7 @@ def test_actual_cli_market_install_parent_skill_mcp_and_subagent(tmp_path):
                 str(tmp_path / "runs.sqlite3"),
                 "-o",
                 str(tmp_path / "run.json"),
-                MSWEA_TEST_MODEL_URL=f"http://127.0.0.1:{server.server_port}",
+                VERA_TEST_MODEL_URL=f"http://127.0.0.1:{server.server_port}",
             )
         finally:
             server.shutdown()

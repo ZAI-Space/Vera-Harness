@@ -1,6 +1,8 @@
+[English](scheduler.md) · [简体中文](zh/scheduler.md)
+
 # Scheduled tasks
 
-Vera's independent scheduler follows [Hermes' cron architecture](https://github.com/NousResearch/hermes-agent/blob/fe8b920cae0980cef854f478236f525aaf2b93ce/website/docs/developer-guide/cron-internals.md): persist definitions, claim each occurrence before starting, and run a fresh agent session with bounded resources. This is a separate module using Vera's shared Runtime; the agent loop is unchanged.
+VERA's independent scheduler follows [Hermes' cron architecture](https://github.com/NousResearch/hermes-agent/blob/fe8b920cae0980cef854f478236f525aaf2b93ce/website/docs/developer-guide/cron-internals.md): persist definitions, claim each occurrence before starting, and run a fresh agent session with bounded resources. This is a separate module using VERA's shared Runtime; the agent loop is unchanged.
 
 ## Create and run
 
@@ -30,24 +32,24 @@ Configure the provider's API key in the environment before starting the service.
 The commands work in PowerShell, Git Bash and Linux shells:
 
 ```bash
-mini-extra cron create daily-check.yaml
-mini-extra cron start
-mini-extra cron status
-mini-extra cron list
-mini-extra cron show JOB_ID
-mini-extra cron pause JOB_ID
-mini-extra cron resume JOB_ID
-mini-extra cron update JOB_ID daily-check.yaml --revision 3
-mini-extra cron run JOB_ID
-mini-extra cron history --job JOB_ID
-mini-extra cron cancel EXECUTION_ID
-mini-extra cron remove JOB_ID
-mini-extra cron stop
+vera-extra cron create daily-check.yaml
+vera-extra cron start
+vera-extra cron status
+vera-extra cron list
+vera-extra cron show JOB_ID
+vera-extra cron pause JOB_ID
+vera-extra cron resume JOB_ID
+vera-extra cron update JOB_ID daily-check.yaml --revision 3
+vera-extra cron run JOB_ID
+vera-extra cron history --job JOB_ID
+vera-extra cron cancel EXECUTION_ID
+vera-extra cron remove JOB_ID
+vera-extra cron stop
 ```
 
 `start` launches a detached service. `serve` runs in the current terminal; `tick` dispatches due/queued work once and waits. Creation and manual `run` only enqueue; a service or `tick` must dispatch them. Manual runs do not consume the regular schedule or repeat count. Pause/remove cancel queued work but leave ongoing work running; use `cancel` to stop an execution. Removal retains its history. Updating replaces the definition and resets its schedule/repeat count; queued/running work retains its original snapshot. A completed one-shot needs an edit or explicit manual run, rather than resume.
 
-The default state directory is `scheduler` under Vera's global config directory. Put `--state PATH` before any subcommand to select another store. Only one scheduler can own a given store. `--workers` allows 1–16 concurrent jobs (default 2); a single job never overlaps itself.
+The default state directory is `scheduler` under VERA's global config directory. Put `--state PATH` before any subcommand to select another store. Only one scheduler can own a given store. `--workers` allows 1–16 concurrent jobs (default 2); a single job never overlaps itself.
 
 ## Timing and unattended permissions
 
@@ -72,7 +74,7 @@ Enable the optional management tool in a host configuration:
 ```yaml
 scheduler:
   enabled: true
-  directory: ~/.config/mini-swe-agent/scheduler  # Or another explicit local path.
+  directory: ~/.config/VERA/scheduler  # Or another explicit local path.
 ```
 
 `cronjob_manage` exposes create/list/update/pause/resume/run/remove. It only manages the current project's jobs and inherits host-owned Runtime configuration. The model cannot choose arbitrary credentials, another workspace or elevated execution permissions. The tool never starts a daemon implicitly. Scheduled workers disable it, including delegated access, to prevent recursive scheduling.

@@ -1,3 +1,5 @@
+[English](web-tools.md) · [简体中文](zh/web-tools.md)
+
 # Tool registry and web providers
 
 Bash handles existing file reads, edits, searches and builds in the selected
@@ -19,13 +21,13 @@ Choose search and extraction providers independently.
 
 ```bash
 export SEARXNG_URL=http://127.0.0.1:8080
-bash scripts/start.sh -c mini.yaml -c web.search_provider=searxng
+bash scripts/start.sh -c vera.yaml -c web.search_provider=searxng
 ```
 
 After setting `FIRECRAWL_API_KEY`, add a separate extraction provider:
 
 ```bash
-bash scripts/start.sh -c mini.yaml \
+bash scripts/start.sh -c vera.yaml \
   -c web.search_provider=searxng -c web.extract_provider=firecrawl
 ```
 
@@ -50,8 +52,8 @@ pages and apply their own network restrictions.
 ## Register another capability
 
 ```python
-from minisweagent.agents.default import DefaultAgent
-from minisweagent.tools import ToolSpec, make_tool_registry
+from vera.agents.default import DefaultAgent
+from vera.tools import ToolSpec, make_tool_registry
 
 registry = make_tool_registry(environment)
 registry.register(

@@ -1,121 +1,40 @@
+[English](faq.md) · [简体中文](zh/faq.md)
+
 # FAQ
 
-## General
+!!! question "Does VERA work on Windows and Linux?"
 
-!!! question "Does mini-SWE-agent work on my system?"
+    Yes. Native Windows local execution uses Git for Windows Bash; Linux uses its configured shell. Git Bash is not a Linux VM. Docker, Bubblewrap and other optional environments have separate requirements. See [startup](windows.md) and [sandbox selection](sandbox.md).
 
-    mini-SWE-agent should work on any system that has a bash shell or uses a container runtime (e.g., docker, singularity, apptainer, etc.) to emulate one.
+??? question "Do I need Docker?"
 
-??? question "Should I use mini-SWE-agent or swe-agent?"
+    No. Local execution is available with the current user's host permissions. Sandboxes are opt-in and user-configured. An explicitly requested unavailable sandbox fails instead of silently using the host. VERA does not automatically install sandbox engines or images.
 
-    You should use `mini-swe-agent` if
+??? question "Is VERA limited to Bash tools?"
 
-    - You want a quick command line tool that works locally
-    - You want an agent with a very simple control flow
-    - You want even faster, simpler & more stable sandboxing & benchmark evaluations
-    - You are doing FT or RL and don't want to overfit to a specific agent scaffold
+    No. Bash remains the basic file/build interface, alongside registered web tools, MCP services, Skills, plugins and Subagents. Tool-calling model adapters are required for named capabilities. Text-action models retain their Bash path.
 
-    You should use `swe-agent` if
+??? question "What is the difference between permissions, plan/goal and sandbox?"
 
-    - You need specific tools or want to experiment with different tools
-    - You want to experiment with different history processors
-    - You want very powerful yaml configuration without touching code
+    Permissions control approval (`confirm`, `yolo`, `human`). `/plan` restricts the task to inspection and a saved plan. `/goal` continues a standing objective within a budget. A sandbox controls the command environment. Selecting any one does not implicitly select the others.
 
-    What you get with both
+??? question "Where are settings stored?"
 
-    - Excellent performance on SWE-Bench
-    - A trajectory browser
+    Startup prints the global `.env` path. `VERA_GLOBAL_CONFIG_DIR` overrides it. The inherited directory and variable names are retained for compatibility. Environment variables take precedence when the file is loaded. See [global configuration](advanced/global_configuration.md).
 
-??? question "How is `mini` simpler than `swe-agent`?"
+??? question "Why does a later command forget cd or export?"
 
-    `mini` is simpler than `swe-agent` because it:
+    <a id="why-no-shell-session"></a>
+    Each Bash action uses a fresh shell. Prefix the working directory or environment in the command, or configure `environment.cwd` and `environment.env`. The project filesystem can persist; a shell session does not.
 
-    - Does not have any tools other than bash — it doesn't even use the tool-calling interface of the LMs.
-      This means you don't have to install anything in any environment you're running in. `bash` is all you need.
-    - Has a completely linear history — every step of the agent just appends to the messages and that's it.
-    - Executes actions with `subprocess.run` — every action is completely independent (as opposed to keeping a stateful shell session running).
-      This [avoids so many issues](#why-no-shell-session), trust me.
+??? question "Can a goal or scheduler run forever?"
 
-??? question "What are the limitations of mini-SWE-agent?"
+    No. Goals have turn, cost and elapsed budgets. Jobs have per-invocation limits. Accounting happens at call/boundary checks, so an in-flight provider request can overshoot the remaining allowance. A scheduler needs a live service and does not wake a powered-off machine.
 
-    mini-SWE-agent can be extended trivially in various ways, the following assumes the default setup.
-    As reflected in the high SWE-bench scores, none of the following limitations are a problem in practice.
+??? question "Does local test success prove model quality?"
 
-    - No tools other than bash
-    - Actions are parsed from triple-backtick blocks (rather than assuming a function calling/tool calling format)
-    - By default, actions are executed as `subprocess.run`, i.e., every action is independent of the previous ones.
-      (meaning that the agent cannot change directories or export environment variables; however environment variables
-      can be set per-action). This [avoids so many issues](#why-no-shell-session), trust me.
+    No. Unit/protocol tests, actual sandbox runs, paid provider runs and task benchmarks provide different evidence. VERA does not inherit another project's published benchmark score. Report the candidate commit, task set, model and unavailable prerequisites with results.
 
-    If you want more flexibility with these items, you can use [SWE-agent](https://swe-agent.com/) instead.
+??? question "Is there a desktop API already?"
 
-??? question "Where is global configuration stored?"
-
-    The global configuration is stored in the `.env` file in the config directory.
-    The location is printed when you run `mini --help`.
-
-    The `.env` file is a simple key-value file that is read by the `dotenv` library.
-
-
-## Models
-
-!!! question "What models do you support?"
-
-    Currently, mini-SWE-agent supports all models that are supported by [litellm](https://github.com/BerriAI/litellm)
-    or [OpenRouter](https://openrouter.ai/)
-    and we're open to extend the `models/` directory with more models should `litellm` not support them.
-
-!!! question "How do I set the API key for a model?"
-
-    The API key can be stored either as an environment variable (note that enviroinment variables are not persistent
-    unless you set them in your `~/.bashrc` or similar), or as a permanent key in the config file.
-
-    To temporarily set the API key as an environment variable, you can use the following command:
-
-    ```bash
-    export OPENAI_API_KEY=sk-test123
-    ```
-
-    To permanently set the API key in the config file, you can use the following command:
-
-    ```bash
-    mini-extra config set OPENAI_API_KEY sk-test123
-    ```
-
-    Alternatively, you can directly edit the `.env` file in the config directory
-    (the location is printed when you run `mini --help`).
-
-!!! question "How can I set the default model?"
-
-    The default model is stored in the config/environment as `MSWEA_MODEL_NAME`.
-    To permanently change it:
-
-    ```bash
-    mini-extra config set MSWEA_MODEL_NAME anthropic/claude-sonnet-4-5-20250929
-    ```
-
-    Alternatively, you can directly edit the `.env` file in the config directory
-    (the location is printed when you run `mini --help`).
-
-## Minutia
-
-??? question "Why is not needing a running shell session such a big deal?"
-    <a name="why-no-shell-session"></a>
-
-    Most agents so far kept a running shell session. Every action from the agent was executed in this session.
-    However, this is far from trivial:
-
-    1. It's not obvious when a command has terminated. Essentially you're just pasting input into the shell session, and press enter—but when do you stop reading output?
-       We've experimented with various heuristics (watching PIDs, watching for the shell to go back to the prompt, etc.) but all of them were flaky.
-       The `mini` agent doesn't need any of this!
-    2. Particularly bad commands from the LM can kill the shell session. Then what?
-    3. Interrupting a command running in a shell session can also mess up the shell itself and can in particular interfere with all the following outputs you want to extract.
-
-    `mini` is different: There is no running shell session. Every action is executed as a subprocess, that means
-    every action is independent of the previous ones (it is literally a `subprocess.run`/`os.system`/`docker exec` call).
-
-    This means that the agent cannot even change directories or export environment variables.
-    But you don't need this! You can always prefix `cd /path/to/project` or `export FOO=bar` to every action
-    (and in fact some LMs like Claude will do that even if you don't ask them to).
-
-{% include-markdown "_footer.md" %}
+    There are reusable Python session, state and Runtime interfaces. An application transport still needs to be implemented and tested. See [frontend integration](frontend-integration.md).

@@ -1,9 +1,11 @@
+[English](swerex_docker.md) · [简体中文](../../zh/reference/environments/swerex_docker.md)
+
 # SWE-rex Docker
 
 !!! note "SWE-rex Docker Environment class"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/environments/extra/swerex_docker.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/environments/extra/swerex_docker.py)
 
-::: minisweagent.environments.extra.swerex_docker
+::: vera.environments.extra.swerex_docker
 
 {% include-markdown "../../_footer.md" %}

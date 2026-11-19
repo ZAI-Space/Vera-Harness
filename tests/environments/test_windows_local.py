@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from minisweagent.environments.local import LocalEnvironment
+from vera.environments.local import LocalEnvironment
 
 pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows process and path contracts")
 

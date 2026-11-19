@@ -5,15 +5,15 @@ import time
 
 import pytest
 
-from minisweagent.environments.sandbox import SandboxConfig, _docker
-from minisweagent.environments.sandbox_profiles import SandboxProfiles
-from minisweagent.runtime import open_agent_runtime
-from minisweagent.scheduler.engine import Scheduler
-from minisweagent.scheduler.store import JobStore
-from minisweagent.storage import RunStore
 from tests.run.test_scheduler import BASE, job_definition
 from tests.run.test_skill_tools import write_skill
 from tests.run.test_terminal_runtime import terminal_model as terminal_model
+from vera.environments.sandbox import SandboxConfig, _docker
+from vera.environments.sandbox_profiles import SandboxProfiles
+from vera.runtime import open_agent_runtime
+from vera.scheduler.engine import Scheduler
+from vera.scheduler.store import JobStore
+from vera.storage import RunStore
 
 
 def test_due_task_executes_in_fresh_process_with_durable_result_and_skill_context(tmp_path):

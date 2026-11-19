@@ -15,13 +15,13 @@ from pathlib import Path
 
 import pytest
 
-from minisweagent.evolution.config import EvolutionConfig, EvolutionError
-from minisweagent.evolution.engine import Experiment
-from minisweagent.evolution.process import _process_stamp, experiment_lock, read_json, run_process, write_json
-from minisweagent.evolution.repository import checkout, commit_candidate, git
-from minisweagent.evolution.runtime import select_runtime
+from vera.evolution.config import EvolutionConfig, EvolutionError
+from vera.evolution.engine import Experiment
+from vera.evolution.process import _process_stamp, experiment_lock, read_json, run_process, write_json
+from vera.evolution.repository import checkout, commit_candidate, git
+from vera.evolution.runtime import select_runtime
 
-CLI = "minisweagent.run.utilities.evolution"
+CLI = "vera.run.utilities.evolution"
 
 
 @pytest.fixture
@@ -35,10 +35,10 @@ def source_repo(tmp_path):
     )
     git(source, "config", "user.name", "Evolution tests")
     git(source, "config", "user.email", "tests@localhost")
-    (source / "src/minisweagent/evolution_example.py").write_bytes(b"VALUE = 0\r\n")
+    (source / "src/vera/evolution_example.py").write_bytes(b"VALUE = 0\r\n")
     with (source / ".gitattributes").open("a", encoding="utf-8") as stream:
-        stream.write("\nsrc/minisweagent/evolution_example.py -text\n")
-    git(source, "add", "src/minisweagent/evolution_example.py", ".gitattributes")
+        stream.write("\nsrc/vera/evolution_example.py -text\n")
+    git(source, "add", "src/vera/evolution_example.py", ".gitattributes")
     git(source, "commit", "-m", "test(evolution): create baseline problem")
     return source
 
@@ -49,7 +49,7 @@ def _config(*commands, **changes):
         for command in (*commands, "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT")
     ]
     verifier = (
-        "from pathlib import Path;import sys;from minisweagent.evolution_example import VALUE;"
+        "from pathlib import Path;import sys;from vera.evolution_example import VALUE;"
         "assert not Path('verifier-isolation-marker').exists();Path('verifier-isolation-marker').touch();"
     )
     value = {
@@ -62,7 +62,7 @@ def _config(*commands, **changes):
             "model": {"model_class": "deterministic", "model_name": "fixture", "outputs": outputs, "cost_per_call": 0},
             "agent": {"agent_class": "default", "step_limit": 8},
         },
-        "checks": [["{python}", "-m", "compileall", "-q", "src/minisweagent"]],
+        "checks": [["{python}", "-m", "compileall", "-q", "src/vera"]],
         "tasks": [
             {"id": "existing", "split": "train", "command": ["{python}", "-c", verifier + "sys.exit(VALUE < 0)"]},
             {
@@ -83,7 +83,7 @@ def _config(*commands, **changes):
 def _cli(root, *arguments, check=True):
     return subprocess.run(
         [sys.executable, "-m", CLI, *arguments, str(root)],
-        env=os.environ | {"PYTHONUTF8": "1", "MSWEA_SILENT_STARTUP": "1"},
+        env=os.environ | {"PYTHONUTF8": "1", "VERA_SILENT_STARTUP": "1"},
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -95,9 +95,9 @@ def _cli(root, *arguments, check=True):
 def test_closed_loop_executes_evolved_optimizer_and_rejects_regression(source_repo, tmp_path):
     baseline = git(source_repo, "rev-parse", "HEAD")
     config = _config(
-        "if grep -q 'VALUE = 0' src/minisweagent/evolution_example.py; then printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py; else printf 'VALUE = -1\\n' > src/minisweagent/evolution_example.py; fi",
-        "printf '\\n# Candidate import path: %s\\n' \"$PYTHONPATH\" >> src/minisweagent/evolution_example.py",
-        "printf '\\nprint(\"EVOLVED_OPTIMIZER_ACTIVE\")\\n' >> src/minisweagent/run/mini.py",
+        "if grep -q 'VALUE = 0' src/vera/evolution_example.py; then printf 'VALUE = 1\\n' > src/vera/evolution_example.py; else printf 'VALUE = -1\\n' > src/vera/evolution_example.py; fi",
+        "printf '\\n# Candidate import path: %s\\n' \"$PYTHONPATH\" >> src/vera/evolution_example.py",
+        "printf '\\nprint(\"EVOLVED_OPTIMIZER_ACTIVE\")\\n' >> src/vera/run/cli.py",
         repeats=2,
     )
     experiment = Experiment.create(tmp_path / "experiment space", source_repo, config)
@@ -109,7 +109,7 @@ def test_closed_loop_executes_evolved_optimizer_and_rejects_regression(source_re
     assert rejected["optimizer"] == accepted["id"] == rejected["base"]
     assert rejected["base_sha"] == accepted["sha"] != original["sha"]
     assert str(Path(accepted["workspace"]) / "src") in (
-        Path(accepted["workspace"]) / "src/minisweagent/evolution_example.py"
+        Path(accepted["workspace"]) / "src/vera/evolution_example.py"
     ).read_text(encoding="utf-8")
     assert "EVOLVED_OPTIMIZER_ACTIVE" in (experiment.root / "artifacts" / rejected["id"] / "optimizer.log").read_text(
         encoding="utf-8"
@@ -138,14 +138,14 @@ def test_closed_loop_executes_evolved_optimizer_and_rejects_regression(source_re
     assert Experiment(experiment.root).state["best"] == "baseline"
     assert git(source_repo, "rev-parse", "HEAD") == baseline
     assert not git(source_repo, "status", "--porcelain").strip()
-    assert (source_repo / "src/minisweagent/evolution_example.py").read_text(encoding="utf-8") == "VALUE = 0\n"
+    assert (source_repo / "src/vera/evolution_example.py").read_text(encoding="utf-8") == "VALUE = 0\n"
 
 
 def test_protected_edits_and_unchanged_candidates_never_promote(source_repo, tmp_path):
     protected = Experiment.create(
         tmp_path / "protected",
         source_repo,
-        _config("printf 'changed\\n' > pyproject.toml", editable=["pyproject.toml", "src/minisweagent/"]),
+        _config("printf 'changed\\n' > pyproject.toml", editable=["pyproject.toml", "src/vera/"]),
     )
     state = protected.run(iterations=1)
     assert state["best"] == "baseline"
@@ -159,7 +159,7 @@ def test_resume_archives_unknown_generation_and_keeps_reserved_cost(source_repo,
     experiment = Experiment.create(
         tmp_path / "resume",
         source_repo,
-        _config("printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py"),
+        _config("printf 'VALUE = 1\\n' > src/vera/evolution_example.py"),
     )
     experiment.run(iterations=1)
     experiment.state["spent"] = 0.5
@@ -361,7 +361,7 @@ def test_controller_crash_reaps_previous_process_without_replaying(source_repo, 
 
 
 def test_timeout_missing_scores_and_noop_gains_keep_fixed_denominator(source_repo, tmp_path):
-    config = _config("printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py")
+    config = _config("printf 'VALUE = 1\\n' > src/vera/evolution_example.py")
     config.tasks.append(
         type(config.tasks[0])(
             id="timeout",
@@ -405,7 +405,7 @@ def test_complete_optimizer_process_is_isolated(source_repo, tmp_path, backend):
     canary = tmp_path / "controller-owned-canary"
     canary.write_text("protected controller data", encoding="utf-8")
     config = _config(
-        "test ! -w /optimizer/src/minisweagent/run/mini.py && test ! -e /artifacts/../state.json && printf 'VALUE = 1\\n' > src/minisweagent/evolution_example.py && python -c 'from minisweagent.evolution_example import VALUE; assert VALUE == 1' || printf 'VALUE = 0\\n' > src/minisweagent/evolution_example.py",
+        "test ! -w /optimizer/src/vera/run/cli.py && test ! -e /artifacts/../state.json && printf 'VALUE = 1\\n' > src/vera/evolution_example.py && python -c 'from vera.evolution_example import VALUE; assert VALUE == 1' || printf 'VALUE = 0\\n' > src/vera/evolution_example.py",
         f"ln -s {shlex.quote(str(canary))} /artifacts/check-0.log; ln -s {shlex.quote(str(canary))} /artifacts/optimizer.process.pending; printf '{{}}' > /artifacts/verifier.process.json",
         sandbox=backend,
     )
@@ -432,7 +432,7 @@ def test_complete_optimizer_process_is_isolated(source_repo, tmp_path, backend):
 def test_verifier_changes_and_equal_scores_cannot_promote(source_repo, tmp_path):
     verifier = tmp_path / "trusted-verifier.py"
     verifier.write_text("raise SystemExit(0)\n", encoding="utf-8")
-    config = _config("printf 'VALUE = 0 # changed implementation\\n' > src/minisweagent/evolution_example.py")
+    config = _config("printf 'VALUE = 0 # changed implementation\\n' > src/vera/evolution_example.py")
     config.tasks[0].command = ["{python}", str(verifier)]
     experiment = Experiment.create(tmp_path / "verifier", source_repo, config)
     state = experiment.run(iterations=1)
@@ -448,7 +448,7 @@ def test_upstream_auto_harness_runner_adapter(source_repo, tmp_path):
     checkout = os.getenv("VERA_AUTO_HARNESS_CHECKOUT")
     if not checkout:
         pytest.skip("Set VERA_AUTO_HARNESS_CHECKOUT to the pinned upstream repository")
-    from minisweagent.evolution import auto_harness
+    from vera.evolution import auto_harness
 
     factory = tmp_path / "factory.py"
     factory.write_text(
@@ -458,7 +458,7 @@ def create(upstream, candidate, split):
         def run(self, task_ids=None):
             if split == 'drop':
                 return {}
-            value = ast.literal_eval((candidate / 'src/minisweagent/evolution_example.py').read_text().split('=')[1].strip())
+            value = ast.literal_eval((candidate / 'src/vera/evolution_example.py').read_text().split('=')[1].strip())
             return {task: float(value == 0) for task in task_ids}
     return CandidateRunner()
 """,
@@ -522,7 +522,7 @@ def test_retargeted_git_metadata_cannot_mutate_the_source_repository(source_repo
     config = _config("printf never")
     experiment = Experiment.create(tmp_path / "git-boundary", source_repo, config)
     workspace = checkout(experiment.root, "retargeted", experiment.state["baseline"])
-    (workspace / "src/minisweagent/evolution_example.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (workspace / "src/vera/evolution_example.py").write_text("VALUE = 1\n", encoding="utf-8")
     metadata = workspace / ".git"
     metadata.chmod(0o600)
     # Windows Git marks this file hidden; update in place rather than recreate it.

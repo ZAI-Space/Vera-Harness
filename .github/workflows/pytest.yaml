@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MSWEA_SILENT_STARTUP: '1'
+  VERA_SILENT_STARTUP: '1'
   PYTHONUTF8: '1'
 
 jobs:
@@ -67,7 +67,7 @@ jobs:
       - name: Install runtime dependencies
         run: python -m pip install -e '.[full,channels]'
       - name: Build the committed RSI optimizer runtime
-        run: mini-extra evolution prepare-runtime --source .
+        run: vera-extra evolution prepare-runtime --source .
       - name: Verify real isolated execution and runtime policies
         run: python -m pytest tests/environments tests/run/test_sandbox.py tests/run/test_sandbox_profiles.py tests/run/test_scheduler_runtime.py tests/run/test_evolution.py tests/run/test_runtime_assembly.py -ra --junitxml=sandboxes.xml
       - name: Preserve sandbox results

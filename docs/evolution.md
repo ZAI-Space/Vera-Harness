@@ -1,15 +1,17 @@
+[English](evolution.md) · [简体中文](zh/evolution.md)
+
 # Versioned source evolution
 
-Evolution is an external experiment controller. A historical Vera runtime edits a
-new generation of Vera source, required checks and fixed evaluations run, and an
+Evolution is an external experiment controller. A historical VERA runtime edits a
+new generation of VERA source, required checks and fixed evaluations run, and an
 accepted generation becomes the optimizer and source base for the next iteration.
 The installed package, developer worktree, `dev`, and `main` are never updated by
 experiment selection. No agent loop changes are required by this module.
 
 ## Upstream provenance and deliberate differences
 
-* [SICA runner, ed8275d](https://github.com/MaximeRobeyns/self_improving_coding_agent/blob/ed8275dca4d3c5dbf77229964351fe9b424797dc/runner.py): archived generations, historical optimizer editing a separate next generation, read-only optimizer and writable target, repeated evaluation. Vera uses an independent Git archive and detached worktrees instead of directory copies. Optimizer and target base are recorded separately; this implementation selects the accepted best for both, rather than SICA's confidence-bound base selection.
-* [auto-harness, 52360db](https://github.com/neosigmaai/auto-harness/blob/52360dbbeb8cea8886d90778e634a145c51da735/program_templates/base.md): one hypothesis per iteration, training evidence, protected evaluation infrastructure, regression suite, result history and stagnation stop. Vera requires positive validation gain, rather than accepting equal scores, and evaluates holdout only on explicit request.
+* [SICA runner, ed8275d](https://github.com/MaximeRobeyns/self_improving_coding_agent/blob/ed8275dca4d3c5dbf77229964351fe9b424797dc/runner.py): archived generations, historical optimizer editing a separate next generation, read-only optimizer and writable target, repeated evaluation. VERA uses an independent Git archive and detached worktrees instead of directory copies. Optimizer and target base are recorded separately; this implementation selects the accepted best for both, rather than SICA's confidence-bound base selection.
+* [auto-harness, 52360db](https://github.com/neosigmaai/auto-harness/blob/52360dbbeb8cea8886d90778e634a145c51da735/program_templates/base.md): one hypothesis per iteration, training evidence, protected evaluation infrastructure, regression suite, result history and stagnation stop. VERA requires positive validation gain, rather than accepting equal scores, and evaluates holdout only on explicit request.
 * `evolution/auto_harness.py` can load the **unchanged pinned upstream** `BenchmarkRunner` and execute a benchmark-specific factory. The source controller and generic command-verifier path are adaptations of those designs, not claims that the complete upstream applications were embedded or their public benchmark results reproduced.
 
 ## Initialize without model calls
@@ -24,7 +26,7 @@ objective: Improve task completion while preserving existing tool behavior.
 sandbox: auto
 docker_image: vera-evolution-runtime:local
 credential_env: [DEEPSEEK_API_KEY]
-editable: [src/minisweagent/agents/, src/minisweagent/tools/]
+editable: [src/vera/agents/, src/vera/tools/]
 optimizer:
   model:
     model_class: litellm
@@ -76,16 +78,16 @@ quoting inside YAML. Use absolute Windows paths for external scripts on Windows.
 The CLI below works in PowerShell, Git Bash and Linux shells:
 
 ```bash
-mini-extra evolution prepare-runtime --source .
-mini-extra evolution init ../vera-experiment --source . -c ../evolution.yaml
-mini-extra evolution baseline ../vera-experiment
-mini-extra evolution run ../vera-experiment --iterations 3
-mini-extra evolution status ../vera-experiment
-mini-extra evolution cancel ../vera-experiment
-mini-extra evolution run ../vera-experiment --resume
-mini-extra evolution holdout ../vera-experiment
-mini-extra evolution rollback ../vera-experiment baseline
-mini-extra evolution export ../vera-experiment candidate.patch
+vera-extra evolution prepare-runtime --source .
+vera-extra evolution init ../vera-experiment --source . -c ../evolution.yaml
+vera-extra evolution baseline ../vera-experiment
+vera-extra evolution run ../vera-experiment --iterations 3
+vera-extra evolution status ../vera-experiment
+vera-extra evolution cancel ../vera-experiment
+vera-extra evolution run ../vera-experiment --resume
+vera-extra evolution holdout ../vera-experiment
+vera-extra evolution rollback ../vera-experiment baseline
+vera-extra evolution export ../vera-experiment candidate.patch
 ```
 
 `prepare-runtime` is optional for Docker users: it downloads build dependencies and
@@ -94,8 +96,8 @@ Initialization freezes the resulting image **content ID**. Linux Bubblewrap uses
 the installed interpreter/dependencies read-only and does not need this image.
 `auto` tries Bubblewrap, then an available Docker image, and fails if neither is
 available. `sandbox: local` explicitly permits trusted development without either.
-For machine-readable stdout set `MSWEA_SILENT_STARTUP=1` before starting Python,
-as for the other `mini-extra` commands.
+For machine-readable stdout set `VERA_SILENT_STARTUP=1` before starting Python,
+as for the other `vera-extra` commands.
 
 ## Version, recovery and evaluation boundaries
 
@@ -146,14 +148,14 @@ as for the other `mini-extra` commands.
 Clone auto-harness outside all candidate workspaces and check out `52360dbbeb8cea8886d90778e634a145c51da735`.
 Provide a trusted absolute `factory.py:create` that accepts `(upstream, candidate,
 split)` and returns an `upstream.BenchmarkRunner`. The factory must connect the
-benchmark to the supplied candidate's **real Vera runtime**, rather than leaving
+benchmark to the supplied candidate's **real VERA runtime**, rather than leaving
 the upstream example agent in place. Provider-specific environments and datasets
 are provisioned using upstream instructions.
 
 Use this adapter as a JSON task command:
 
 ```text
-python -m minisweagent.evolution.auto_harness --checkout /trusted/auto-harness --factory /trusted/factory.py:create --candidate CANDIDATE --split train --task-id TASK_ID --result RESULT_JSON --cost-bound 0.05
+python -m vera.evolution.auto_harness --checkout /trusted/auto-harness --factory /trusted/factory.py:create --candidate CANDIDATE --split train --task-id TASK_ID --result RESULT_JSON --cost-bound 0.05
 ```
 
 In the manifest replace `CANDIDATE`, `TASK_ID`, `RESULT_JSON` with the documented

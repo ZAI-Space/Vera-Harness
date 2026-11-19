@@ -1,5 +1,13 @@
 # Third-party notices
 
+## mini-swe-agent
+
+VERA derives from mini-swe-agent. The original copyright and MIT permission
+notice are retained in LICENSE.md. Product names and command aliases do not
+change the attribution or the license of the upstream code.
+
+Source: https://github.com/SWE-agent/mini-swe-agent
+
 ## Tencent/openclaw-weixin
 
 The Weixin Python adapter follows the protocol and request/state-machine behavior

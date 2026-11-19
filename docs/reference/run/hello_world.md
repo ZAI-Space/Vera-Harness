@@ -1,15 +1,17 @@
+[English](hello_world.md) · [简体中文](../../zh/reference/run/hello_world.md)
+
 # Hello World
 
 !!! note "Hello World run script"
 
-    - [Read on GitHub](https://github.com/swe-agent/mini-swe-agent/blob/main/src/minisweagent/run/hello_world.py)
+    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/run/hello_world.py)
 
     ??? note "Full source code"
 
         ```python
-        --8<-- "src/minisweagent/run/hello_world.py"
+        --8<-- "src/vera/run/hello_world.py"
         ```
 
-::: minisweagent.run.hello_world
+::: vera.run.hello_world
 
 {% include-markdown "../../_footer.md" %}

@@ -1,134 +1,73 @@
+[English](quickstart.md) · [简体中文](zh/quickstart.md)
+
 # Quick start
 
-!!! tip "Installation Options"
+!!! abstract "Requirements"
 
-    === "pip"
+    Python 3.10 or newer, Git for cloning, and Bash for local command execution. Windows uses Git for Windows Bash. A model and its provider credentials are required for real tasks; `--help` does not query a model.
 
-        Use pip to install `mini` in your current environment:
+## Install from source
 
-        ```bash
-        pip install mini-swe-agent
-        ```
+```bash
+git clone https://github.com/zml-mis/Vera-Harness.git
+cd Vera-Harness
+python -m venv .venv
+```
 
-        And try our command line interface
+=== "PowerShell"
 
-        ```bash
-        mini  # CLI
-        mini-extra  # extra utilities
-        ```
+    ```powershell
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install -e '.[mcp,channels]'
+    vera --help
+    ```
 
-    === "uv (isolated)"
+=== "Git Bash"
 
-        Use `uv`/`uvx` ([installation](https://docs.astral.sh/uv/getting-started/installation/)) to directly run the `mini` CLI.
-        Use this if you're only interested in the CLI but don't need python bindings (`mini` will be installed in an anonymous virtual environment).
+    ```bash
+    source .venv/Scripts/activate
+    python -m pip install -e '.[mcp,channels]'
+    vera --help
+    ```
 
-        Quickly install + run:
+=== "Linux Bash"
 
-        ```bash
-        uvx mini-swe-agent  # CLI
-        uvx --from mini-swe-agent mini-extra  # extra utilities
-        ```
+    ```bash
+    source .venv/bin/activate
+    python -m pip install -e '.[mcp,channels]'
+    vera --help
+    ```
 
-        Permanently install
+The documented install source is this repository. The package name alone is not a claim that a public PyPI release has been published. For a minimal install use `pip install -e .`; development adds `.[dev]` or `.[full,channels]`.
 
-        ```bash
-        uv tool install mini-swe-agent
-        # then
-        mini  # CLI
-        mini-extra  # extra utilities
-        ```
+## Configure a model
 
-    === "pipx (isolated)"
+```bash
+vera-extra config setup
+vera
+```
 
-        Use pipx ([installation](https://pipx.pypa.io/stable/installation/)) to directly run the `mini` CLI.
-        Use this if you're only interested in the CLI but don't need python bindings (`mini` will be installed in an anonymous virtual environment).
+The interactive setup asks for a model identifier and, optionally, the provider's key. Prefer the hidden/prompted input or a process environment variable to secrets in command arguments. Check the provider's model identifier and account permissions. [Model configuration](models/quickstart.md) describes adapter-specific options.
 
-        Quick install + run:
+## Submit a task
 
-        ```bash
-        # CLI
-        pipx run mini-swe-agent
-        # Extra utilities
-        pipx run --spec mini-swe-agent mini-extra
-        ```
+```text
+Explain @src/main.py
+/skill
+/mcp
+/plan Add a regression test for this module
+/goal Fix the failing tests and show the verification output
+```
 
-        or for a persistent installation (recommended):
+Use Tab to complete and Esc then Enter to submit multiline input. `confirm` asks before operations, `yolo` runs without per-action approval, and `human` executes user-entered commands. A permission mode does not create a sandbox.
 
-        ```bash
-        pipx install mini-swe-agent
-        # then
-        mini  # CLI
-        mini-extra  # extra utilities
-        ```
+## Repository launchers
 
-        If the invocation doesn't immediately work, you might need to run `pipx ensurepath`.
+PowerShell/CMD: `.\start.cmd`. Git Bash/Linux: `bash scripts/start.sh`. These bootstrap the checkout's virtual environment. The Windows launcher can provision verified PortableGit if Bash is absent; sandbox engines remain user-managed. See [Windows startup](windows.md).
 
-    === "From source/dev"
+```bash
+vera-extra --help
+python -m vera --help
+```
 
-        For development or if you want to customize the agent:
-
-        ```bash
-        git clone https://github.com/SWE-agent/mini-swe-agent.git
-        cd mini-swe-agent
-        pip install -e .
-        ```
-
-        Then run:
-
-        ```bash
-        mini  # CLI
-        mini-extra  # extra utilities
-        ```
-
-        Or pick a [run script](https://github.com/SWE-agent/mini-swe-agent/tree/main/src/minisweagent/run):
-
-        ```bash
-        python src/minisweagent/run/hello_world.py
-        ```
-
-        If you are planning to contribute, please also install the dev dependencies
-        and `pre-commit` hooks:
-
-        ```bash
-        pip install -e '.[dev]'
-        pip install pre-commit && pre-commit install
-        ```
-
-        To check your installation, you can run `pytest -n auto` in the root folder.
-        This should run all tests in parallel (should take ~3min to run).
-
-        Note that there are still some extra dependencies that are not installed by default
-        (basically anything that is in an `.../extra/...` folder).
-        If you truly want to get the maximal package, you can run `pip install -e '.[full]'`
-
-!!! note "Changelog"
-
-    Please see the [github release notes](https://github.com/SWE-agent/mini-swe-agent/releases) for recent changes.
-
-!!! info "Upgrading to v2?"
-
-    Check out our [v2 migration guide](advanced/v2_migration.md) for all the changes and how to update your code.
-
-!!! example "Example Prompts"
-
-    Try mini-SWE-agent with these example prompts:
-
-    - Implement a Sudoku solver in python in the `sudoku` folder. Make sure the codebase is modular and well tested with pytest.
-    - Please run pytest on the current project, discover failing unittests and help me fix them. Always make sure to test the final solution.
-    - Help me document & type my codebase by adding short docstrings and type hints.
-
-## Models
-
-!!! note "Models should be set up the first time you run `mini`"
-
-    * If you missed the setup wizard, just run `mini-extra config setup`
-    * For more information, please check the [model setup quickstart](models/quickstart.md).
-    * If you want to use local models, please check this [guide](models/local_models.md).
-
-    Tip: Please always include the provider in the model name, e.g., `anthropic/claude-...`.
-
-!!! success "Which model to use?"
-
-    We recommend using `anthropic/claude-opus-4-6-20260205` for most tasks.
-    For openai models, we recommend using `openai/gpt-5.4` or `openai/gpt-5.4-mini`.
-    You can check scores of different models at our [SWE-bench (bash-only)](https://swebench.com) leaderboard.
+Use `vera`, `vera-extra` and `python -m vera` for new integrations. Legacy `mini` and `mini-extra` commands remain aliases; old Python imports must change to `vera.*`. Existing configuration and stored runs are reused when applicable; see the [migration guide](advanced/v2_migration.md).

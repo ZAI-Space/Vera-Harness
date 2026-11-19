@@ -1,13 +1,12 @@
-site_name: mini-SWE-agent documentation
-site_url: https://mini-swe-agent.com
+site_name: VERA Documentation · 文档
 theme:
   name: material
   icon:
     repo: fontawesome/brands/github
     annotation: material/chevron-right-circle
   custom_dir: docs/overrides
-  logo: assets/mini_square.svg
-  favicon: assets/mini_square.svg
+  logo: assets/vera-logo.png
+  favicon: assets/vera-logo.png
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -59,81 +58,160 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 nav:
-  - Getting Started:
-    - "Overview": index.md
-    - "Quick start": quickstart.md
-    - "Windows startup": windows.md
-    - "Command line usage":
-      - "<code>mini</code>": usage/mini.md
-      - "Web tools": web-tools.md
-      - "MCP tools": mcp.md
-      - "Agent Skills": skills.md
-      - "Plugins": plugins.md
-      - "Terminal commands": terminal.md
-      - "Remote channels": channels.md
-      - "Subagents": subagents.md
-      - "Sandbox": sandbox.md
-      - "Run storage": storage.md
-      - "Scheduled tasks": scheduler.md
-      - "Markets and run modes": markets-and-modes.md
-      - "Source evolution": evolution.md
-      - "Config": usage/config.md
-      - "SWE-bench": usage/swebench.md
-      - "ProgramBench": usage/programbench.md
-      - "Inspector": usage/inspector.md
-      - "Output files": usage/output_files.md
-    - "Language models":
-      - "Quick start": models/quickstart.md
-      - "Local models": models/local_models.md
-      - "Troubleshooting": models/troubleshooting.md
-    - "Configuration":
-      - "Global configuration": advanced/global_configuration.md
-      - "Yaml config files": advanced/yaml_configuration.md
-    - "Python bindings & more":
-      - "Basic Python bindings": usage/python_bindings.md
-      - "Understanding the agent": advanced/control_flow.md
-      - "Agent state observation": agent-state.md
-      - "Hindsight project memory": hindsight-memory.md
-      - "Subclassing and more": advanced/cookbook.md
-      - "Environments": advanced/environments.md
-      - "v2 migration guide": advanced/v2_migration.md
-    - "FAQ": faq.md
-    - "Contributing": contributing.md
-  - API Reference:
-    - "reference/index.md"
-    - Agents:
-      - "DefaultAgent": "reference/agents/default.md"
-      - "InteractiveAgent": "reference/agents/interactive.md"
-    - Models:
-      - "Overview": "reference/models/overview.md"
-      - "LitellmModel": "reference/models/litellm.md"
-      - "LitellmResponseModel": "reference/models/litellm_response_toolcall.md"
-      - "OpenRouterModel": "reference/models/openrouter.md"
-      - "RequestyModel": "reference/models/requesty.md"
-      - "PortkeyModel": "reference/models/portkey.md"
-      - "PortkeyResponse": "reference/models/portkey_response.md"
-      - "DeterministicModel": "reference/models/test_models.md"
-      - "Extra Models": "reference/models/extra.md"
-      - "Model Utilities": "reference/models/utils.md"
-    - Environments:
-      - "LocalEnvironment": "reference/environments/local.md"
-      - "DockerEnvironment": "reference/environments/docker.md"
-      - "SingularityEnvironment": "reference/environments/singularity.md"
-      - "SwerexDockerEnvironment": "reference/environments/swerex_docker.md"
-      - "BubblewrapEnvironment": "reference/environments/bubblewrap.md"
-      - "ContreeEnvironment": "reference/environments/contree.md"
-      - "SwerexModalEnvironment": "reference/environments/swerex_modal.md"
-    - Run Scripts:
-      - "Hello World": "reference/run/hello_world.md"
-      - "mini": "reference/run/mini.md"
-      - "mini-extra": "reference/run/mini_extra.md"
-      - "Config": "reference/run/config.md"
-      - "Inspector": "reference/run/inspector.md"
-      - "SWE-bench (batch)": "reference/run/swebench.md"
-      - "SWE-bench (single)": "reference/run/swebench_single.md"
-      - "ProgramBench": "reference/run/programbench.md"
-  - Blog: https://www.swebench.com/blog.html
-  - Leaderboard: https://swebench.com
+  - English:
+      - Getting Started:
+        - "Overview": index.md
+        - "Quick start": quickstart.md
+        - "Windows startup": windows.md
+        - "Command line usage":
+          - "<code>vera</code>": usage/cli.md
+          - "Web tools": web-tools.md
+          - "MCP tools": mcp.md
+          - "Agent Skills": skills.md
+          - "Plugins": plugins.md
+          - "Terminal commands": terminal.md
+          - "Remote channels": channels.md
+          - "Subagents": subagents.md
+          - "Sandbox": sandbox.md
+          - "Run storage": storage.md
+          - "Scheduled tasks": scheduler.md
+          - "Markets and run modes": markets-and-modes.md
+          - "Source evolution": evolution.md
+          - "Config": usage/config.md
+          - "SWE-bench": usage/swebench.md
+          - "ProgramBench": usage/programbench.md
+          - "Inspector": usage/inspector.md
+          - "Output files": usage/output_files.md
+        - "Language models":
+          - "Quick start": models/quickstart.md
+          - "Local models": models/local_models.md
+          - "Troubleshooting": models/troubleshooting.md
+        - "Configuration":
+          - "Global configuration": advanced/global_configuration.md
+          - "Yaml config files": advanced/yaml_configuration.md
+        - "Python bindings & more":
+          - "Basic Python bindings": usage/python_bindings.md
+          - "Understanding the agent": advanced/control_flow.md
+          - "Agent state observation": agent-state.md
+          - "Hindsight project memory": hindsight-memory.md
+          - "Subclassing and more": advanced/cookbook.md
+          - "Environments": advanced/environments.md
+          - "v2 migration guide": advanced/v2_migration.md
+        - "FAQ": faq.md
+        - "Contributing": contributing.md
+        - "Frontend integration": frontend-integration.md
+        - "Documentation maintenance": documentation.md
+        - "Security": SECURITY.md
+      - API Reference:
+        - "reference/index.md"
+        - Agents:
+          - "DefaultAgent": "reference/agents/default.md"
+          - "InteractiveAgent": "reference/agents/interactive.md"
+        - Models:
+          - "Overview": "reference/models/overview.md"
+          - "LitellmModel": "reference/models/litellm.md"
+          - "LitellmResponseModel": "reference/models/litellm_response.md"
+          - "OpenRouterModel": "reference/models/openrouter.md"
+          - "RequestyModel": "reference/models/requesty.md"
+          - "PortkeyModel": "reference/models/portkey.md"
+          - "PortkeyResponse": "reference/models/portkey_response.md"
+          - "DeterministicModel": "reference/models/test_models.md"
+          - "Extra Models": "reference/models/extra.md"
+          - "Model Utilities": "reference/models/utils.md"
+        - Environments:
+          - "LocalEnvironment": "reference/environments/local.md"
+          - "DockerEnvironment": "reference/environments/docker.md"
+          - "SingularityEnvironment": "reference/environments/singularity.md"
+          - "SwerexDockerEnvironment": "reference/environments/swerex_docker.md"
+          - "BubblewrapEnvironment": "reference/environments/bubblewrap.md"
+          - "ContreeEnvironment": "reference/environments/contree.md"
+          - "SwerexModalEnvironment": "reference/environments/swerex_modal.md"
+        - Run Scripts:
+          - "Hello World": "reference/run/hello_world.md"
+          - "vera": "reference/run/cli.md"
+          - "vera-extra": "reference/run/extra.md"
+          - "Config": "reference/run/config.md"
+          - "Inspector": "reference/run/inspector.md"
+          - "SWE-bench (batch)": "reference/run/swebench.md"
+          - "SWE-bench (single)": "reference/run/swebench_single.md"
+          - "ProgramBench": "reference/run/programbench.md"
+  - 简体中文:
+      - 开始使用:
+        - "概览": zh/index.md
+        - "快速开始": zh/quickstart.md
+        - "Windows 启动": zh/windows.md
+        - "命令行使用":
+          - "<code>vera</code>": zh/usage/cli.md
+          - "网页工具": zh/web-tools.md
+          - "MCP 工具": zh/mcp.md
+          - "Agent Skill": zh/skills.md
+          - "插件": zh/plugins.md
+          - "终端命令": zh/terminal.md
+          - "远程渠道": zh/channels.md
+          - "Subagent": zh/subagents.md
+          - "沙箱": zh/sandbox.md
+          - "运行存储": zh/storage.md
+          - "定时任务": zh/scheduler.md
+          - "市场与运行模式": zh/markets-and-modes.md
+          - "源码演化": zh/evolution.md
+          - "配置命令": zh/usage/config.md
+          - "SWE-bench": zh/usage/swebench.md
+          - "ProgramBench": zh/usage/programbench.md
+          - "轨迹查看器": zh/usage/inspector.md
+          - "输出文件": zh/usage/output_files.md
+        - "模型":
+          - "快速开始": zh/models/quickstart.md
+          - "本地模型": zh/models/local_models.md
+          - "排错": zh/models/troubleshooting.md
+        - "配置":
+          - "全局配置": zh/advanced/global_configuration.md
+          - "YAML 配置": zh/advanced/yaml_configuration.md
+        - "Python 与扩展":
+          - "Python 调用": zh/usage/python_bindings.md
+          - "控制流": zh/advanced/control_flow.md
+          - "状态观察": zh/agent-state.md
+          - "Hindsight 记忆": zh/hindsight-memory.md
+          - "组件扩展": zh/advanced/cookbook.md
+          - "执行环境": zh/advanced/environments.md
+          - "命名与兼容迁移": zh/advanced/v2_migration.md
+        - "常见问题": zh/faq.md
+        - "参与开发": zh/contributing.md
+        - "前端对接": zh/frontend-integration.md
+        - "文档维护": zh/documentation.md
+        - "安全": zh/SECURITY.md
+      - API 参考:
+        - "zh/reference/index.md"
+        - Agent:
+          - "DefaultAgent": "zh/reference/agents/default.md"
+          - "InteractiveAgent": "zh/reference/agents/interactive.md"
+        - 模型:
+          - "概览": "zh/reference/models/overview.md"
+          - "LitellmModel": "zh/reference/models/litellm.md"
+          - "LitellmResponseModel": "zh/reference/models/litellm_response.md"
+          - "OpenRouterModel": "zh/reference/models/openrouter.md"
+          - "RequestyModel": "zh/reference/models/requesty.md"
+          - "PortkeyModel": "zh/reference/models/portkey.md"
+          - "PortkeyResponse": "zh/reference/models/portkey_response.md"
+          - "DeterministicModel": "zh/reference/models/test_models.md"
+          - "Extra 模型": "zh/reference/models/extra.md"
+          - "Model Utilities": "zh/reference/models/utils.md"
+        - 执行环境:
+          - "LocalEnvironment": "zh/reference/environments/local.md"
+          - "DockerEnvironment": "zh/reference/environments/docker.md"
+          - "SingularityEnvironment": "zh/reference/environments/singularity.md"
+          - "SwerexDockerEnvironment": "zh/reference/environments/swerex_docker.md"
+          - "BubblewrapEnvironment": "zh/reference/environments/bubblewrap.md"
+          - "ContreeEnvironment": "zh/reference/environments/contree.md"
+          - "SwerexModalEnvironment": "zh/reference/environments/swerex_modal.md"
+        - 入口:
+          - "Hello World": "zh/reference/run/hello_world.md"
+          - "vera": "zh/reference/run/cli.md"
+          - "vera-extra": "zh/reference/run/extra.md"
+          - "配置命令": "zh/reference/run/config.md"
+          - "轨迹查看器": "zh/reference/run/inspector.md"
+          - "SWE-bench (batch)": "zh/reference/run/swebench.md"
+          - "SWE-bench (single)": "zh/reference/run/swebench_single.md"
+          - "ProgramBench": "zh/reference/run/programbench.md"
 plugins:
   - redirects:
       redirect_maps:
@@ -141,6 +219,8 @@ plugins:
   - glightbox
   - search
   - include-markdown
+  - autorefs:
+      resolve_closest: true
   - mike:
       canonical_version: latest
       version_selector: true
@@ -167,9 +247,9 @@ plugins:
               - "!^_"
               - "!^model_config"
               - "!^model_post_init"
-repo_url: https://github.com/SWE-agent/mini-SWE-agent
-repo_name: SWE-agent/mini-SWE-agent
-edit_uri: edit/main/docs/
+repo_url: https://github.com/zml-mis/Vera-Harness
+repo_name: zml-mis/Vera-Harness
+edit_uri: edit/dev/docs/
 extra_javascript:
   - assets/js/sh-annotation.js
   - assets/js/gif-controls.js
@@ -184,6 +264,3 @@ extra_css:
 extra:
   version:
     provider: mike
-  analytics:
-    provider: google
-    property: G-SG2NC1GDRD

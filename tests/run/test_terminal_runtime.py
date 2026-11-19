@@ -9,13 +9,13 @@ from threading import Thread
 import pytest
 import yaml
 
-from minisweagent.models.openrouter_model import OpenRouterModel
-from minisweagent.runtime import open_agent_runtime
-from minisweagent.storage import RunStore
-from minisweagent.terminal.session import TerminalSession
-from minisweagent.tools import ToolError
 from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_web_tools import FINISH_CALL, _model_response
+from vera.models.openrouter_model import OpenRouterModel
+from vera.runtime import open_agent_runtime
+from vera.storage import RunStore
+from vera.terminal.session import TerminalSession
+from vera.tools import ToolError
 
 
 class TerminalFixtureModel(OpenRouterModel):
@@ -176,7 +176,7 @@ def test_cli_expands_explicit_file_and_readonly_native_completion(tmp_path, term
     profile.write_text(yaml.safe_dump(config), encoding="utf-8")
     result = run_cli(
         tmp_path,
-        "minisweagent.run.mini",
+        "vera.run.cli",
         "-c",
         str(profile),
         "-t",
@@ -186,7 +186,7 @@ def test_cli_expands_explicit_file_and_readonly_native_completion(tmp_path, term
         str(tmp_path / "cli.sqlite3"),
         "-o",
         str(tmp_path / "run.json"),
-        MSWEA_TEST_MODEL_URL=terminal_model["url"],
+        VERA_TEST_MODEL_URL=terminal_model["url"],
         OPENROUTER_API_KEY="fixture",
     )
     assert "Saved trajectory" in result.stdout

@@ -13,16 +13,16 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 
-from minisweagent.agents.interactive import InteractiveAgent
-from minisweagent.environments.local import LocalEnvironment
-from minisweagent.exceptions import InterruptAgentFlow
-from minisweagent.models.openrouter_model import OpenRouterModel
-from minisweagent.terminal.files import MAX_FILE_BYTES
-from minisweagent.terminal.session import TerminalSession
-from minisweagent.terminal.ui import TerminalCompleter, bind_session, completion_context, read_task
-from minisweagent.tools import ToolError
 from tests.run.test_plugins import write_market, write_plugin
 from tests.run.test_skill_tools import write_skill
+from vera.agents.interactive import InteractiveAgent
+from vera.environments.local import LocalEnvironment
+from vera.exceptions import InterruptAgentFlow
+from vera.models.openrouter_model import OpenRouterModel
+from vera.terminal.files import MAX_FILE_BYTES
+from vera.terminal.session import TerminalSession
+from vera.terminal.ui import TerminalCompleter, bind_session, completion_context, read_task
+from vera.tools import ToolError
 
 
 @pytest.fixture
@@ -143,7 +143,7 @@ def test_commands_validate_atomically_and_keep_runtime_snapshots_independent(ses
 
 
 def test_enabled_plugin_selection_updates_skills_without_installing_or_mutating_global_state(tmp_path, session):
-    from minisweagent.plugins import PluginManager
+    from vera.plugins import PluginManager
 
     write_plugin(tmp_path / "market/plugins/review")
     write_market(tmp_path / "market", [{"name": "review-kit", "source": "./plugins/review"}])
@@ -180,7 +180,7 @@ def test_actual_prompt_input_completes_and_consumes_commands_before_task(session
         prompt = PromptSession(input=pipe, output=DummyOutput())
         pipe.send_text("/stop\n")
         assert read_task(session, prompt.prompt, messages.append) is None
-    from minisweagent.agents.utils.prompt_user import prompt_session
+    from vera.agents.utils.prompt_user import prompt_session
 
     original = prompt_session.completer
     with completion_context(session):

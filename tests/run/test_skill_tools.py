@@ -10,9 +10,9 @@ from threading import Thread
 
 import pytest
 
-from minisweagent.tools import ToolError, ToolRegistry
-from minisweagent.tools.skills import SkillConfig, discover_skills, register_skill_tools
 from tests.run.test_web_tools import FINISH_CALL, _model_response
+from vera.tools import ToolError, ToolRegistry
+from vera.tools.skills import SkillConfig, discover_skills, register_skill_tools
 
 
 def write_skill(root: Path, name: str, body: str) -> Path:
@@ -86,9 +86,9 @@ def run_cli(tmp_path, module, *arguments, **environment):
         cwd=tmp_path,
         env=os.environ
         | {
-            "MSWEA_CONFIGURED": "true",
-            "MSWEA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config"),
-            "MSWEA_SILENT_STARTUP": "1",
+            "VERA_CONFIGURED": "true",
+            "VERA_GLOBAL_CONFIG_DIR": str(tmp_path / "user-config"),
+            "VERA_SILENT_STARTUP": "1",
             "PYTHONIOENCODING": "utf-8",
             "PYTHONPATH": os.pathsep.join(filter(None, python_paths)),
         }
@@ -104,7 +104,7 @@ def test_offline_inspection_finds_project_and_external_skills(tmp_path):
     project_skill = write_skill(tmp_path / ".agents" / "skills", "review-work", "Main workflow body.")
     write_skill(tmp_path / "extra", "another-workflow", "External workflow body.")
     write_skill(tmp_path / "user-config" / "skills", "shared-workflow", "User workflow body.")
-    command = "minisweagent.run.utilities.mini_extra"
+    command = "vera.run.utilities.extra"
     listing = run_cli(tmp_path, command, "skills", "list", "-d", "extra").stdout
     assert "review-work\tWorkflow for review-work." in listing
     assert "another-workflow\tWorkflow for another-workflow." in listing
@@ -150,7 +150,7 @@ def test_agent_discovers_and_loads_workflow_with_selected_model(tmp_path, explic
         try:
             run_cli(
                 tmp_path,
-                "minisweagent",
+                "vera",
                 *explicit_skill,
                 "-t",
                 "Review changes",
@@ -162,7 +162,7 @@ def test_agent_discovers_and_loads_workflow_with_selected_model(tmp_path, explic
                 "--exit-immediately",
                 "-o",
                 str(trajectory),
-                MSWEA_TEST_MODEL_URL=f"http://127.0.0.1:{server.server_port}",
+                VERA_TEST_MODEL_URL=f"http://127.0.0.1:{server.server_port}",
             )
         finally:
             server.shutdown()

@@ -23,7 +23,7 @@ jobs:
       matrix:
         python-version: ['3.10', '3.12']
     env:
-      MSWEA_SILENT_STARTUP: '1'
+      VERA_SILENT_STARTUP: '1'
       PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@v7
