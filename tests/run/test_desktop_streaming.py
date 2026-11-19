@@ -22,7 +22,8 @@ def streaming_desktop(tmp_path, request):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             assert body["stream"] is True
             if self.path.endswith("/responses"):
-                return self.send_responses_stream()
+                self.send_responses_stream()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.end_headers()

@@ -248,7 +248,35 @@ class Sessions:
                 frame = json.loads(line)
                 with self.lock:
                     value = self.get(key)
-                    if frame["type"] == "stream_start":
+                    if frame.get("parentToolCallId") and frame["type"] in {"stream_start", "stream_delta"}:
+                        self.emit(
+                            key,
+                            {
+                                "type": "tool_execution_update",
+                                "toolCallId": frame["parentToolCallId"],
+                                "toolName": "subagent_run",
+                                "args": {},
+                                "partialResult": {"childUpdate": frame.get("update")},
+                            },
+                        )
+                        continue
+                    if frame["type"] == "tools_ready":
+                        configured = self.store.get("settings", "mcp", {})
+                        from vera.tools.mcp import mcp_tool_name
+
+                        statuses = [
+                            {
+                                "name": name,
+                                "tools": [
+                                    {"name": tool}
+                                    for tool in frame["names"]
+                                    if tool.startswith(mcp_tool_name(name, ""))
+                                ],
+                            }
+                            for name in configured
+                        ]
+                        self.events.emit("onMcpServersChanged", {"servers": statuses})
+                    elif frame["type"] == "stream_start":
                         if pending_message:
                             self.emit(key, {"type": "turn_end", "message": pending_message, "toolResults": []})
                             pending_message = None

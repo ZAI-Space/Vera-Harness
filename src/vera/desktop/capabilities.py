@@ -163,22 +163,33 @@ class Capabilities:
                 value["subagentPreferBuiltin"] = args["preferBuiltin"]
             elif method in {"setSubagentModel", "setSubagentThinking"}:
                 field = "subagentModels" if method == "setSubagentModel" else "subagentThinking"
-                value.setdefault(field, {})[args["agent"]] = args.get("modelRef", args.get("level"))
+                selected = args.get("modelRef", args.get("level"))
+                if selected is None:
+                    value.setdefault(field, {}).pop(args["agent"], None)
+                else:
+                    value.setdefault(field, {})[args["agent"]] = selected
             else:
-                hidden = value["hiddenModels"].setdefault(args["provider"], [])
+                provider = args["provider"]
+                providers_hidden = set(value.get("hiddenProviders", []))
                 ids = args.get("modelIds", [args["modelId"]] if "modelId" in args else [])
                 if method == "setProviderModelsHidden":
-                    ids = [
-                        model["id"]
-                        for provider in providers.list()
-                        if provider["id"] == args["provider"]
-                        for model in provider["models"]
-                    ]
-                for model in ids:
-                    if args["hidden"] and model not in hidden:
-                        hidden.append(model)
-                    elif not args["hidden"] and model in hidden:
-                        hidden.remove(model)
+                    providers_hidden.add(provider) if args["hidden"] else providers_hidden.discard(provider)
+                    value["hiddenModels"].pop(provider, None)
+                    value.setdefault("visibleModels", {}).pop(provider, None)
+                    value["hiddenProviders"] = sorted(providers_hidden)
+                else:
+                    default_hidden = provider in providers_hidden
+                    mapping = value.setdefault("visibleModels", {}) if default_hidden else value["hiddenModels"]
+                    selected = set(mapping.get(provider, []))
+                    for model in ids:
+                        selected.add(model) if args["hidden"] != default_hidden else selected.discard(model)
+                    if selected:
+                        mapping[provider] = sorted(selected)
+                    else:
+                        mapping.pop(provider, None)
+                for optional in ("hiddenProviders", "visibleModels"):
+                    if not value.get(optional):
+                        value.pop(optional, None)
             self.store.save("settings", "modelPrefs", value)
             return value
         if method == "getBehaviorSettings":

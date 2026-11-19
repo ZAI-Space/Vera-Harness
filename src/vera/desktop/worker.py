@@ -2,12 +2,13 @@
 
 import json
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 from uuid import uuid4
 
 from vera.agents.hindsight import HindsightInteractiveAgent
 from vera.agents.stateful import StatefulInteractiveAgent
-from vera.desktop.protocol import send
+from vera.desktop.protocol import delegated_output, send
 from vera.exceptions import LimitsExceeded, Submitted, UserInterruption
 from vera.models.utils.content_string import get_content_string
 
@@ -112,7 +113,8 @@ class DesktopAgent(StatefulInteractiveAgent):
         arguments = action.get("arguments", {"command": action.get("command", "")})
         send("tool_start", toolCallId=call_id, toolName=name, args=arguments)
         try:
-            result = super()._execute_action(action)
+            with delegated_output(call_id) if name == "subagent_run" else nullcontext():
+                result = super()._execute_action(action)
         except BaseException:
             send("tool_end", toolCallId=call_id, toolName=name, result={"output": "Operation interrupted or finished."})
             raise
@@ -157,6 +159,8 @@ def main() -> None:
             selected["agent"]["cost_limit"] = min(selected["agent"].get("cost_limit", 1), remaining["cost"])
             selected["agent"]["wall_time_limit_seconds"] = max(1, int(remaining["seconds"]))
         with open_agent_runtime(selected) as runtime:
+            if registry := runtime.agent.tool_registry:
+                send("tools_ready", names=[tool["function"]["name"] for tool in registry.definitions()])
             runtime.agent.prior_messages = history
             store = RunStore(Path(request["database"]))
             with store.track(runtime.agent, workspace=runtime.workspace, runtime_policy=runtime.policy):
