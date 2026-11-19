@@ -38,5 +38,6 @@ The backend keeps a live display projection for reconnect. If stopped, received 
 - `tests/run/test_desktop_streaming.py`: a local HTTP SSE peer pauses before completion; the backend must already expose text and reasoning, then retain final tools/usage. A second test aborts before completion.
 - `desktop/src/contracts/transcript/harness.integration.test.ts`: a real Python worker executes Bash; TypeScript consumes its event trace and checks reasoning, answer, tool completion and idle state.
 - Electron manual integration: task submission, waiting state, response body, reasoning disclosure, approval and actual Bash output observed in the desktop.
+- Live DeepSeek acceptance on 2026-11-19: the desktop service and actual worker streamed 42 text deltas, completed two tool calls, wrote the expected project file and settled with `Submitted`. Reported cost was USD 0.00029409. This run exercised the production task configuration through the service; the Electron interaction above used a controlled local peer.
 
-These tests establish protocol/UI behavior with controlled local peers. They do not establish every external provider's reasoning format, paid-model quality or long-duration stability. Unsupported or unavailable provider reasoning must remain absent.
+The controlled peers establish protocol/UI behavior; the live run additionally verifies one external model's service/worker path. They do not establish every external provider's reasoning format, model quality or long-duration stability. Unsupported or unavailable provider reasoning must remain absent.

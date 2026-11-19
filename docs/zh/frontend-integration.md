@@ -61,4 +61,4 @@ OAuth 账号订阅、SSH、局域网远程控制、PI 扩展、codemode/deferred
 
 ## 验证
 
-仓库包含真实 HTTP/进程、SSE 流式、审批、中止、持久化与调度适配测试。TypeScript 集成测试消费实际 Python worker 产生的事件，核对最终展示投影。Electron 联调另行检查实际正文、工具审批、Bash 输出和思考折叠。当前这些验证使用本机协议测试服务，不消耗付费模型额度；外部服务商与市场可达性仍需相应凭据及网络验收。
+仓库包含真实 HTTP/进程、SSE 流式、审批、中止、持久化与调度适配测试。TypeScript 集成测试消费实际 Python worker 产生的事件，核对最终展示投影。Electron 联调使用本机协议测试服务，另行检查实际正文、工具审批、Bash 输出和思考折叠。另一次真实 DeepSeek 运行通过桌面服务与 worker 完成流式输出、工具执行和文件创建，并以 `Submitted` 结束，见[流式验证证据](desktop-streaming.md#验证证据)。其他服务商与市场可达性仍需相应凭据及网络验收。
