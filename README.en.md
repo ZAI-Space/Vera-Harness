@@ -36,7 +36,7 @@ VERA is a modular agent harness. Terminal, channel and scheduled tasks share a P
 Python 3.10+ is required. Windows local execution uses Git Bash; Linux uses Bash. Install from this source repository:
 
 ```bash
-git clone https://github.com/zml-mis/Vera-Harness.git
+git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```

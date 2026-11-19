@@ -36,7 +36,7 @@ VERA 是模块化的 Agent Harness。终端、渠道与定时任务复用同一�
 需要 Python 3.10+；Windows 本地执行使用 Git Bash，Linux 使用 Bash。先从源码安装：
 
 ```bash
-git clone https://github.com/zml-mis/Vera-Harness.git
+git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```
