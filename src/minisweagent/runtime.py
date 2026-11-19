@@ -14,6 +14,7 @@ from minisweagent.environments.sandbox_profiles import resolve_sandbox_profile
 from minisweagent.models import get_model
 from minisweagent.permissions import PermissionsConfig, ReadOnlyEnvironment, register_readonly_finish
 from minisweagent.plugins import load_plugins
+from minisweagent.scheduler.tools import SchedulerSettings, register_scheduler_tools
 from minisweagent.tools import ToolError, make_tool_registry
 from minisweagent.tools.mcp import open_mcp_tools, parse_mcp_servers
 from minisweagent.tools.skills import Skill, SkillConfig, discover_skills, register_skill_tools
@@ -43,6 +44,7 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
     config = resolve_sandbox_profile(config, Path(workspace) if workspace else None)
     plugins = load_plugins(config)
     config = plugins.config
+    scheduled = SchedulerSettings.model_validate(config.get("scheduler", {}))
     permissions = PermissionsConfig.model_validate(config.get("permissions", {}))
     readonly = permissions.mode == "read-only"
     if permissions.mode == "confirm":
@@ -101,7 +103,7 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
             and getattr(model, "supports_tool_registry", True)
         )
         registry = None
-        if has_web_tools or servers or has_skill_tools or subagents.roles or readonly:
+        if has_web_tools or servers or has_skill_tools or subagents.roles or readonly or scheduled.enabled:
             registry = make_tool_registry(env)
             configure_web_tools(registry, web)
             stack.enter_context(open_mcp_tools(registry, servers))
@@ -117,6 +119,8 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
                     [tool["function"]["name"] for tool in registry.definitions() if tool["function"]["name"] != "bash"]
                 )
                 register_readonly_finish(registry)
+            if scheduled.enabled and not readonly:
+                register_scheduler_tools(registry, scheduled, config, workspace, set(catalog))
         agent = get_agent(model, env, config.get("agent", {}), default_type=default_type, tool_registry=registry)
         if subagents.roles:
             register_subagent_tools(registry, agent, subagents, model_config, catalog)
@@ -127,4 +131,8 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
             policy = json.dumps({"sandbox": policy, "mcp_selection": sorted(config["mcp_selection"])}, sort_keys=True)
         if plugins.versions:
             policy = json.dumps({"sandbox": policy, "plugins": plugins.versions}, sort_keys=True)
+        if scheduled.enabled and not readonly:
+            policy = json.dumps(
+                {"runtime": policy, "scheduler": str(scheduled.directory.expanduser().resolve())}, sort_keys=True
+            )
         yield AgentRuntime(agent, catalog, workspace.expanduser(), policy, plugins.versions, mode)

@@ -96,10 +96,31 @@ def _kill_tree(pid: int) -> None:
     if os.name == "nt":
         subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, timeout=15)
     else:
+        # Bash/MCP commands may create their own sessions. Capture descendants
+        # before killing the owner, while /proc still preserves their ancestry.
+        processes = {}
+        for path in Path("/proc").glob("[0-9]*/stat"):
+            try:
+                fields = path.read_text().rsplit(")", 1)[1].split()
+                processes[int(path.parent.name)] = (int(fields[1]), fields[19])
+            except (FileNotFoundError, PermissionError, ProcessLookupError):
+                continue
+        descendants = []
+        parents = {pid}
+        while parents:
+            children = {child for child, (parent, _) in processes.items() if parent in parents and child not in parents}
+            descendants.extend((child, processes[child][1]) for child in children)
+            parents = children
         try:
             os.killpg(pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        for child, stamp in reversed(descendants):
+            try:
+                if _process_stamp(child) == stamp:
+                    os.kill(child, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
 
 
 def recover_processes(root: Path) -> None:

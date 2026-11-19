@@ -16,6 +16,7 @@ subcommands = [
     ("minisweagent.run.utilities.skills", ["skills"], "List and inspect local Agent Skills"),
     ("minisweagent.run.utilities.plugins", ["plugins"], "Install plugins from GitHub and plugin marketplaces"),
     ("minisweagent.run.utilities.sandboxes", ["sandboxes"], "Manage user-configured sandbox environments"),
+    ("minisweagent.run.utilities.cron", ["cron"], "Manage scheduled tasks and the scheduler service"),
     ("minisweagent.run.utilities.channels", ["channels"], "Connect Weixin and Feishu to the agent runtime"),
     ("minisweagent.run.utilities.runs", ["runs"], "Inspect and cancel recorded agent runs"),
     ("minisweagent.run.utilities.evolution", ["evolution"], "Evaluate and evolve versioned Vera source"),
