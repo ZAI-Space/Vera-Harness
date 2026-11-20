@@ -191,7 +191,7 @@ def start_service(directory: Path = DEFAULT_DIRECTORY, *, workers: int = 2) -> d
             stdout=log,
             stderr=log,
             start_new_session=os.name != "nt",
-            creationflags=(subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP) if os.name == "nt" else 0,
+            creationflags=(subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP) if os.name == "nt" else 0,
         )
     for _ in range(100):
         status = service_status(directory)

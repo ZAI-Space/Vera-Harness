@@ -8,6 +8,7 @@ from pathlib import Path
 
 from vera.evolution.config import EvolutionError
 from vera.evolution.repository import git
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 _DOCKERFILE = """FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -37,7 +38,8 @@ def prepare_image(source: Path, image: str) -> str:
             "LICENSE.md",
             "THIRD_PARTY_NOTICES.md",
             "src",
-        ]
+        ],
+        creationflags=BACKGROUND_CREATION_FLAGS,
     )
     with tempfile.TemporaryDirectory(prefix="vera-evolution-image-") as temporary:
         context = Path(temporary)
@@ -52,5 +54,9 @@ def prepare_image(source: Path, image: str) -> str:
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     destination.write_bytes(package.extractfile(member).read())
         (context / "Dockerfile").write_text(_DOCKERFILE, encoding="utf-8")
-        subprocess.run(["docker", "build", "--tag", image, str(context)], check=True)
-    return subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}", image], text=True).strip()
+        subprocess.run(
+            ["docker", "build", "--tag", image, str(context)], check=True, creationflags=BACKGROUND_CREATION_FLAGS
+        )
+    return subprocess.check_output(
+        ["docker", "image", "inspect", "--format", "{{.Id}}", image], text=True, creationflags=BACKGROUND_CREATION_FLAGS
+    ).strip()

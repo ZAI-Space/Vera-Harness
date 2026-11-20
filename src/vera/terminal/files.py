@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from vera.tools import ToolError
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 _EXCLUDED = {".git", ".venv", "venv", "node_modules", "__pycache__", "dist", "build", ".cache", ".pytest_cache"}
 _SENSITIVE = (
@@ -86,6 +87,7 @@ class ProjectFiles:
                 ],
                 capture_output=True,
                 timeout=5,
+                creationflags=BACKGROUND_CREATION_FLAGS,
             )
         except (OSError, subprocess.TimeoutExpired):
             result = None

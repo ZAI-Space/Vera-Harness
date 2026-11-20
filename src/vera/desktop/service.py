@@ -13,6 +13,7 @@ from vera.desktop.providers import Providers
 from vera.desktop.sessions import Sessions
 from vera.desktop.store import DesktopStore
 from vera.terminal.files import ProjectFiles
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 
 class DesktopService:
@@ -317,16 +318,27 @@ class DesktopService:
                 branch = args["branch"]
                 if not branch or branch.startswith("-"):
                     raise ValueError("Invalid branch.")
-                subprocess.run(["git", "-C", workspace, "switch", "--", branch], check=True, capture_output=True)
+                subprocess.run(
+                    ["git", "-C", workspace, "switch", "--", branch],
+                    check=True,
+                    capture_output=True,
+                    creationflags=BACKGROUND_CREATION_FLAGS,
+                )
                 return None
             result = subprocess.run(
-                ["git", "-C", workspace, "branch", "--show-current"], capture_output=True, text=True
+                ["git", "-C", workspace, "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                creationflags=BACKGROUND_CREATION_FLAGS,
             )
             current = result.stdout.strip() or None
             if method == "getGitBranch":
                 return current
             branches = subprocess.run(
-                ["git", "-C", workspace, "branch", "--format=%(refname:short)"], capture_output=True, text=True
+                ["git", "-C", workspace, "branch", "--format=%(refname:short)"],
+                capture_output=True,
+                text=True,
+                creationflags=BACKGROUND_CREATION_FLAGS,
             )
             return {"current": current, "branches": branches.stdout.splitlines()}
         if method == "getChannelSubscriptionSessionIds":

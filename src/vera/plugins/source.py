@@ -12,6 +12,8 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
 
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
+
 
 class PluginError(ValueError):
     """An invalid package, unavailable source or failed plugin management operation."""
@@ -99,6 +101,7 @@ def _git(directory: Path, *arguments: str) -> str:
             encoding="utf-8",
             errors="replace",
             timeout=120,
+            creationflags=BACKGROUND_CREATION_FLAGS,
         )
     except subprocess.TimeoutExpired:
         raise PluginError("Git operation timed out after 120 seconds.") from None

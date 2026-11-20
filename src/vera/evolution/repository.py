@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from vera.evolution.config import EvolutionConfig, EvolutionError
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 
 def git(directory: Path, *arguments: str) -> str:
@@ -15,6 +16,7 @@ def git(directory: Path, *arguments: str) -> str:
         encoding="utf-8",
         stderr=subprocess.PIPE,
         env=os.environ | {"GIT_TERMINAL_PROMPT": "0"},
+        creationflags=BACKGROUND_CREATION_FLAGS,
     )
 
 
@@ -23,6 +25,7 @@ def source_patch(archive: Path, baseline: str, candidate: str) -> bytes:
     return subprocess.check_output(
         ["git", "-C", str(archive), "diff", "--binary", "--no-ext-diff", "--no-textconv", baseline, candidate],
         stderr=subprocess.PIPE,
+        creationflags=BACKGROUND_CREATION_FLAGS,
     )
 
 
@@ -45,6 +48,7 @@ def create_archive(source: Path, root: Path) -> str:
             str(root / "archive"),
         ],
         check=True,
+        creationflags=BACKGROUND_CREATION_FLAGS,
         capture_output=True,
     )
     archive = root / "archive"

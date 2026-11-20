@@ -19,6 +19,7 @@ from vera.environments import get_environment
 from vera.environments.docker import DockerEnvironment
 from vera.environments.extra.bubblewrap import BubblewrapEnvironment
 from vera.tools import ToolError
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 _WORKDIR = "/workspace"
 
@@ -66,7 +67,15 @@ class SandboxCleanupError(RuntimeError):
 
 def _probe(command: list[str]) -> str | None:
     try:
-        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5)
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            creationflags=BACKGROUND_CREATION_FLAGS,
+        )
         return result.stdout.strip() if result.returncode == 0 else None
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -222,6 +231,7 @@ class _WorkspaceDocker(DockerEnvironment):
                 encoding="utf-8",
                 errors="replace",
                 timeout=20,
+                creationflags=BACKGROUND_CREATION_FLAGS,
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             raise SandboxCleanupError(f"Unable to confirm removal of sandbox container {container}.") from error

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from vera.environments.sandbox import SandboxConfig, _bubblewrap, _bubblewrap_args, _docker, _docker_mount
 from vera.evolution.config import EvolutionConfig, EvolutionError
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 
 def select_runtime(config: EvolutionConfig) -> dict:
@@ -25,6 +26,7 @@ def select_runtime(config: EvolutionConfig) -> dict:
         image = subprocess.check_output(
             [executable, "image", "inspect", "--format", "{{.Id}}", config.docker_image],
             text=True,
+            creationflags=BACKGROUND_CREATION_FLAGS,
         ).strip()
         return {"mode": "docker", "executable": executable, "user": user, "image": image}
     raise EvolutionError(
@@ -36,10 +38,15 @@ def select_runtime(config: EvolutionConfig) -> dict:
 def stop_container(runtime: dict, name: str) -> None:
     """Remove only the experiment-owned container, checking that cleanup succeeded."""
     executable = runtime["executable"]
-    removed = subprocess.run([executable, "rm", "--force", name], capture_output=True, timeout=30)
+    removed = subprocess.run(
+        [executable, "rm", "--force", name], capture_output=True, timeout=30, creationflags=BACKGROUND_CREATION_FLAGS
+    )
     if removed.returncode:
         listed = subprocess.check_output(
-            [executable, "ps", "-aq", "--filter", f"name=^/{name}$"], text=True, timeout=15
+            [executable, "ps", "-aq", "--filter", f"name=^/{name}$"],
+            text=True,
+            timeout=15,
+            creationflags=BACKGROUND_CREATION_FLAGS,
         )
         if listed.strip():
             raise EvolutionError(f"Could not remove optimizer container {name}.")

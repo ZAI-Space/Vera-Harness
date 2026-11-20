@@ -18,6 +18,7 @@ from vera.evolution.config import BudgetError, EvaluationError, EvolutionConfig,
 from vera.evolution.process import experiment_lock, read_json, recover_processes, run_process, write_json
 from vera.evolution.repository import checkout, commit_candidate, create_archive
 from vera.evolution.runtime import optimizer_command, select_runtime, stop_container
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 
 _TERMINAL = {"accepted", "rejected", "failed", "interrupted"}
 
@@ -46,6 +47,7 @@ def _dependencies() -> str:
         ],
         text=True,
         encoding="utf-8",
+        creationflags=BACKGROUND_CREATION_FLAGS,
     ).strip()
 
 

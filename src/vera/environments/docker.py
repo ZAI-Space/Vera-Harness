@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from vera.exceptions import Submitted
+from vera.utils.process import BACKGROUND_CREATION_FLAGS
 from vera.utils.serialize import recursive_merge
 
 
@@ -94,6 +95,7 @@ class DockerEnvironment:
             text=True,
             timeout=self.config.pull_timeout,  # docker pull might take a while
             check=True,
+            creationflags=BACKGROUND_CREATION_FLAGS,
         )
         self.logger.info(f"Started container {container_name} with ID {result.stdout.strip()}")
         self.container_id = result.stdout.strip()
@@ -121,6 +123,7 @@ class DockerEnvironment:
                 errors="replace",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                creationflags=BACKGROUND_CREATION_FLAGS,
             )
             output = {"output": result.stdout, "returncode": result.returncode, "exception_info": ""}
         except Exception as e:
@@ -154,7 +157,7 @@ class DockerEnvironment:
         """Stop and remove the Docker container."""
         if getattr(self, "container_id", None) is not None:  # if init fails early, container_id might not be set
             cmd = f"(timeout 60 {self.config.executable} stop {self.container_id} || {self.config.executable} rm -f {self.container_id}) >/dev/null 2>&1 &"
-            subprocess.Popen(cmd, shell=True)
+            subprocess.Popen(cmd, shell=True, creationflags=BACKGROUND_CREATION_FLAGS)
 
     def __del__(self):
         """Cleanup container when object is destroyed."""
