@@ -2,6 +2,6 @@
 *.sh text eol=lf
 *.cmd text eol=crlf
 # Keep desktop sources stable across Windows and Linux checks.
-desktop/** text eol=lf
+desktop/** text=auto eol=lf
 scripts/start-desktop.ps1 text eol=lf
 scripts/start-desktop.sh text eol=lf

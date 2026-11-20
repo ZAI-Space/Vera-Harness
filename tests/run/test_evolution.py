@@ -18,8 +18,9 @@ import pytest
 from vera.evolution.config import EvolutionConfig, EvolutionError
 from vera.evolution.engine import Experiment
 from vera.evolution.process import _process_stamp, experiment_lock, read_json, run_process, write_json
-from vera.evolution.repository import checkout, commit_candidate, git
+from vera.evolution.repository import checkout, commit_candidate, create_archive, git
 from vera.evolution.runtime import select_runtime
+from vera.plugins.source import filesystem_path
 
 CLI = "vera.run.utilities.evolution"
 
@@ -41,6 +42,22 @@ def source_repo(tmp_path):
     git(source, "add", "src/vera/evolution_example.py", ".gitattributes")
     git(source, "commit", "-m", "test(evolution): create baseline problem")
     return source
+
+
+def test_archive_preserves_binary_assets_in_deep_workspaces(source_repo, tmp_path):
+    """A clean source stays clean and binary assets survive real Git checkouts."""
+    # Keep archive metadata short enough for Git while tracked files exceed MAX_PATH.
+    root = tmp_path / ("long-path-" * max(1, (160 - len(str(tmp_path))) // 10))
+    root.mkdir()
+    baseline = create_archive(source_repo, root)
+    workspace = checkout(root, "generation-0001-improvement", baseline)
+    asset = Path("desktop/src/renderer/src/assets/splash/vera-logo.png")
+    source_file = Path("desktop/src/renderer/src/components/settings/providers/upstream-models-loader.test.ts")
+    assert len(str(workspace / source_file)) > 260
+    assert filesystem_path(workspace / source_file).read_bytes() == (source_repo / source_file).read_bytes()
+    assert (workspace / asset).read_bytes() == (source_repo / asset).read_bytes()
+    assert not git(workspace, "status", "--porcelain").strip()
+    assert not git(source_repo, "status", "--porcelain").strip()
 
 
 def _config(*commands, **changes):

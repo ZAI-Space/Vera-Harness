@@ -32,7 +32,18 @@ def create_archive(source: Path, root: Path) -> str:
         raise EvolutionError("Commit the source baseline before creating an experiment.")
     commit = git(source, "rev-parse", "HEAD").strip()
     subprocess.run(
-        ["git", "clone", "--no-hardlinks", "--no-local", str(source), str(root / "archive")],
+        # This experiment-owned setting also applies to later worktree checkouts
+        # on Windows, where desktop source paths can exceed Git's default limit.
+        [
+            "git",
+            "clone",
+            "--config",
+            "core.longpaths=true",
+            "--no-hardlinks",
+            "--no-local",
+            str(source),
+            str(root / "archive"),
+        ],
         check=True,
         capture_output=True,
     )
