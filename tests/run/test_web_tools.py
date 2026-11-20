@@ -116,6 +116,30 @@ def test_model_declares_routes_and_receives_web_tools(web_service, model_class, 
     assert "fake-provider-key" not in serialized
 
 
+def test_human_mode_keeps_tools_when_switching_to_yolo(web_service):
+    """A real model keeps registered tools across the existing permission switch."""
+    base_url, calls = web_service
+    model = OpenRouterModel(model_name="fixture")
+    model._api_url = base_url + "/search-only"
+    environment = LocalEnvironment()
+    registry = make_tool_registry(environment)
+    register_web_tools(registry, search=searxng_provider(base_url))
+    agent = InteractiveAgent(
+        model,
+        environment,
+        tool_registry=registry,
+        mode="human",
+        confirm_exit=False,
+        system_template="Use tools.",
+        instance_template="{{task}}",
+        step_limit=3,
+    )
+    agent.config.mode = "yolo"
+    assert agent.run("Search after switching modes")["exit_status"] == "Submitted"
+    assert [path for path, _ in calls] == ["/search-only", "/search", "/search-only"]
+    assert [tool["function"]["name"] for tool in calls[0][1]["tools"]] == ["bash", "web_search"]
+
+
 def test_search_and_extract_adapters_validate_before_request(web_service):
     base_url, calls = web_service
     registry = make_tool_registry(LocalEnvironment())

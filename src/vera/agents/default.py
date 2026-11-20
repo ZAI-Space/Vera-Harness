@@ -55,14 +55,14 @@ class DefaultAgent:
         self.model = model
         self.env = env
         self.tool_registry = tool_registry
-        # Human mode dispatches the user-entered command directly. It still needs
-        # the registry for execution, but the deterministic/manual adapter never
-        # receives a model query and therefore does not need tool declarations.
-        if tool_registry is not None and getattr(self.config, "mode", None) != "human":
+        # Bind capable models even in human mode so later mode switches keep
+        # their tools. A manual adapter needs no model-facing declarations.
+        if tool_registry is not None:
             bind = getattr(model, "bind_tool_registry", None)
-            if not callable(bind):
+            if callable(bind):
+                bind(tool_registry)
+            elif getattr(self.config, "mode", None) != "human":
                 raise ToolError("This model adapter does not support registered tools.")
-            bind(tool_registry)
         self.extra_template_vars = {}
         self.logger = logging.getLogger("agent")
         self.cost = 0.0
