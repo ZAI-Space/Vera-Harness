@@ -1,0 +1,30 @@
+# The inherited PyPI project belongs to upstream. Produce reviewable artifacts
+# until Vera has its own explicitly configured package publishing destination.
+name: Release artifacts
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release artifacts
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-packages
+          path: dist/*

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: vera-bg:; font-src 'self' data:; media-src 'self' data:"
+    />
+    <link rel="icon" type="image/png" href="/src/assets/splash/vera-logo.png" />
+    <title>VERA</title>
+    <!-- 开屏动画（三圈彩球旋转 → 内聚吸收 → 彩色散场）：样式首帧前就绪；
+         DOM 由 splash-dom.ts 同步生成，真实就绪后由 splash.ts 触发收场。 -->
+    <link rel="stylesheet" href="/src/styles/splash.css" />
+    <link rel="preload" as="image" href="/src/assets/splash/vera-logo.png" />
+    <link rel="preload" as="image" href="/src/assets/splash/dot-light.png" />
+    <link rel="preload" as="image" href="/src/assets/splash/wave-light.png" />
+    <link rel="preload" as="image" href="/src/assets/splash/wave-dark.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/bootstrap-theme.ts"></script>
+    <script type="module" src="/src/splash-dom.ts"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+name: Documentation
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install documentation dependencies
+        run: python -m pip install -e '.[full,channels]'
+      - name: Build documentation strictly without deploying
+        run: |
+          python scripts/check_docs.py
+          python -m mkdocs build --strict

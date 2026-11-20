@@ -1,0 +1,19 @@
+[English](../../usage/programbench.md) · [简体中文](programbench.md)
+
+# ProgramBench
+
+ProgramBench 使用独立数据集、实例初始化和程序评测流程，需要实际安装可选依赖、评测器和可用执行后端。CLI 存在不表示这些前提已经具备。
+
+按 --help 选择数据、划分/切片、模型、worker、配置和输出；用有限题集开始，保存全部实例清单、产物和预测，再由对应外部评测器评分。重用输出目录前核查已有结果，失败/遗漏/未评分题不能从结果说明中消失。镜像和账号、模型费用与运行限制要单独记录，不引用其他系统成绩代替。
+
+## 配置、命令与源码示例
+
+示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
+
+```bash
+vera-extra programbench --help
+```
+
+## API 参考
+
+::: vera.run.benchmarks.programbench
