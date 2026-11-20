@@ -45,23 +45,32 @@ class ChannelStore:
     def __init__(self, directory: Path):
         self.directory = private_directory(directory)
         self.path = directory / "channels.sqlite3"
-        with self.connect() as db:
+        with self.connect(write=False) as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
-                for statement in _SCHEMA:
-                    db.execute(statement)
-                db.execute("PRAGMA user_version = 1")
-            elif version != 1:
-                raise ChannelError("Unsupported channel database schema.")
+        if version == 0:
+            with self.connect() as db:
+                # Another process may have initialized the journal while we waited for the writer lock.
+                version = db.execute("PRAGMA user_version").fetchone()[0]
+                if version == 0:
+                    for statement in _SCHEMA:
+                        db.execute(statement)
+                    db.execute("PRAGMA user_version = 1")
+                    version = 1
+        if version != 1:
+            raise ChannelError("Unsupported channel database schema.")
         if os.name != "nt":
             self.path.chmod(0o600)
 
     @contextmanager
-    def connect(self):
-        """Serialize short journal transactions; no network calls occur under this lock."""
+    def connect(self, *, write: bool = True):
+        """Commit or roll back a short transaction; reads do not reserve the writer lock.
+
+        The default serializes writes. Pass ``write=False`` for a committed read snapshot.
+        SQLite errors propagate; callers must not perform network calls inside a transaction.
+        """
         with closing(sqlite3.connect(self.path, timeout=5)) as db, db:
             db.row_factory = sqlite3.Row
-            db.execute("BEGIN IMMEDIATE")
+            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             yield db
 
     def _reply(self, db, message: InboundMessage, text: str, label: str) -> None:
@@ -145,7 +154,7 @@ class ChannelStore:
 
     def cursor(self, account: str) -> str:
         """Return the last committed Weixin cursor."""
-        with self.connect() as db:
+        with self.connect(write=False) as db:
             row = db.execute("SELECT value FROM cursors WHERE account = ?", (account,)).fetchone()
             return row[0] if row else ""
 
@@ -161,7 +170,7 @@ class ChannelStore:
 
     def get(self, key: str) -> dict:
         """Read a task for the worker/supervisor; IDs are internal hashes, never chat-supplied run IDs."""
-        with self.connect() as db:
+        with self.connect(write=False) as db:
             row = db.execute("SELECT * FROM messages WHERE id = ?", (key,)).fetchone()
             if row is None:
                 raise ChannelError("Unknown channel message.")
@@ -170,7 +179,7 @@ class ChannelStore:
     def history(self, key: str) -> str:
         """Bound prior completed turns to this session and epoch; omit tool transcripts and secrets."""
         row = self.get(key)
-        with self.connect() as db:
+        with self.connect(write=False) as db:
             previous = db.execute(
                 "SELECT payload, result FROM messages WHERE session = ? AND epoch = ? AND status = 'completed' AND rowid < (SELECT rowid FROM messages WHERE id = ?) ORDER BY rowid DESC LIMIT 6",
                 (row["session"], row["epoch"], key),
@@ -239,7 +248,7 @@ class ChannelStore:
 
     def status(self) -> dict:
         """Return safe local operational counts without message text, tokens or user IDs."""
-        with self.connect() as db:
+        with self.connect(write=False) as db:
             return {
                 "tasks": dict(db.execute("SELECT status, COUNT(*) FROM messages GROUP BY status").fetchall()),
                 "replies": dict(db.execute("SELECT status, COUNT(*) FROM outbox GROUP BY status").fetchall()),

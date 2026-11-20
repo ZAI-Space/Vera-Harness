@@ -4,7 +4,9 @@ import os
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 
 import pytest
 import yaml
@@ -93,6 +95,38 @@ def test_journal_dedupe_commands_history_cancel_and_uncertain_delivery(tmp_path)
         with pytest.raises(ChannelError, match="Another"):
             with gateway_lock(tmp_path):
                 pytest.fail("Only one controller may own a store.")
+
+
+def test_journal_reads_do_not_compete_with_pending_writes(tmp_path):
+    """Status polling must read committed state while a worker holds a write transaction."""
+    store = ChannelStore(tmp_path)
+    message = normalize_message("wechat", weixin_message(1))
+    store.accept([message], account="wechat", cursor="committed-cursor")
+    store.claim()
+    with store.connect() as writer:
+        writer.execute("UPDATE messages SET progress = 'pending' WHERE id = ?", (message.key,))
+        reader = ChannelStore(tmp_path)
+        assert reader.status()["tasks"] == {"running": 1}
+        assert reader.get(message.key)["progress"] == ""
+        assert reader.cursor("wechat") == "committed-cursor"
+        assert reader.history(message.key) == "[]"
+    assert reader.get(message.key)["progress"] == "pending"
+
+
+def test_journal_concurrent_initializers_preserve_deduplication(tmp_path):
+    """Concurrent first connections must share one schema and persist each event once."""
+    ready = Barrier(4)
+    message = normalize_message("wechat", weixin_message(1))
+
+    def initialize_and_accept():
+        ready.wait(timeout=10)
+        store = ChannelStore(tmp_path)
+        store.accept([message])
+        return store.status()["tasks"]
+
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        results = [future.result(timeout=15) for future in [workers.submit(initialize_and_accept) for _ in range(4)]]
+    assert results == [{"queued": 1}] * 4
 
 
 def test_delivery_uncertainty_and_revoked_permission_are_not_retried(tmp_path):
