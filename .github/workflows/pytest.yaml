@@ -1,0 +1,78 @@
+name: Linux tests
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERA_SILENT_STARTUP: '1'
+  PYTHONUTF8: '1'
+
+jobs:
+  test:
+    name: Tests (ubuntu-latest, ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install all runtime and test dependencies
+        run: python -m pip install -e '.[full,channels]'
+      - name: Run complete suite without paid model calls
+        run: python -m pytest -n 2 -ra --junitxml=results.xml
+      - name: Preserve test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-tests-${{ matrix.python-version }}
+          path: results.xml
+
+  sandboxes:
+    name: Linux sandboxes
+    # Apptainer 1.3.4 packages target the pre-t64 libfuse3 ABI.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install isolated execution backends
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman bubblewrap
+          sudo chmod u+s /usr/bin/bwrap
+          curl --fail --location --output /tmp/apptainer.deb https://github.com/apptainer/apptainer/releases/download/v1.3.4/apptainer_1.3.4_amd64.deb
+          sudo apt-get install -y /tmp/apptainer.deb
+          sudo ln -sf /usr/bin/apptainer /usr/bin/singularity
+          docker version
+          docker pull python:3.12-slim
+          podman version
+          singularity version
+      - name: Install runtime dependencies
+        run: python -m pip install -e '.[full,channels]'
+      - name: Build the committed RSI optimizer runtime
+        run: vera-extra evolution prepare-runtime --source .
+      - name: Verify real isolated execution and runtime policies
+        run: python -m pytest tests/environments tests/run/test_sandbox.py tests/run/test_sandbox_profiles.py tests/run/test_scheduler_runtime.py tests/run/test_evolution.py tests/run/test_runtime_assembly.py -ra --junitxml=sandboxes.xml
+      - name: Preserve sandbox results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-sandboxes
+          path: sandboxes.xml
