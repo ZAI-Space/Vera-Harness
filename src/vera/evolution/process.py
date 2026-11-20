@@ -121,7 +121,9 @@ def _kill_tree(pid: int) -> None:
             os.killpg(pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
-        for child, stamp in reversed(descendants):
+        # Stop parents before their children: killing a shell's foreground command
+        # first can wake the shell and let its next command run during cancellation.
+        for child, stamp in descendants:
             try:
                 if _process_stamp(child) == stamp:
                     os.kill(child, signal.SIGKILL)
