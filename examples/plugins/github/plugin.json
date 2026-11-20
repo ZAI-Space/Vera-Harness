@@ -1,0 +1,7 @@
+{
+  "name": "github",
+  "version": "1.0.0",
+  "description": "Use GitHub's official remote MCP server with an environment-provided PAT.",
+  "license": "MIT",
+  "homepage": "https://github.com/github/github-mcp-server"
+}
