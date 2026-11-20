@@ -1,0 +1,323 @@
+/*
+ * 启动页：三圈彩球旋转，真实就绪后加速吸收入 Logo，再以彩球与双环迸发散场。
+ * CSS 负责待机旋转、主题与淡入；splash-orbits.ts 从当前球位接管收场，
+ * splash.ts 控制就绪与移除。保留 reduced-motion 和重复启动的静态路径。
+ */
+#splash {
+	--sp-art-size: min(420px, calc(100vw - 80px), calc(100dvh - 190px));
+	--sp-color-0: #3dfffb;
+	--sp-color-1: #3b86ff;
+	--sp-color-2: #b54dff;
+	--sp-color-3: #ff8bff;
+	--sp-gradient: conic-gradient(
+		var(--sp-color-0),
+		var(--sp-color-1),
+		var(--sp-color-2),
+		var(--sp-color-3),
+		var(--sp-color-0)
+	);
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+	pointer-events: none;
+	contain: layout paint style;
+}
+#splash > * {
+	grid-area: 1 / 1;
+}
+/* 准备期间不绘制工作台，避免首屏布局抢占动画帧。 */
+#root {
+	content-visibility: hidden;
+}
+html[data-app-ready] #root {
+	content-visibility: visible;
+	animation: sp-root-in 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) calc(var(--sp-scatter-delay, 0ms) + 1350ms)
+		both;
+}
+.sp-swarm {
+	position: relative;
+	width: var(--sp-art-size);
+	height: var(--sp-art-size);
+}
+.sp-swarm-in {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	animation: sp-fade-in 0.65s ease-out 0.12s forwards;
+}
+/* 同向等速旋转，三圈的径向层次与错位间距始终保持整齐。 */
+.sp-orbit {
+	position: absolute;
+	inset: 0;
+	animation: sp-orbit-turn 26s linear infinite;
+	will-change: transform;
+}
+.sp-burst {
+	position: absolute;
+	inset: 0;
+}
+/* 原版后半段布局及动画参数保留；透明贴图只作为蒙版，颜色取指定四色。 */
+.sp-legacy-swarm {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 220px;
+	height: 220px;
+	margin: -110px;
+	animation: sp-spin 60s linear infinite;
+}
+.sp-legacy-in {
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	animation:
+		sp-legacy-show 1ms linear var(--sp-scatter-delay) forwards,
+		sp-quick-out 0.3s ease-in calc(var(--sp-scatter-delay) + 1300ms) forwards;
+}
+.sp-legacy-breathe {
+	width: 100%;
+	height: 100%;
+	animation: sp-swarm-breathe 4.2s ease-in-out 1.3s infinite;
+}
+.sp-burst-dot {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: var(--s);
+	height: var(--s);
+	margin: calc(var(--s) / -2);
+	background: var(--sp-dot-color);
+	mask: url("../assets/splash/dot-light.png") center / 100% 100% no-repeat;
+	opacity: var(--o);
+	transform: translate(var(--x), var(--y));
+	animation: sp-dot-out 1.2s cubic-bezier(0.55, 0.06, 0.68, 0.19) calc(var(--sp-scatter-delay) + 50ms)
+		forwards;
+	will-change: transform, opacity;
+}
+.sp-dot {
+	position: absolute;
+	left: calc(50% + var(--x));
+	top: calc(50% + var(--y));
+	width: var(--size);
+	height: var(--size);
+	border-radius: 50%;
+	background: var(--sp-dot-color);
+	transform: translate(-50%, -50%);
+}
+/* 原散场的软边双环在小球接近全部吸收后出现，颜色与小球共享。 */
+.sp-wave {
+	--sp-wave-mask: url("../assets/splash/wave-light.png");
+	--po: 0.7;
+	width: 220px;
+	height: 220px;
+	background: var(--sp-gradient);
+	mask: var(--sp-wave-mask) center / 100% 100% no-repeat;
+	opacity: 0;
+	transform: scale(0.5);
+	will-change: transform, opacity;
+}
+.sp-wave-echo {
+	--po: 0.45;
+	background: conic-gradient(
+		from 35deg,
+		var(--sp-color-0),
+		var(--sp-color-1),
+		var(--sp-color-2),
+		var(--sp-color-3),
+		var(--sp-color-0)
+	);
+}
+html[data-theme="dark"] .sp-wave {
+	--sp-wave-mask: url("../assets/splash/wave-dark.png");
+}
+#splash.sp-exiting .sp-wave {
+	animation: sp-wave-out 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) calc(var(--sp-scatter-delay) + 150ms)
+		forwards;
+}
+#splash.sp-exiting .sp-wave-echo {
+	animation-delay: calc(var(--sp-scatter-delay) + 380ms);
+}
+.sp-exiting {
+	--sp-logo-opacity: 1;
+	--sp-logo-animation: sp-word-out 0.45s ease-in var(--sp-scatter-delay) forwards;
+}
+/* Logo 与小球独立，旋转时图标保持固定、保留透明断层。 */
+.sp-word {
+	display: block;
+	width: calc(var(--sp-art-size) * 0.4);
+	height: auto;
+	object-fit: contain;
+	user-select: none;
+	opacity: var(--sp-logo-opacity, 0);
+	animation: var(--sp-logo-animation, sp-fade-in 0.65s ease-out 0.15s forwards);
+}
+/* 未知进度持续扫动，不以动画播放时间冒充真实加载完成。 */
+.sp-line {
+	width: min(260px, calc(100vw - 80px));
+	height: 2px;
+	border-radius: 2px;
+	overflow: hidden;
+	background: rgba(24, 24, 27, 0.12);
+	opacity: 0;
+	transform: translateY(calc(var(--sp-art-size) / 2 + 25px));
+	animation: sp-fade-in 0.4s ease-out 0.8s forwards;
+}
+.sp-line::after {
+	content: "";
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(24, 24, 27, 0.55), transparent);
+	transform: translateX(-100%);
+	animation: sp-sweep 1.4s ease-in-out infinite;
+}
+html[data-theme="dark"] .sp-line {
+	background: rgba(255, 255, 255, 0.14);
+}
+html[data-theme="dark"] .sp-line::after {
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+}
+.sp-status {
+	transform: translateY(calc(var(--sp-art-size) / 2 + 49px));
+	color: var(--color-ink-dim, #71717a);
+	line-height: 1.6;
+	opacity: 0;
+	animation: sp-fade-in 0.4s ease-out 0.8s forwards;
+}
+html[data-app-ready] .sp-line,
+html[data-app-ready] .sp-status {
+	opacity: 1;
+	animation: sp-quick-out 0.2s ease-in var(--sp-scatter-delay, 0ms) forwards;
+}
+html[data-app-ready] .sp-line::after {
+	animation: none;
+}
+html[data-startup-view="setup"] #splash {
+	visibility: hidden;
+}
+html[data-startup-view="setup"][data-app-ready] #root,
+html[data-splash-static][data-app-ready] #root {
+	animation: sp-root-in 0.25s ease-out both;
+}
+/* 重载保持原位静态品牌，仍等待真实准备完成。 */
+html[data-splash-static] #splash * {
+	animation: none;
+}
+html[data-splash-static] .sp-swarm-in,
+html[data-splash-static] .sp-word,
+html[data-splash-static] .sp-line,
+html[data-splash-static] .sp-status {
+	opacity: 1;
+}
+html[data-splash-static][data-app-ready] #splash {
+	visibility: hidden;
+}
+@keyframes sp-fade-in {
+	to {
+		opacity: 1;
+	}
+}
+@keyframes sp-orbit-turn {
+	to {
+		transform: rotate(1turn);
+	}
+}
+@keyframes sp-spin {
+	to {
+		transform: rotate(1turn);
+	}
+}
+@keyframes sp-swarm-breathe {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.05);
+	}
+}
+@keyframes sp-legacy-show {
+	to {
+		opacity: 1;
+	}
+}
+/* 下列三组收场关键帧来自原版，仅在配色层替换灰色。 */
+@keyframes sp-dot-out {
+	0% {
+		opacity: var(--o);
+		transform: translate(var(--x), var(--y)) scale(1);
+	}
+	55% {
+		opacity: calc(var(--o) * 0.85);
+	}
+	100% {
+		opacity: 0;
+		transform: translate(var(--ex), var(--ey)) scale(0.6);
+	}
+}
+@keyframes sp-wave-out {
+	0% {
+		transform: scale(0.5);
+		opacity: 0;
+	}
+	8% {
+		opacity: var(--po);
+	}
+	55% {
+		opacity: calc(var(--po) * 0.7);
+	}
+	100% {
+		transform: scale(12);
+		opacity: 0;
+	}
+}
+@keyframes sp-word-out {
+	to {
+		opacity: 0;
+		transform: translateY(-8px) scale(1.12);
+	}
+}
+@keyframes sp-sweep {
+	to {
+		transform: translateX(100%);
+	}
+}
+@keyframes sp-root-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes sp-quick-out {
+	to {
+		opacity: 0;
+	}
+}
+/* 减弱动态：静态三圈与 Logo，直接淡出，不内聚、不回弹。 */
+@media (prefers-reduced-motion: reduce) {
+	.sp-orbit,
+	.sp-line::after {
+		animation: none;
+	}
+	.sp-swarm-in,
+	.sp-word,
+	.sp-line,
+	.sp-status {
+		opacity: 1;
+		animation: none;
+	}
+	html[data-app-ready] .sp-swarm-in,
+	html[data-app-ready] .sp-word,
+	html[data-app-ready] .sp-line,
+	html[data-app-ready] .sp-status {
+		animation: sp-quick-out 0.2s ease-in forwards;
+	}
+	html[data-app-ready] #root {
+		animation: none;
+	}
+}
