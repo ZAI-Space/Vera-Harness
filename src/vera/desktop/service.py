@@ -37,6 +37,8 @@ class DesktopService:
         return [value["meta"] for value in self.store.list("session")]
 
     def save_session(self, value: dict):
+        """Keep catalog counts aligned when configuration or display history changes."""
+        value["meta"]["messageCount"] = len(value["messages"])
         self.store.save("session", value["meta"]["sessionId"], value)
 
     def idle_session(self, key: str) -> dict:
@@ -273,7 +275,7 @@ class DesktopService:
                     i
                     for i, row in enumerate(value["messages"])
                     if row["kind"] == "user"
-                    and (row["entryId"] == ref.get("entryId") or row["text"] == ref.get("text"))
+                    and (row["entryId"] == ref["entryId"] if "entryId" in ref else row["text"] == ref.get("text"))
                 ),
                 None,
             )

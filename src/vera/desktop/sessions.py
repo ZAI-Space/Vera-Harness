@@ -126,6 +126,8 @@ class Sessions:
             if value["meta"].get("archivedAt"):
                 raise ValueError("Unarchive this session before running it.")
             if key in self.running:
+                if key in self.cancelled:
+                    raise ValueError("This task is stopping. Wait until it settles before sending another task.")
                 if value.get("queue"):
                     raise ValueError("A follow-up is already queued.")
                 if text.startswith("/"):
@@ -426,11 +428,17 @@ class Sessions:
             )
 
     def abort(self, key: str) -> None:
+        """Clear owned queued work even if an exited worker still awaits watcher settlement."""
         with self.lock:
             process = self.running.get(key)
-            if process and process.poll() is None:
+            if process:
                 self.cancelled.add(key)
-                _kill_tree(process.pid)
+                value = self.get(key)
+                value["queue"] = []
+                self.store.save("session", key, value)
+                self.emit(key, {"type": "queue_update", "steering": [], "followUp": []})
+                if process.poll() is None:
+                    _kill_tree(process.pid)
 
     def close(self):
         for key in list(self.running):

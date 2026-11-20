@@ -9,6 +9,7 @@ import requests
 
 from vera.desktop.server import DesktopServer
 from vera.desktop.service import DesktopService
+from vera.storage import RunStore
 
 
 @pytest.fixture
@@ -124,6 +125,10 @@ def test_confirmation_scoping_and_cancel_prevent_unapproved_effects(desktop, tmp
     assert (workspace / "actual.txt").read_text() == "desktop-ok"
 
 
+# Value: protects=unavailable saved sandboxes expose disabled choices and reasons;
+# fails_when=the desktop reports a missing image as ready or omits its reason;
+# why_new=the existing test only checked the saved profile name; seam=none;
+# no_claim=availability of other configured container engines.
 def test_provider_secrets_roles_and_unavailable_sandbox_are_real(desktop, tmp_path):
     service, invoke, _, _ = desktop
     secret = "fixture-private-value"
@@ -163,6 +168,171 @@ def test_provider_secrets_roles_and_unavailable_sandbox_are_real(desktop, tmp_pa
     invoke("saveSandboxProfiles", profiles=[profile])
     stored = invoke("getSandboxProfiles", cwd=str(tmp_path))
     assert stored["profiles"][0]["name"] == "unavailable"
+    assert stored["status"]["configured"] is True and stored["status"]["enabled"] is False
+    assert stored["status"]["choices"] == [
+        {
+            "name": "unavailable",
+            "backend": "docker",
+            "available": False,
+            "code": "backend_unavailable",
+            "reason": "A local Linux Docker engine must be running and the configured image must already be cached.",
+        }
+    ]
+    assert stored["status"]["reason"] == "No available configured sandbox."
+    commands = {row["name"]: row for row in invoke("listSlashCommandsForCwd", cwd=str(tmp_path))}
+    assert commands["sandbox"]["supported"] is False
+    assert commands["sandbox:unavailable"]["supported"] is False
+    assert commands["sandbox:unavailable"]["description"] == stored["status"]["choices"][0]["reason"]
+    assert commands["sandbox:unavailable"]["invocationName"] == "sandbox unavailable"
+
+
+# Value: protects=one queued follow-up executes once and abort discards it even after worker exit;
+# fails_when=queued work survives cancellation or restarts after the worker exits;
+# why_new=existing desktop tests never prompt while a worker is running; seam=none;
+# no_claim=external model quality or long-duration concurrency stability.
+def test_queued_followup_executes_once_and_abort_discards_pending_work(desktop, tmp_path):
+    service, invoke, url, headers = desktop
+    service.sessions.base_config["model"]["outputs"][0]["extra"]["actions"][0]["command"] = (
+        "printf 'run\\n' >> execution-count.txt"
+    )
+    workspace = tmp_path / "queued"
+    workspace.mkdir()
+    key = invoke("createSession", options={"cwd": str(workspace)})["sessionId"]
+
+    def approval_for(session_id):
+        return next((row for row in list(service.sessions.approvals.values()) if row["sessionId"] == session_id), None)
+
+    invoke("prompt", sessionId=key, text="Run first task.")
+    wait_until(lambda: approval_for(key))
+    invoke("prompt", sessionId=key, text="Run one queued task.")
+    assert invoke("getFollowUpMessages", sessionId=key) == ["Run one queued task."]
+    rejected = requests.post(
+        url + "/invoke",
+        headers=headers,
+        json={"method": "prompt", "args": {"sessionId": key, "text": "Reject a second queued task."}},
+        timeout=5,
+    )
+    assert rejected.status_code == 400 and "already queued" in rejected.json()["error"]
+    assert not (workspace / "execution-count.txt").exists()
+    for _ in range(4):
+        pending = wait_until(lambda: approval_for(key))
+        invoke("respondPermission", sessionId=key, requestId=pending["id"], answer="allow")
+    wait_until(lambda: not service.sessions.baseline(key)["transcript"]["agentActive"])
+    assert (workspace / "execution-count.txt").read_text().splitlines() == ["run", "run"]
+    assert invoke("getFollowUpMessages", sessionId=key) == []
+    assert [row["text"] for row in invoke("getSessionMessages", sessionId=key) if row["role"] == "user"] == [
+        "Run first task.",
+        "Run one queued task.",
+    ]
+
+    cancelled_workspace = tmp_path / "cancelled-queue"
+    cancelled_workspace.mkdir()
+    cancelled_key = invoke("createSession", options={"cwd": str(cancelled_workspace)})["sessionId"]
+    invoke("prompt", sessionId=cancelled_key, text="Cancel this active task.")
+    wait_until(lambda: approval_for(cancelled_key))
+    invoke("prompt", sessionId=cancelled_key, text="Do not run this queued task.")
+    assert invoke("getFollowUpMessages", sessionId=cancelled_key) == ["Do not run this queued task."]
+    invoke("abort", sessionId=cancelled_key)
+    wait_until(lambda: not service.sessions.baseline(cancelled_key)["transcript"]["agentActive"])
+    assert invoke("getPendingInteractions")["permissions"] == []
+    assert invoke("getFollowUpMessages", sessionId=cancelled_key) == []
+    assert not (cancelled_workspace / "execution-count.txt").exists()
+    assert [row["text"] for row in invoke("getSessionMessages", sessionId=cancelled_key) if row["role"] == "user"] == [
+        "Cancel this active task."
+    ]
+    restored = DesktopService(service.store.directory)
+    assert restored.invoke("getFollowUpMessages", {"sessionId": cancelled_key}) == []
+
+    service.sessions.base_config["model"]["outputs"] = [service.sessions.base_config["model"]["outputs"][-1]]
+    race_workspace = tmp_path / "exited-worker-queue"
+    race_workspace.mkdir()
+    race_key = invoke("createSession", options={"cwd": str(race_workspace)})["sessionId"]
+    invoke("setSessionSelections", sessionId=race_key, permissionPolicy="yolo", selections={})
+    with service.sessions.lock:
+        # A completion-only worker fits in stdout while its watcher waits for this lock.
+        service.invoke("prompt", {"sessionId": race_key, "text": "Complete before the watcher settles."})
+        service.invoke("prompt", {"sessionId": race_key, "text": "Do not replay the exited worker queue."})
+        process = service.sessions.running[race_key]
+        assert process.wait(timeout=20) == 0
+        assert service.sessions.baseline(race_key)["transcript"]["agentActive"] is True
+        service.invoke("abort", {"sessionId": race_key})
+        pending_after_abort = service.invoke("getFollowUpMessages", {"sessionId": race_key})
+        with pytest.raises(ValueError, match="stopping"):
+            service.invoke("prompt", {"sessionId": race_key, "text": "Do not recreate a queue while stopping."})
+    wait_until(lambda: not service.sessions.baseline(race_key)["transcript"]["agentActive"])
+    assert pending_after_abort == []
+    assert [row["text"] for row in invoke("getSessionMessages", sessionId=race_key) if row["role"] == "user"] == [
+        "Complete before the watcher settles."
+    ]
+
+
+# Value: protects=fork and recall align visible history and retained pre-turn model context;
+# fails_when=discarded future turns leak into a fork or recall mutates prior receipts;
+# why_new=restart and export tests never exercised forkSession or recallMessage; seam=none;
+# no_claim=undo of commands or filesystem side effects.
+def test_fork_and_recall_keep_runtime_context_and_receipts_consistent(desktop, tmp_path):
+    service, invoke, _, _ = desktop
+    workspace = tmp_path / "history"
+    workspace.mkdir()
+    key = invoke("createSession", options={"cwd": str(workspace)})["sessionId"]
+    invoke("setSessionSelections", sessionId=key, permissionPolicy="yolo", selections={})
+    repeated_task = "Repeat this task."
+    invoke("prompt", sessionId=key, text=repeated_task)
+    wait_until(lambda: not service.sessions.baseline(key)["transcript"]["agentActive"])
+    first = service.sessions.get(key)
+    invoke("prompt", sessionId=key, text=repeated_task)
+    wait_until(lambda: not service.sessions.baseline(key)["transcript"]["agentActive"])
+    complete = service.sessions.get(key)
+    user_turns = [row for row in complete["messages"] if row["kind"] == "user"]
+    assert [row["text"] for row in user_turns] == [repeated_task, repeated_task]
+    second = user_turns[1]
+    assert second["runtimeIndex"] == len(first["runtimeMessages"]) > 0
+    assert complete["runtimeMessages"][: second["runtimeIndex"]] == first["runtimeMessages"]
+    receipts = {path: path.read_bytes() for path in (service.store.directory / "artifacts").rglob("trajectory.json")}
+    assert len(receipts) == len(RunStore(service.store.directory / "runs.sqlite3").list_runs()) == 2
+    reference = {"entryId": second["entryId"], "text": repeated_task}
+    fork = invoke("forkSession", sessionId=key, ref=reference)
+    child_key = fork["sessionId"]
+    child = service.sessions.get(child_key)
+    assert child["messages"] == first["messages"]
+    assert child["runtimeMessages"] == first["runtimeMessages"]
+    assert fork["messageCount"] == len(child["messages"])
+    assert service.sessions.get(key) == complete
+
+    invoke("setSessionSelections", sessionId=child_key, permissionPolicy="yolo", selections={})
+    invoke("prompt", sessionId=child_key, text="Continue only inside the fork.")
+    wait_until(lambda: not service.sessions.baseline(child_key)["transcript"]["agentActive"])
+    continued_child = service.sessions.get(child_key)
+    assert "Continue only inside the fork." in json.dumps(continued_child["runtimeMessages"])
+    assert continued_child["runtimeMessages"][: len(first["runtimeMessages"])] == first["runtimeMessages"]
+    assert (
+        sum(
+            row.get("role") == "user" and row.get("content") == repeated_task
+            for row in continued_child["runtimeMessages"]
+        )
+        == 1
+    )
+    assert service.sessions.get(key) == complete
+    assert invoke("recallMessage", sessionId=key, ref=reference) == {
+        "text": repeated_task,
+        "images": [],
+        "document": None,
+    }
+    recalled = service.sessions.get(key)
+    assert recalled["messages"] == first["messages"]
+    assert recalled["runtimeMessages"] == first["runtimeMessages"]
+    assert recalled["meta"]["messageCount"] == len(recalled["messages"])
+    assert service.sessions.get(child_key) == continued_child
+    for invalid_id in ("missing", "", None):
+        with pytest.raises(ValueError, match="Message no longer exists"):
+            service.invoke("forkSession", {"sessionId": key, "ref": {"entryId": invalid_id, "text": repeated_task}})
+    legacy_fork = invoke("forkSession", sessionId=child_key, ref={"text": "Continue only inside the fork."})
+    assert service.sessions.get(legacy_fork["sessionId"])["runtimeMessages"] == first["runtimeMessages"]
+    assert service.sessions.get(legacy_fork["sessionId"])["messages"] == first["messages"]
+    assert service.sessions.get(child_key) == continued_child
+    assert (workspace / "actual.txt").read_text() == "desktop-ok"
+    assert all(path.read_bytes() == content for path, content in receipts.items())
+    assert len(RunStore(service.store.directory / "runs.sqlite3").list_runs()) == 3
 
 
 def test_settings_contract_human_mode_and_slash_status(desktop, tmp_path):

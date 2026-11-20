@@ -154,6 +154,16 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
                 register_scheduler_tools(registry, scheduled, config, workspace, set(catalog))
             if config.get("run_mode") == "goal":
                 register_goal_finish(registry)
+        desktop_runtime = str(config.get("agent", {}).get("agent_class", "")).startswith(
+            "vera.desktop.worker."
+        ) or "desktop_workspace" in config.get("agent", {})
+        if desktop_runtime and registry is not None and workspace:
+            # Register confined project readers before validating subagent role
+            # tools. Desktop human mode still needs these handlers for roles,
+            # even though its manual model adapter does not bind declarations.
+            from vera.desktop.project_tools import register_project_tools
+
+            register_project_tools(registry, Path(workspace).expanduser().resolve())
         agent = get_agent(model, env, config.get("agent", {}), default_type=default_type, tool_registry=registry)
         if subagents.roles:
             register_subagent_tools(registry, agent, subagents, model_config, catalog)

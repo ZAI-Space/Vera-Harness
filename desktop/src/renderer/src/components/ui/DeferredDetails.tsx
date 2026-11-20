@@ -41,7 +41,8 @@ export function useDetailValue(
 		}
 	}, [sessionId, key, fallback, saved, followDefault]);
 	return [
-		saved ?? (followDefault && !manual ? fallback : local),
+		// Stored choices are scoped per session; the local manual flag must not follow a session switch.
+		saved ?? (followDefault && (Boolean(sessionId) || !manual) ? fallback : local),
 		(open) => {
 			setManual(true);
 			if (sessionId) useSessionViewStore.getState().setDetail(sessionId, key, open);
