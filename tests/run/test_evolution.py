@@ -362,7 +362,9 @@ def test_controller_crash_reaps_previous_process_without_replaying(source_repo, 
             stderr=subprocess.STDOUT,
         )
         try:
-            deadline = time.monotonic() + 40
+            # Windows hosted runners can spend over 40 seconds importing the
+            # full runtime before the child publishes its first lease.
+            deadline = time.monotonic() + 90
             while True:
                 current = Experiment(experiment.root).state
                 if (
