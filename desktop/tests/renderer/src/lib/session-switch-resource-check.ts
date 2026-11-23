@@ -4,8 +4,8 @@ import {
 	CACHE_BYTE_LIMIT,
 	CACHE_ENTRY_LIMIT,
 	WAITING_LIMIT,
-} from "../components/chat/history-image/constants";
-import type { ThumbnailService } from "../components/chat/history-image/history-image-service";
+} from "../../../../src/renderer/src/components/chat/history-image/constants";
+import type { ThumbnailService } from "../../../../src/renderer/src/components/chat/history-image/history-image-service";
 
 type Resources = ReturnType<ThumbnailService["stats"]>;
 /** 验收必须复用产品真实预算，不能另设更宽阈值。 */

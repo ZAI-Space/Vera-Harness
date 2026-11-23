@@ -184,6 +184,8 @@ poetry.toml
 # Desktop dependencies and generated Electron bundles
 !desktop/src/renderer/src/lib/
 !desktop/src/renderer/src/lib/**
+!desktop/tests/renderer/src/lib/
+!desktop/tests/renderer/src/lib/**
 desktop/node_modules/
 desktop/out/
 desktop/coverage/
