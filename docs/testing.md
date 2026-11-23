@@ -53,4 +53,4 @@ The UI runner executes five isolated scenarios for settings, global settings, ma
 - Security reproduction requires its own isolated, bounded environment. Ordinary CI is engineering evidence.
 - Verify the PR head SHA and every required CI job before merge; verify the resulting `dev` SHA afterwards.
 
-Daily branches start at `dev` and return through a squash PR. Releases use `dev` → `main`. A protection rule or missing independent approval is a real delivery gate; do not bypass it.
+Daily branches start at `dev` and return through a squash PR. Releases use `dev` → `main`. This repository uses a single-maintainer policy: PRs and required checks remain mandatory, with zero required human approvals. The maintainer can merge after checks pass; do not bypass branch protection or report unfinished checks as passing.
