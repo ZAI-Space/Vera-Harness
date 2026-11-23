@@ -100,6 +100,8 @@ class ProjectFiles:
             result = subprocess.run(
                 [
                     "git",
+                    "-c",
+                    "core.fsmonitor=false",
                     "-C",
                     str(self.root),
                     "ls-files",
