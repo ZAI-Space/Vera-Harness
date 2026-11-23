@@ -37,4 +37,4 @@
 
 ??? question "Is there a desktop API already?"
 
-    There are reusable Python session, state and Runtime interfaces. An application transport still needs to be implemented and tested. See [frontend integration](frontend-integration.md).
+    Yes. The Electron desktop uses an authenticated loopback Python service for sessions, streaming events and Runtime operations. Optional integrations and live providers have separate prerequisites and acceptance scope. See [frontend integration](frontend-integration.md).

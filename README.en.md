@@ -70,10 +70,13 @@ Tab selects candidates; Esc then Enter submits multiline input. Permissions, run
 
 - [English documentation](docs/index.md) / [中文文档](docs/zh/index.md), with paired page links.
 - [Frontend integration](docs/frontend-integration.md): sessions, state, selections, approval and storage boundaries. Includes the desktop service, streamed replies, approvals, startup instructions and validation boundaries.
+- [Repository structure](docs/repository-structure.md): source, tests, examples, documentation, generated output and third-party files.
 - [Naming migration](docs/advanced/v2_migration.md): preferred `vera`, `VERA_*` and `vera.yaml` names, with explicit historical settings compatibility.
 - [Documentation maintenance](docs/documentation.md): per-page review map and stale-content corrections.
 
 ## Develop and verify
+
+See the [desktop developer guide](desktop/README.en.md) for frontend setup, checks and source attribution. See also [contributing](CONTRIBUTING.md), [security](SECURITY.md) and the [test directory guide](tests/README.md).
 
 ```bash
 python -m pip install -e '.[full,channels]'
@@ -89,3 +92,5 @@ Daily branches start from `dev` and merge through PRs into `dev`; releases enter
 ## License and provenance
 
 Distributed under [MIT](LICENSE.md). [Third-party notices](THIRD_PARTY_NOTICES.md) retain source attribution and required copyright notices separately from product branding.
+
+Maintainers can start with [architecture](docs/architecture.md), [API boundaries](docs/desktop-api.md) and [testing](docs/testing.md). The [offline example](examples/README.md) needs no model credentials.

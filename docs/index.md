@@ -32,8 +32,12 @@ flowchart LR
     A --> S[State events / RunStore / Trajectories]
 ```
 
-The terminal is available now. Desktop clients reuse Python interfaces; this backend does not yet expose a general desktop HTTP/WebSocket server. State observation, planning, standing goals and scheduling are adapters around the existing loop.
+The terminal remains available. The Electron desktop uses the Python desktop service over an authenticated loopback HTTP transport. Channels and scheduled tasks reuse the same Runtime through their adapters. State observation, planning, standing goals and scheduling remain extensions around the existing Agent Loop.
 
 !!! note "Compatibility and evidence"
 
     The product is VERA and the distribution is `vera-harness`. Current Python imports use `vera.*`, configuration uses `vera.yaml` and `VERA_*`, and new trajectories use VERA identifiers. Legacy CLI, environment and built-in config aliases remain available; update old Python import paths. See [migration](advanced/v2_migration.md). Optional-service tests and paid model runs are distinct from local protocol tests; no upstream benchmark score is a VERA result.
+
+## Development and maintenance
+
+[Architecture](architecture.md) · [API boundaries](desktop-api.md) · [Taskboard](taskboard.md) · [Testing and delivery](testing.md) · [Repository structure](repository-structure.md) · [Licenses and fonts](licenses.md)

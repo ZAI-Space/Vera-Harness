@@ -28,4 +28,4 @@
 
 ??? question "前端接口全部完成了吗？"
 
-    已有可复用 Python 会话、状态和 Runtime 接口；通用桌面传输服务仍待实现。见[前端对接](frontend-integration.md)。
+    Electron 桌面端已通过带认证的本机回环 Python 服务接入会话、流式事件和 Runtime 操作。可选集成与真实服务商仍有各自的前置条件和验收范围。见[前端对接](frontend-integration.md)。

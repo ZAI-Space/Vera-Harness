@@ -36,7 +36,7 @@
 ## 验证证据
 
 - `tests/run/test_desktop_streaming.py`：本机 HTTP SSE 服务在发送完整回复前暂停，此时后端必须已暴露正文和思考，随后验证完整工具与用量；另一项测试验证完成前中止。
-- `desktop/src/contracts/transcript/harness.integration.test.ts`：实际 Python worker 执行 Bash，TypeScript 消费其事件，验证思考、正文、工具完成和空闲状态。
+- `desktop/tests/contracts/transcript/harness.integration.test.ts`：实际 Python worker 执行 Bash，TypeScript 消费其事件，验证思考、正文、工具完成和空闲状态。
 - Electron 联调：实际观察发送任务、等待状态、正文、思考开合、审批和真实 Bash 输出。
 - 2026-11-19 真实 DeepSeek 验收：桌面服务与实际 worker 收到 42 个正文增量，完成两次工具调用，写入符合预期的项目文件，最终以 `Submitted` 结束。报告费用为 0.00029409 美元。本次通过服务使用生产任务配置；上面的 Electron 界面联调使用可控本机协议服务。
 

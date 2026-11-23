@@ -54,3 +54,36 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Feishu integration imports the official `lark-oapi` Python SDK as an optional
 dependency. The SDK's own distribution includes its MIT license.
 Source: https://github.com/larksuite/oapi-sdk-python
+
+## Docker MCP catalog metadata
+
+The bundled MCP discovery snapshot is derived from the Docker MCP Registry
+(https://github.com/docker/mcp-registry), copyright (c) 2025 Docker, under the MIT
+License. The full license is included in `src/vera/config/markets/docker.LICENSE`.
+Publisher logos identify their respective projects and remain their trademarks.
+Refresh the snapshot with `python scripts/update_mcp_catalog.py`.
+
+## Optional dashi-taskboard integration
+
+The desktop can launch the separately installed [dashi-taskboard](https://github.com/chuspeeism/dashi-taskboard)
+application (version 1.1.27, revision `bc25451c5c49a14abb6c4e8250b62c626b007f8a`).
+The upstream project is licensed under Apache-2.0 and includes its own dependency
+licenses. Its source and built assets are installed in the local user profile;
+they are not bundled in this repository. The setup script preserves the upstream
+license files and does not run its Codex installation or injection scripts.
+
+## Frontend fonts and icons
+
+The desktop uses the OS font stack without redistributing system font binaries.
+KaTeX mathematical fonts are MIT-licensed; the Electron build keeps WOFF2 for all
+families and omits duplicate WOFF/TTF formats. The package notice is retained at
+`desktop/third_party/katex-LICENSE`.
+
+Microsoft Codicons artwork and icon fonts use CC BY 4.0. Retain Microsoft and
+contributor attribution and `desktop/third_party/codicons-LICENSE`; the emitted
+Codicon TTF is kept for Monaco editor icons. Source:
+https://github.com/microsoft/vscode-codicons . VERA does not modify this font.
+Monaco's license and its full ThirdPartyNotices are retained in
+`desktop/third_party/monaco-LICENSE` and `desktop/third_party/monaco-ThirdPartyNotices.txt`.
+
+MkDocs disables remote Google font loading. No Google font binary is checked in.

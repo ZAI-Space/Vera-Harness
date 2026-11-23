@@ -3,6 +3,7 @@ exclude_docs: |
   overrides/
 theme:
   name: material
+  font: false
   icon:
     repo: fontawesome/brands/github
     annotation: material/chevron-right-circle
@@ -101,6 +102,12 @@ nav:
           - "v2 migration guide": advanced/v2_migration.md
         - "FAQ": faq.md
         - "Contributing": contributing.md
+        - "Architecture": architecture.md
+        - "API boundaries": desktop-api.md
+        - "Taskboard": taskboard.md
+        - "Testing and delivery": testing.md
+        - "Licenses and fonts": licenses.md
+        - "Repository structure": repository-structure.md
         - "Frontend integration": frontend-integration.md
         - "Desktop streaming": desktop-streaming.md
         - "Documentation maintenance": documentation.md
@@ -179,6 +186,12 @@ nav:
           - "命名与兼容迁移": zh/advanced/v2_migration.md
         - "常见问题": zh/faq.md
         - "参与开发": zh/contributing.md
+        - "仓库结构": zh/repository-structure.md
+        - "系统架构": zh/architecture.md
+        - "接口边界": zh/desktop-api.md
+        - "任务看板": zh/taskboard.md
+        - "测试与交付": zh/testing.md
+        - "许可证与字体": zh/licenses.md
         - "前端对接": zh/frontend-integration.md
         - "桌面流式呈现": zh/desktop-streaming.md
         - "文档维护": zh/documentation.md
@@ -264,7 +277,6 @@ extra_css:
   - assets/image_theme.css
   - assets/bubbles.css
   - assets/navigation_cards.css
-  - https://fonts.googleapis.com/icon?family=Material+Icons
 extra:
   version:
     provider: mike

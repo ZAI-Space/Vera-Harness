@@ -70,10 +70,15 @@ Tab 选择候选，Esc 后 Enter 提交多行输入。权限、运行模式与�
 
 - [中文文档](docs/zh/index.md) / [English documentation](docs/index.md)：两版页面互相链接。
 - [前端对接](docs/zh/frontend-integration.md)：会话、状态、能力选择、审批与存储边界。已接入独立桌面服务、流式回复与审批，包含启动方法和已验证边界。
+- [仓库结构](docs/zh/repository-structure.md)：源码、测试、示例、文档、生成输出和第三方文件的归属。
 - [命名迁移](docs/zh/advanced/v2_migration.md)：正式命名为 `vera`、`VERA_*` 和 `vera.yaml`，说明历史配置的兼容读取范围。
 - [文档维护](docs/zh/documentation.md)：逐页检查清单与过期内容修订。
 
+维护者可从[系统架构](docs/zh/architecture.md)、[接口边界](docs/zh/desktop-api.md)和[测试与交付](docs/zh/testing.md)继续阅读；[离线示例](examples/README.md)无需模型凭据。
+
 ## 开发与验证
+
+桌面依赖安装、前端检查和来源说明见[桌面开发说明](desktop/README.md)。另见[贡献指南](CONTRIBUTING.md)、[安全政策](SECURITY.md)和[测试目录说明](tests/README.md)。
 
 ```bash
 python -m pip install -e '.[full,channels]'
