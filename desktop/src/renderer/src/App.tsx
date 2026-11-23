@@ -19,6 +19,7 @@ import { Toaster } from "./components/Toaster";
 import { getExecutionApi } from "./environment-api";
 import { PluginsPage } from "./features/plugins/PluginsPage";
 import { ScheduledPage } from "./features/scheduled/ScheduledPage";
+import { TaskboardPage } from "./features/taskboard/TaskboardPage";
 import { useSessionEventBridge } from "./hooks/use-session-event-bridge";
 import { useI18nStore } from "./i18n";
 import { selectActiveCwd } from "./lib/active-cwd";
@@ -188,6 +189,7 @@ export default function App() {
 					</div>
 					{workspacePage === "plugins" && <PluginsPage />}
 					{workspacePage === "scheduled" && <ScheduledPage />}
+					{workspacePage === "taskboard" && <TaskboardPage />}
 					{workspacePage === "chat" && <DiffSidebar />}
 				</div>
 			</div>

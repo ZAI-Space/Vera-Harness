@@ -120,7 +120,7 @@ class Scheduler:
                 cwd=spec.workspace,
                 env=environment,
                 log=output / "process.log",
-                timeout=spec.timeout + 5,
+                timeout=spec.timeout + 5 if spec.timeout else None,
                 cancel=output / "cancel",
             )
             fallback = {"status": "failed", "reason": "worker_exited", "returncode": outcome["returncode"]}

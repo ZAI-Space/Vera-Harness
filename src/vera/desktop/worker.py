@@ -41,6 +41,8 @@ class DesktopAgent(StatefulInteractiveAgent):
     def query(self):
         """Human mode runs exactly the submitted command without a model request."""
         if self.config.mode != "human":
+            if self.n_consecutive_format_errors:
+                send("retry", reason="format")
             return super().query()
         if self.human_dispatched:
             raise Submitted(
@@ -61,19 +63,30 @@ class DesktopAgent(StatefulInteractiveAgent):
 
     def add_messages(self, *messages: dict) -> list[dict]:
         if not self.messages and self.prior_messages:
-            self.messages.extend(self.prior_messages)
+            if self.config.instance_template == "{{task}}" and getattr(self.model.config, "allow_text_final", False):
+                from vera.desktop.prompts import refresh_legacy_history
+
+                self.prior_messages = refresh_legacy_history(self.prior_messages, self.get_template_vars())
+            # Refresh the system instructions on each task so edited global rules
+            # apply to existing conversations without deleting their history.
+            self.messages.extend(message for message in messages if message.get("role") == "system")
+            self.messages.extend(message for message in self.prior_messages if message.get("role") != "system")
             self.prior_messages = []
             messages = tuple(message for message in messages if message.get("role") != "system")
         for message in messages:
             for action in message.get("extra", {}).get("actions", []):
                 action.setdefault("tool_call_id", uuid4().hex)
             if message.get("role") == "assistant" or message.get("object") == "response":
-                send("message", message=message)
+                send("message", message=message, runtimeIndex=len(self.messages))
             elif message.get("role") == "exit":
                 content = get_content_string(message)
-                if content and message.get("extra", {}).get("exit_status") == "Submitted":
+                if (
+                    content
+                    and message.get("extra", {}).get("exit_status") == "Submitted"
+                    and not message.get("extra", {}).get("text_final")
+                ):
                     send("message", message={"role": "assistant", "content": content, "extra": {}})
-                elif message.get("extra", {}).get("exit_status"):
+                elif message.get("extra", {}).get("exit_status") not in {None, "", "Submitted"}:
                     send("notice", text="Run stopped: " + str(message["extra"]["exit_status"]))
         return super().add_messages(*messages)
 
@@ -135,6 +148,12 @@ def main() -> None:
 
     request = json.loads(sys.stdin.readline())
     config = request["config"]
+    provider_ref = config.pop("desktop_provider_ref", None)
+    state_dir = config.pop("desktop_state_dir", None)
+    if provider_ref and state_dir:
+        from vera.desktop.providers import restore_model_config
+
+        restore_model_config(config, state_dir, provider_ref)
     model = config.get("model", {})
     if model.get("model_class", "litellm") in {"litellm", "litellm_response"}:
         model["model_class"] = (
@@ -142,6 +161,14 @@ def main() -> None:
             if model.get("model_class") == "litellm_response"
             else "vera.desktop.streaming.StreamingChatModel"
         )
+    for role in config.get("subagents", {}).get("roles", {}).values():
+        child = role.get("model")
+        if child and child.get("model_class", "litellm") in {"litellm", "litellm_response"}:
+            child["model_class"] = (
+                "vera.desktop.streaming.StreamingResponsesModel"
+                if child.get("model_class") == "litellm_response"
+                else "vera.desktop.streaming.StreamingChatModel"
+            )
     memory_agent = config.get("agent", {}).get("agent_class") in {"hindsight", "hindsight_interactive"} or any(
         key in config.get("agent", {}) for key in ("memory_bank_id", "memory_mode", "context_budget_chars")
     )
@@ -156,8 +183,11 @@ def main() -> None:
 
         selected = deepcopy(config)
         if remaining:
-            selected["agent"]["cost_limit"] = min(selected["agent"].get("cost_limit", 1), remaining["cost"])
-            selected["agent"]["wall_time_limit_seconds"] = max(1, int(remaining["seconds"]))
+            if remaining["cost"] > 0:
+                current = selected["agent"].get("cost_limit", 0)
+                selected["agent"]["cost_limit"] = min(current, remaining["cost"]) if current else remaining["cost"]
+            if remaining["seconds"] > 0:
+                selected["agent"]["wall_time_limit_seconds"] = max(1, int(remaining["seconds"]))
         with open_agent_runtime(selected) as runtime:
             if registry := runtime.agent.tool_registry:
                 send("tools_ready", names=[tool["function"]["name"] for tool in registry.definitions()])

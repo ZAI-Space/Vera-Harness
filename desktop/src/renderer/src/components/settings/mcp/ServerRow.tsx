@@ -1,6 +1,7 @@
 import type { McpServerView } from "@vera/contracts";
 import { useState } from "react";
 import { getDesktopApi } from "../../../api";
+import { harness, isHarnessConnected, reportHarnessFailure } from "../../../harness-api";
 import { useT } from "../../../i18n";
 import { useMcpStore } from "../../../stores/mcp";
 import { useSessionsStore } from "../../../stores/sessions";
@@ -50,13 +51,15 @@ export function ServerRow({
 	onEdit: (server: McpServerView) => void;
 }) {
 	const t = useT();
-	const { upsert, remove, reload } = useMcpStore();
+	const { upsert, remove, reload, load } = useMcpStore();
+	const [testing, setTesting] = useState(false);
 	const [toolsOpen, setToolsOpen] = useState(false);
 	const [reasonOpen, setReasonOpen] = useState(false);
 	const [confirming, setConfirming] = useState(false);
 	const [loginWaiting, setLoginWaiting] = useState(false);
 	const state = serverState(server);
-	const summary = toolsSummary(server.tools);
+	const tools = server.tools.length ? server.tools : server.verification?.ok ? server.verification.tools : [];
+	const summary = toolsSummary(tools);
 	const command = transportSummary(server);
 	const activeId = useSessionsStore((s) => s.activeSessionId);
 	const running = useTranscriptStore((s) =>
@@ -93,6 +96,27 @@ export function ServerRow({
 				<span className="shrink-0 whitespace-nowrap text-ui-11 text-ink-faint">{transportWord}</span>
 				<StateWord state={state} />
 				<span className="flex-1" />
+				{isHarnessConnected() && (
+					<button
+						type="button"
+						className={ghost}
+						disabled={testing}
+						title={t("settings.mcp.probeHint")}
+						onClick={async () => {
+							setTesting(true);
+							try {
+								await harness("probeMcpServer", { name: server.name });
+								await load(cwd);
+							} catch (error) {
+								await reportHarnessFailure(error);
+							} finally {
+								setTesting(false);
+							}
+						}}
+					>
+						{t(testing ? "settings.mcp.probing" : "settings.mcp.probe")}
+					</button>
+				)}
 				{summary && (
 					<button type="button" className={`${ghost} shrink-0`} onClick={() => setToolsOpen((v) => !v)}>
 						{t("settings.mcp.toolsCount", { count: summary.count })}
@@ -125,13 +149,26 @@ export function ServerRow({
 				)}
 				{/* hover / 键盘聚焦才显形的操作组 */}
 				<span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+					{server.enabled && (
+						<button
+							type="button"
+							className={ghost}
+							onClick={() =>
+								void upsert({ scope: server.source, cwd, name: server.name, enabled: false }).catch(
+									reportHarnessFailure,
+								)
+							}
+						>
+							{t("settings.mcp.disable")}
+						</button>
+					)}
 					{server.enabled ? (
 						<button
 							type="button"
 							className={ghost}
 							disabled={running}
 							title={running ? t("settings.mcp.reconnectRunning") : undefined}
-							onClick={() => void reload(cwd)}
+							onClick={() => void reload(cwd).catch(reportHarnessFailure)}
 						>
 							{t("settings.mcp.reconnect")}
 						</button>
@@ -139,7 +176,11 @@ export function ServerRow({
 						<button
 							type="button"
 							className={ghost}
-							onClick={() => void upsert({ scope: server.source, cwd, name: server.name, enabled: true })}
+							onClick={() =>
+								void upsert({ scope: server.source, cwd, name: server.name, enabled: true }).catch(
+									reportHarnessFailure,
+								)
+							}
 						>
 							{t("settings.mcp.enable")}
 						</button>
@@ -162,6 +203,16 @@ export function ServerRow({
 					{command}
 				</p>
 			)}
+			{server.verification && (
+				<p
+					role="status"
+					className={`mt-1 pl-[15px] text-ui-11 ${server.verification.ok ? "text-ink-dim" : "text-err"}`}
+				>
+					{server.verification.ok
+						? t("settings.mcp.probePassed", { count: server.verification.tools.length })
+						: server.verification.error}
+				</p>
+			)}
 			{(server.description || (summary && summary.readOnly > 0) || (running && server.enabled)) && (
 				<div className="mt-0.5 flex items-center gap-2 pl-[15px] text-ui-11 text-ink-faint">
 					{server.description && <span className="truncate">{server.description}</span>}
@@ -181,9 +232,11 @@ export function ServerRow({
 						{t("settings.mcp.toolsTitle", { count: summary.count })}
 					</div>
 					<div className="flex flex-col gap-1">
-						{server.tools.map((tool) => (
+						{tools.map((tool) => (
 							<div key={tool.name} className="flex items-center gap-2 font-mono text-ui-115 text-ink-dim">
-								<span className="text-ink-2">{tool.name.replace(/^mcp__[^_]+__/, "")}</span>
+								<span className="text-ink-2" title={tool.name}>
+									{tool.displayName ?? tool.name.replace(/^mcp__[^_]+__/, "")}
+								</span>
 								<span className="font-sans text-ui-11 text-ink-faint">
 									{tool.readOnly ? t("settings.mcp.toolReadOnly") : t("settings.mcp.toolWrite")}
 								</span>
@@ -235,7 +288,7 @@ export function ServerRow({
 						className="rounded-full px-2 py-0.5 text-ui-11 text-err transition-colors hover:bg-hover"
 						onClick={() => {
 							setConfirming(false);
-							void remove({ scope: server.source, cwd, name: server.name });
+							void remove({ scope: server.source, cwd, name: server.name }).catch(reportHarnessFailure);
 						}}
 					>
 						{t("settings.mcp.deleteNow")}

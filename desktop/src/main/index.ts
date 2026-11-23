@@ -66,6 +66,8 @@ async function start(): Promise<void> {
 	const height = Math.max(640, Math.min(1440, saved?.windowBounds?.height || 840));
 	const window = new BrowserWindow({
 		title: "VERA",
+		// Keep isolated UI acceptance runs from taking over the user's desktop.
+		show: process.env.VERA_DESKTOP_BACKGROUND !== "1",
 		width,
 		height,
 		minWidth: 900,
@@ -88,6 +90,8 @@ async function start(): Promise<void> {
 			? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 16, y: 16 } }
 			: {}),
 		webPreferences: {
+			backgroundThrottling: process.env.VERA_DESKTOP_BACKGROUND !== "1",
+			offscreen: process.env.VERA_DESKTOP_BACKGROUND === "1",
 			preload: join(import.meta.dirname, "../preload/index.cjs"),
 			contextIsolation: true,
 			sandbox: true,
@@ -225,7 +229,7 @@ async function start(): Promise<void> {
 	if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL)
 		await window.loadURL(process.env.ELECTRON_RENDERER_URL);
 	else await window.loadFile(join(import.meta.dirname, "../renderer/index.html"));
-	window.show();
+	if (process.env.VERA_DESKTOP_BACKGROUND !== "1") window.show();
 }
 
 app

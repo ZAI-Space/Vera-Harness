@@ -149,6 +149,15 @@
 	--scrollbar-thumb-hover: #5d5d66;
 }
 
+/* 空态品牌标题：用紧凑的粗体层级强调 VERA，保持输入区上方的留白。 */
+.empty-state-slogan {
+	font-weight: 700;
+}
+
+.empty-state-slogan-brand {
+	color: #2583f7;
+}
+
 /* 子代理状态：工作中在 80×22 透明区域里放三颗打字点；终态从右向左收成 6px 圆点（左端固定）。
    终态用 Apple 系统绿/红，只作用于子代理，不影响通用 severity / UI 插件状态点。 */
 .subagent-slot {

@@ -1,5 +1,9 @@
 /** Behavior copy aligned with behavior-zh. */
 export const behaviorEn = {
+	yoloTitle: "Enable automatic execution?",
+	yoloWarning:
+		"The agent can run commands, modify or delete files, and call enabled external tools without individual approval. This can cause data loss, send information outside your computer, or incur API charges. Use only with trusted projects and controlled environments.",
+	yoloConfirm: "Understand risks and enable",
 	sessionDefaults: "Session defaults",
 	sessionDefaultsHint: "Starting settings for each new conversation.",
 	mode: "Default mode",
@@ -9,10 +13,13 @@ export const behaviorEn = {
 	permissions: "Permission mode",
 	permissionsHint:
 		"Uses Harness Confirm, YOLO and Human policies. Confirm requests approval, YOLO runs actions without individual confirmation, and Human accepts commands you enter.",
-	permissionModes: { confirm: "Ask each time", yolo: "Automatic", human: "Human control" },
+	permissionModes: { confirm: "Confirm", yolo: "Yolo", human: "Human" },
 	shell: "Command shell",
 	shellHint:
 		"Choose the desired interpreter. The current local Harness uses Bash; PowerShell options are frontend preferences pending execution-service support and availability checks. Sandboxes use their own shell.",
+	detecting: "Detecting…",
+	detectShells: "Detect again",
+	detectShellsFailed: "Could not detect command shells. Try again.",
 	shells: {
 		system: "System default",
 		"windows-powershell": "Windows PowerShell",

@@ -1,6 +1,8 @@
 /** Subagent 创建与列表文案；预置项只用于填充表单。 */
 export const subagentsZh = {
 	title: "Subagent",
+	model: "模型",
+	followParentModel: "跟随主 Agent 模型",
 	caption: "用独立上下文处理专门任务",
 	search: "搜索名称或简介",
 	create: "创建 Subagent",
@@ -53,6 +55,7 @@ export const subagentsZh = {
 		storage: "未能保存到本机，表单已保留，请重试",
 	},
 	presets: {
+		"coding-workflow": { name: "编程任务流程", description: "按需委派：阅读代码、复现、修改、验证" },
 		explorer: {
 			name: "探索者",
 			description: "检索代码库，回答「在哪」和「怎么工作」",

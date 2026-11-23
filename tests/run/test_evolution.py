@@ -52,7 +52,7 @@ def test_archive_preserves_binary_assets_in_deep_workspaces(source_repo, tmp_pat
     baseline = create_archive(source_repo, root)
     workspace = checkout(root, "generation-0001-improvement", baseline)
     asset = Path("desktop/src/renderer/src/assets/splash/vera-logo.png")
-    source_file = Path("desktop/src/renderer/src/components/settings/providers/upstream-models-loader.test.ts")
+    source_file = Path("desktop/tests/renderer/src/components/settings/providers/upstream-models-loader.test.ts")
     assert len(str(workspace / source_file)) > 260
     assert filesystem_path(workspace / source_file).read_bytes() == (source_repo / source_file).read_bytes()
     assert (workspace / asset).read_bytes() == (source_repo / asset).read_bytes()

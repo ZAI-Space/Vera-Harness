@@ -4,6 +4,7 @@ import errno
 import json
 import os
 import signal
+import stat
 import subprocess
 import time
 from collections.abc import Iterator
@@ -12,6 +13,37 @@ from pathlib import Path
 from uuid import uuid4
 
 from vera.evolution.config import EvolutionError
+
+
+def read_optimizer_result(path: Path) -> dict:
+    """Read at most 1 MiB from a single regular optimizer result, without following links.
+
+    Results cross from the optimizer into the trusted controller. Missing files
+    still raise FileNotFoundError; links, special files and oversized data fail
+    before an untrusted file can block or exhaust controller memory.
+    """
+    maximum = 1024 * 1024
+    initial = path.lstat()
+    if not stat.S_ISREG(initial.st_mode) or initial.st_nlink != 1:
+        raise EvolutionError("Optimizer results must be single regular files, not symbolic links or special files.")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or opened.st_nlink != 1
+            or (initial.st_dev, initial.st_ino) != (opened.st_dev, opened.st_ino)
+            or opened.st_size > maximum
+        ):
+            raise EvolutionError("Optimizer result changed identity, is not regular, or exceeds 1 MiB.")
+        payload = stream.read(maximum + 1)
+        final = os.fstat(stream.fileno())
+        if len(payload) > maximum or (opened.st_size, opened.st_mtime_ns) != (final.st_size, final.st_mtime_ns):
+            raise EvolutionError("Optimizer result changed during reading or exceeds 1 MiB.")
+    value = json.loads(payload)
+    if not isinstance(value, dict):
+        raise EvolutionError("Optimizer result must be a JSON object.")
+    return value
 
 
 def read_json(path: Path) -> dict:
@@ -190,7 +222,7 @@ def experiment_lock(root: Path) -> Iterator[None]:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
-def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout: int, cancel: Path) -> dict:
+def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout: int | None, cancel: Path) -> dict:
     """Run argv without a shell and reap on failure, timeout or cancellation.
 
     Output goes straight to disk, avoiding pipe deadlocks and unbounded RAM use.
@@ -215,7 +247,7 @@ def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout:
             lease = {"pid": process.pid, "stamp": _process_stamp(process.pid), "status": "running"}
             write_json(lease_path, lease)
             while process.poll() is None:
-                if cancel.exists() or time.monotonic() - started >= timeout:
+                if cancel.exists() or (timeout is not None and time.monotonic() - started >= timeout):
                     reason = "cancelled" if cancel.exists() else "timeout"
                     break
                 time.sleep(0.05)

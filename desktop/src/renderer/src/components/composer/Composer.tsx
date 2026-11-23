@@ -14,6 +14,7 @@ import { selectActiveCwd } from "../../lib/active-cwd";
 import { prepareImageAttachment } from "../../lib/image-attachment";
 import { RegionHost } from "../../plugins/RegionHost";
 import { UI_REGIONS } from "../../plugins/slots";
+import { useBehaviorPreferencesStore } from "../../stores/behavior-preferences";
 import {
 	COMPOSER_FOCUS_EVENT,
 	draftText,
@@ -80,8 +81,13 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 	/** 输入内容（文本/图片/命令胶囊）按会话持久：真实会话用 sessionId、新会话页用固定 key，不丢也不串 */
 	const draftConfig = useSessionsStore((s) => s.newSessionDraft);
 	const policyTarget = activeSessionId ?? `draft:${draftConfig?.generation ?? "initial"}`;
-	const permissionPolicy = usePermissionPolicyStore((state) => state.byTarget[policyTarget] ?? "confirm");
+	const defaultPermission = useBehaviorPreferencesStore((state) => state.permissionPolicy);
+	const permissionPolicy =
+		usePermissionPolicyStore((state) => state.byTarget[policyTarget]) ?? defaultPermission;
 	const selectPermissionPolicy = usePermissionPolicyStore((state) => state.selectPolicy);
+	useEffect(() => {
+		if (activeSessionId) void usePermissionPolicyStore.getState().loadPolicy(activeSessionId);
+	}, [activeSessionId]);
 	const draftKey = activeSessionId ?? newSessionDraftKey(draftConfig?.environment, draftConfig?.cwd);
 	const environment = activeSessionId
 		? environmentEntityRef(activeSessionId).environment
@@ -527,7 +533,12 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 								<PermissionPicker
 									key={policyTarget}
 									policy={permissionPolicy}
-									onPolicyChange={(policy) => selectPermissionPolicy(policyTarget, policy)}
+									disabled={agentActive}
+									onPolicyChange={(policy) => {
+										if (activeSessionId)
+											void usePermissionPolicyStore.getState().savePolicy(activeSessionId, policy);
+										else selectPermissionPolicy(policyTarget, policy);
+									}}
 								/>
 							</EnvironmentContext.Provider>
 						</div>

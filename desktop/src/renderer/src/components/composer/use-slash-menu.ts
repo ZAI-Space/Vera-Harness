@@ -17,11 +17,11 @@ export interface UseSlashMenuOptions {
 	setText: (updater: string | ((prev: string) => string)) => void;
 	setSlashCommand: (command: string | null) => void;
 	editorRef: RefObject<ComposerEditorHandle | null>;
-	ensureSession: () => Promise<string | null>;
+	ensureSession: (onCreated?: (sessionId: string) => void) => Promise<string | null>;
 	runSlashCommand: (content: string, sessionId: string | null) => Promise<boolean>;
 	handleSend: () => Promise<void>;
 	showFeedback: (message: string, tone?: "info" | "warn") => void;
-	setError: (error: string | null) => void;
+	setError: (error: string | null, target?: string) => void;
 }
 
 /**
@@ -119,17 +119,25 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 			command.source === "builtin" &&
 			new Set(["new", "settings"]).has(command.name);
 		if (standaloneInline) {
-			options.setText("");
-			const sessionId = command.name === "new" ? null : await options.ensureSession();
-			if (command.name !== "new" && !sessionId) {
-				options.showFeedback(t("slash.feedback.noSession"), "warn");
-				return;
-			}
-			setSlashToken(null);
+			let createdSessionId: string | undefined;
 			try {
+				const sessionId =
+					command.name === "new"
+						? null
+						: await options.ensureSession((created) => {
+								createdSessionId = created;
+							});
+				if (command.name !== "new" && !sessionId) {
+					options.showFeedback(t("slash.feedback.noSession"), "warn");
+					return;
+				}
+				options.setText("");
+				setSlashToken(null);
 				await options.runSlashCommand(`/${command.name}`, sessionId);
 			} catch (err) {
-				options.setError(err instanceof Error ? err.message : String(err));
+				const message = err instanceof Error ? err.message : String(err);
+				if (createdSessionId) options.setError(message, createdSessionId);
+				else options.setError(message);
 			}
 			return;
 		}

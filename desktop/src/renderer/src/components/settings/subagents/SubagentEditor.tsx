@@ -112,7 +112,7 @@ export function SubagentEditor({
 				<span className="text-ui-11 text-ink-faint">{t("subagents.nameHint")}</span>
 			</label>
 			<label htmlFor="subagent-model" className="flex flex-col gap-2 text-ui-12 text-ink-dim">
-				Model
+				{t("subagents.model")}
 				<select
 					id="subagent-model"
 					className={INPUT_CLASS}
@@ -124,7 +124,7 @@ export function SubagentEditor({
 						});
 					}}
 				>
-					<option value="">Follow parent model</option>
+					<option value="">{t("subagents.followParentModel")}</option>
 					{models.map((model) => (
 						<option key={`${model.provider}/${model.id}`} value={`${model.provider}/${model.id}`}>
 							{model.label}
@@ -177,38 +177,6 @@ export function SubagentEditor({
 				/>
 				<span className="text-ui-11 text-ink-faint">{t("subagents.skillsHint")}</span>
 			</label>
-			<details className="rounded-xl bg-hover/40 p-3">
-				<summary className="cursor-pointer text-ui-12 font-medium text-ink-dim">
-					{t("subagents.budgets")}
-				</summary>
-				<div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-					{(
-						[
-							{ field: "step_limit", label: "steps", min: 1, max: 200, step: 1 },
-							{ field: "cost_limit", label: "cost", min: 0, max: undefined, step: "any" },
-							{ field: "wall_time_limit_seconds", label: "timeout", min: 1, max: 3600, step: 1 },
-						] as const
-					).map(({ field, label, ...limits }) => (
-						<label
-							key={field}
-							htmlFor={`subagent-${field}`}
-							className="flex min-w-0 flex-col gap-2 text-ui-11 text-ink-dim"
-						>
-							{t(`subagents.${label}`)}
-							<input
-								id={`subagent-${field}`}
-								type="number"
-								className={INPUT_CLASS}
-								required
-								{...limits}
-								value={Number.isFinite(value[field]) ? value[field] : ""}
-								onChange={(event) => update({ [field]: event.target.valueAsNumber })}
-							/>
-						</label>
-					))}
-				</div>
-				<p className="mt-3 text-ui-11 leading-relaxed text-ink-faint">{t("subagents.budgetHint")}</p>
-			</details>
 			<div className="flex items-center justify-between gap-3 text-ui-12 text-ink-dim">
 				<span>{t("subagents.enabled")}</span>
 				<Switch

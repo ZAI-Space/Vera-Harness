@@ -1,9 +1,11 @@
 import { environmentEntityRef, LOCAL_ENVIRONMENT } from "@vera/contracts";
 import { useEffect, useMemo, useState } from "react";
+import { getDesktopApi } from "../../api";
 import { getExecutionApi } from "../../environment-api";
 import { useT } from "../../i18n";
 import { selectActiveCwd } from "../../lib/active-cwd";
-import { getDailyDirCached, isDailyCwd } from "../../lib/daily";
+import { getDailyDirCached, initDailyDir, isDailyCwd } from "../../lib/daily";
+import { errText } from "../../lib/error-text";
 import { pathLastSegment } from "../../lib/path-display";
 import { deriveProjects, useProjectsStore } from "../../stores/projects";
 import { useSessionCatalogStore } from "../../stores/session-catalog";
@@ -53,8 +55,21 @@ function ProjectPicker() {
 	);
 	const name = cwd ? pathLastSegment(cwd) : undefined;
 	const daily = isDailyCwd(cwd);
-	// 模块缓存（load() 已 await 初始化；空态 EmptyState 挂载即触发 load）
-	const dailyDir = getDailyDirCached(cwd ? environmentEntityRef(cwd).environment : LOCAL_ENVIRONMENT);
+	const [dailyDir, setDailyDir] = useState(() =>
+		getDailyDirCached(cwd ? environmentEntityRef(cwd).environment : LOCAL_ENVIRONMENT),
+	);
+	// 初始化是异步的，模块缓存写入不会触发 React 更新；选择器自行订阅初始化结果。
+	useEffect(() => {
+		let cancelled = false;
+		const environment = cwd ? environmentEntityRef(cwd).environment : LOCAL_ENVIRONMENT;
+		setDailyDir(getDailyDirCached(environment));
+		void initDailyDir(environment).then((directory) => {
+			if (!cancelled) setDailyDir(directory);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [cwd]);
 
 	return (
 		<>
@@ -133,6 +148,13 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 	const [revision, setRevision] = useState(0);
 	const [changing, setChanging] = useState(false);
 	const online = !cwd || environmentEntityRef(cwd).environment.kind === "local";
+	useEffect(
+		() =>
+			getDesktopApi().onBackendStatusChanged(({ connected }) => {
+				if (connected) setRevision((value) => value + 1);
+			}),
+		[],
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: revision 是显式刷新，instance 是同址服务重启；两者均要求重新对账
 	useEffect(() => {
@@ -147,7 +169,7 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 				setError(null);
 			})
 			.catch((error) => {
-				if (!cancelled) setError(error instanceof Error ? error.message : String(error));
+				if (!cancelled) setError(errText(error) ?? String(error));
 			});
 		return () => {
 			cancelled = true;

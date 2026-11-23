@@ -1,5 +1,6 @@
 """Validate authorized remote jobs through real provider protocols, SQLite and agent subprocesses."""
 
+import json
 import os
 import subprocess
 import sys
@@ -76,6 +77,21 @@ def test_journal_dedupe_commands_history_cancel_and_uncertain_delivery(tmp_path)
     assert "previous result" in store.history(second.key)
     store.accept([normalize_message("wechat", weixin_message(4, text="/cancel"))])
     assert store.get(second.key)["status"] == "cancelled"
+    store.accept([normalize_message("wechat", weixin_message(41, text="/pause"))])
+    with store.connect() as db:
+        latest_reply = db.execute("SELECT payload FROM outbox ORDER BY created DESC LIMIT 1").fetchone()[0]
+    assert "没有可暂停" in json.loads(latest_reply)["text"]
+    active_pause = normalize_message("wechat", weixin_message(42, text="Active task"))
+    store.accept([active_pause])
+    claimed_active = store.claim()
+    store.accept([normalize_message("wechat", weixin_message(43, text="/pause"))])
+    assert store.get(claimed_active["id"])["status"] == "running"
+    with store.connect() as db:
+        row = db.execute("SELECT payload FROM outbox ORDER BY created DESC LIMIT 1").fetchone()[0]
+    assert "不支持安全暂停" in json.loads(row)["text"]
+    store.accept([normalize_message("wechat", weixin_message(44, text="/cancel"))])
+    assert store.get(claimed_active["id"])["cancel"] == 1
+    store.finish(claimed_active["id"], "cancelled", "cancelled")
     store.accept([normalize_message("wechat", weixin_message(5, text="/new"))])
     third = normalize_message("wechat", weixin_message(6, text="New conversation"))
     store.accept([third])

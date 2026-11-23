@@ -189,6 +189,10 @@ desktop/out/
 desktop/coverage/
 desktop/*.log
 
+# Local review state and isolated UI profiles are never product source.
+.gstack/
+desktop/.local/
+
 # LSP config files
 pyrightconfig.json
 

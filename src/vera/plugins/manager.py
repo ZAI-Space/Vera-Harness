@@ -11,9 +11,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from vera.plugins.manifest import load_bundle, read_json
+from vera.plugins.presentation import marketplace_presentations, package_presentation
 from vera.plugins.source import (
     PluginError,
     PluginSource,
+    Source,
     filesystem_path,
     inventory,
     normalize_source,
@@ -101,7 +103,7 @@ class PluginManager:
         with self._state() as state:
             return state.get("selected_marketplace")
 
-    def use_marketplace(self, source: PluginSource) -> dict:
+    def use_marketplace(self, source: PluginSource, *, refresh: bool = True) -> dict:
         """Fetch one of two built-in markets and select it for subsequent named installations.
 
         A failed fetch preserves the prior selection. Gitee uses a fixed, verified
@@ -110,7 +112,11 @@ class PluginManager:
         source = PluginSource(source)
         repository, ref, name = BUILTIN_MARKETPLACES[source]
         existing = self.list_marketplaces()
-        catalog = self.add_marketplace(repository, ref, host=source, replace=name if name in existing else None)
+        catalog = (
+            self.add_marketplace(repository, ref, host=source, replace=name if name in existing else None)
+            if refresh or name not in existing
+            else {"name": name, **existing[name]}
+        )
         if catalog["name"] != name:
             raise PluginError("The built-in marketplace changed its declared identity.")
         with self._state(write=True) as state:
@@ -137,7 +143,9 @@ class PluginManager:
         Same-repository entries are pinned to the catalog's commit. External GitHub
         entries retain their declared ref/sha until installation resolves it to a commit.
         """
-        with self._state(write=True) as state, open_source(normalize_source(source, host), ref) as fetched:
+        # Fetch and validate before taking a database write lock. A slow Git
+        # download must not block another marketplace or plugin mutation.
+        with open_source(normalize_source(source, host), ref) as fetched:
             with TemporaryDirectory(prefix="vera-marketplace-") as temporary:
                 catalog_path = next(
                     (
@@ -154,16 +162,22 @@ class PluginManager:
             name = _name(catalog.get("name", ""))
             if replace is not None and name != replace:
                 raise PluginError("Marketplace refresh cannot change its identity.")
-            if replace is None and name in state["marketplaces"]:
-                raise PluginError(f"Marketplace {name!r} already exists; use marketplace refresh.")
             entries = catalog.get("plugins")
             if not isinstance(entries, list) or len(entries) > 1000:
                 raise PluginError("Marketplace must contain a plugins array with at most 1,000 entries.")
             plugins = {}
+            local_paths = set()
+            files = set(fetched.files())
             for entry in entries:
                 if not isinstance(entry, dict):
                     raise PluginError("Marketplace entries must be objects.")
-                plugin_name = _name(entry.get("name", ""))
+                try:
+                    plugin_name = _name(entry.get("name", ""))
+                except PluginError:
+                    # A catalog may contain a package identity that VERA cannot
+                    # represent safely (for example a name starting with digits).
+                    # Omit that entry instead of rejecting the complete catalog.
+                    continue
                 if plugin_name in plugins:
                     raise PluginError(f"Duplicate marketplace plugin: {plugin_name}.")
                 origin = entry.get("source")
@@ -194,20 +208,50 @@ class PluginManager:
                     plugins[plugin_name] = {"unsupported": f"Unsupported marketplace source: {kind!r}."}
                     continue
                 specification["path"] = relative_path(origin.get("path", "."))
+                specification.update(
+                    {
+                        key: entry[key]
+                        for key in (
+                            "description",
+                            "author",
+                            "category",
+                            "version",
+                            "skills",
+                            "mcpServers",
+                            "mcp_servers",
+                            "subagents",
+                            "capabilities",
+                        )
+                        if key in entry
+                    }
+                )
+                if kind == "local":
+                    local_paths.add(specification["path"])
                 policy = entry.get("policy", {})
                 if not isinstance(policy, dict):
                     raise PluginError("Marketplace policy must be an object.")
                 if policy.get("installation") == "NOT_AVAILABLE":
                     specification["unsupported"] = "Marketplace policy marks this plugin NOT_AVAILABLE."
                 plugins[plugin_name] = specification
+            presentations = marketplace_presentations(fetched, list(local_paths), files)
+            for specification in plugins.values():
+                if specification.get("source") == fetched.location and specification.get("path") in local_paths:
+                    unsupported = specification.get("unsupported")
+                    specification.update(presentations[specification["path"]])
+                    if unsupported:
+                        specification["unsupported"] = unsupported
             record = {
                 "source": fetched.location,
                 "ref": ref,
                 "commit": fetched.commit,
                 "catalog": f"{catalog_path}/marketplace.json",
                 "plugins": plugins,
+                "presentation_version": 1,
             }
-            state["marketplaces"][name] = record
+            with self._state(write=True) as state:
+                if replace is None and name in state["marketplaces"]:
+                    raise PluginError(f"Marketplace {name!r} already exists; use marketplace refresh.")
+                state["marketplaces"][name] = record
             return {"name": name, **record}
 
     def refresh_marketplace(self, name: str) -> dict:
@@ -238,6 +282,7 @@ class PluginManager:
                 if expected is not None and name != expected:
                     raise PluginError(f"Expected plugin {expected!r}, received {name!r}.")
                 files = inventory(candidate)
+                presentation = package_presentation(Source(fetched.location, candidate, None), ".", set(files))
                 digest = _digest(files)
                 destination = objects / digest
                 if destination.exists():
@@ -246,6 +291,7 @@ class PluginManager:
                 else:
                     os.rename(candidate, destination)
             record = {
+                **presentation,
                 **bundle.manifest.model_dump(),
                 "source": fetched.location,
                 "ref": ref,

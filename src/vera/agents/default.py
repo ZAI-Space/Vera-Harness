@@ -11,9 +11,10 @@ from jinja2 import StrictUndefined, Template
 from pydantic import BaseModel
 
 from vera import Environment, Model, __version__
-from vera.exceptions import FormatError, InterruptAgentFlow, LimitsExceeded, TimeExceeded
+from vera.exceptions import FormatError, InterruptAgentFlow, LimitsExceeded, Submitted, TimeExceeded
+from vera.models.utils.content_string import get_content_string
 from vera.tools import ToolError, ToolRegistry
-from vera.utils.serialize import recursive_merge
+from vera.utils.serialize import recursive_merge, strip_sensitive
 
 if TYPE_CHECKING:
     from vera.storage import RunRecord
@@ -67,6 +68,9 @@ class DefaultAgent:
         self.logger = logging.getLogger("agent")
         self.cost = 0.0
         self.n_calls = 0
+        self.token_usage = dict.fromkeys(
+            ("input", "output", "cacheRead", "cacheWrite", "totalTokens", "reportedCalls"), 0
+        )
         self.n_consecutive_format_errors = 0
         self._start_time = time.time()
 
@@ -130,6 +134,7 @@ class DefaultAgent:
             except FormatError as e:
                 # The call was billed before parsing failed, so query() never got to charge it.
                 self.cost += e.messages[0].get("extra", {}).get("cost", 0.0)
+                self._record_usage(e.messages[0])
                 self.n_consecutive_format_errors += 1
                 if 0 < self.config.max_consecutive_format_errors <= self.n_consecutive_format_errors:
                     self.add_messages(
@@ -178,13 +183,31 @@ class DefaultAgent:
         self.n_calls += 1
         message = self.model.query(self.messages)
         self.cost += message.get("extra", {}).get("cost", 0.0)
+        self._record_usage(message)
         self.add_messages(message)
         return message
 
     def execute_actions(self, message: dict) -> list[dict]:
         """Execute actions in message, add observation messages, return them."""
+        if message.get("extra", {}).get("text_final") and not message.get("extra", {}).get("actions"):
+            text = get_content_string(message)
+            raise Submitted(
+                {
+                    "role": "exit",
+                    "content": text,
+                    "extra": {"exit_status": "Submitted", "submission": text, "text_final": True},
+                }
+            )
         outputs = [self._execute_action(action) for action in message.get("extra", {}).get("actions", [])]
         return self.add_messages(*self.model.format_observation_messages(message, outputs, self.get_template_vars()))
+
+    def _record_usage(self, message: dict) -> None:
+        """Count reported responses once, including billed responses rejected during parsing."""
+        extra = message.get("extra", {})
+        if extra.get("usage_reported"):
+            self.token_usage["reportedCalls"] += 1
+            for name in ("input", "output", "cacheRead", "cacheWrite", "totalTokens"):
+                self.token_usage[name] += extra["usage"][name]
 
     def _execute_action(self, action: dict) -> dict:
         if self.run_record is not None:
@@ -207,6 +230,7 @@ class DefaultAgent:
                 "model_stats": {
                     "instance_cost": self.cost,
                     "api_calls": self.n_calls,
+                    "token_usage": self.token_usage.copy(),
                 },
                 "config": {
                     "agent": self.config.model_dump(mode="json"),
@@ -219,7 +243,7 @@ class DefaultAgent:
             "messages": self.messages,
             "trajectory_format": "vera-1.1",
         }
-        return recursive_merge(agent_data, self.model.serialize(), self.env.serialize(), *extra_dicts)
+        return strip_sensitive(recursive_merge(agent_data, self.model.serialize(), self.env.serialize(), *extra_dicts))
 
     def save(self, path: Path | None, *extra_dicts) -> dict:
         """Save the trajectory of the agent to a file if path is given. Returns full serialized data.

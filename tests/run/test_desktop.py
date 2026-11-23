@@ -69,6 +69,13 @@ def test_real_desktop_run_files_history_and_restart(desktop, tmp_path):
     workspace.mkdir()
     (workspace / "context.txt").write_text("actual context", encoding="utf-8")
     assert requests.get(url + "/health", timeout=5).status_code == 401
+    unknown = requests.post(
+        url + "/invoke",
+        headers=headers,
+        json={"method": "__unknown_desktop_method__", "args": {}},
+        timeout=5,
+    )
+    assert unknown.status_code == 400 and "not supported" in unknown.json()["error"]
     assert (
         requests.get(url + "/health", headers=headers | {"Origin": "https://example.com"}, timeout=5).status_code == 401
     )
@@ -85,7 +92,7 @@ def test_real_desktop_run_files_history_and_restart(desktop, tmp_path):
     assert service.sessions.get(key)["runtimeMessages"][1]["content"].find("actual context") >= 0
     events = requests.get(url + "/events?after=0", headers=headers, timeout=5).json()["events"]
     types = [row["payload"]["event"]["type"] for row in events if row["method"] == "onEvent"]
-    assert "tool_execution_start" in types and types[-1] == "agent_settled"
+    assert "session_info_changed" in types and "tool_execution_start" in types and types[-1] == "agent_settled"
     assert list((service.store.directory / "artifacts").rglob("trajectory.json"))
     assert not list((service.store.directory / "artifacts").rglob("request.json"))
     restored = DesktopService(service.store.directory)
@@ -339,7 +346,12 @@ def test_settings_contract_human_mode_and_slash_status(desktop, tmp_path):
     service, invoke, _, _ = desktop
     workspace = tmp_path / "manual"
     workspace.mkdir()
-    key = invoke("createSession", options={"cwd": str(workspace)})["sessionId"]
+    service.store.save(
+        "settings", "mcp", {"must-not-start": {"enabled": True, "config": {"command": "missing-qa-service"}}}
+    )
+    key = invoke("createSession", options={"cwd": str(workspace), "provider": "unconfigured", "modelId": "chat"})[
+        "sessionId"
+    ]
     assert invoke("setModelHidden", provider="openai", modelId="gpt-4o-mini", hidden=True)["hiddenModels"] == {
         "openai": ["gpt-4o-mini"]
     }
@@ -356,6 +368,41 @@ def test_settings_contract_human_mode_and_slash_status(desktop, tmp_path):
     assert "/goal" in invoke("getSessionMessages", sessionId=key)[-1]["text"]
     assert invoke("getSessionMessages", sessionId=key)[-1]["role"] == "assistant"
     assert not invoke("getSessionBaseline", sessionId=key)["transcript"]["agentActive"]
+
+
+def test_goal_state_survives_the_real_worker_environment(desktop, tmp_path):
+    """The worker's private global directory must not change an already-created goal's location."""
+    import os
+    import subprocess
+    import sys
+
+    from vera.terminal.session import TerminalSession
+
+    service, invoke, _, _ = desktop
+    key = invoke("createSession", options={"cwd": str(tmp_path)})["sessionId"]
+    config = service.sessions.config(service.sessions.get(key))
+    session = TerminalSession(config, tmp_path)
+    session.process("/goal Verify the desktop goal boundary")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import json,sys; from pathlib import Path; from vera.terminal.session import TerminalSession; "
+                "config=json.load(sys.stdin); "
+                "print(json.dumps(TerminalSession(config, Path(config['sandbox']['workspace'])).goals.status()))"
+            ),
+        ],
+        input=json.dumps(config),
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+        env=os.environ | {"VERA_GLOBAL_CONFIG_DIR": str(service.store.directory), "VERA_SILENT_STARTUP": "1"},
+    )
+    state = json.loads(result.stdout)
+    assert state["status"] == "active"
+    assert state["objective"] == "Verify the desktop goal boundary"
 
 
 def test_scheduler_adapter_runs_a_real_persisted_job(desktop, tmp_path):

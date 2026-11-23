@@ -41,7 +41,12 @@ export function ScheduledTaskDetail({
 						{t(task.enabled ? "scheduled.enabledDraft" : "scheduled.pausedDraft")}
 					</p>
 				</div>
-				<Switch checked={task.enabled} aria-label={t("scheduled.toggle")} onCheckedChange={onToggle} />
+				<Switch
+					checked={task.enabled}
+					disabled={task.cadence === "manual"}
+					aria-label={t("scheduled.toggle")}
+					onCheckedChange={onToggle}
+				/>
 			</header>
 			<div className="my-5 flex flex-wrap gap-2">
 				<Tooltip label={t(isHarnessConnected() ? "scheduled.runNow" : "scheduled.executionUnavailable")}>

@@ -10,7 +10,7 @@ import { SubagentEditor } from "./SubagentEditor";
 import { SUBAGENT_PRESETS, type SubagentPreset } from "./subagent-presets";
 import { applySubagentPreset, createSubagentDraft } from "./subagent-template";
 
-/** 设置中的本机角色目录；模板仅填充创建表单，尚未接入执行服务。 */
+/** 设置中的本机角色目录；模板填充创建表单，保存后由共享 Runtime 装配执行。 */
 export function SubagentsPanel() {
 	const t = useT();
 	const drafts = useSubagentDraftsStore((s) => s.drafts);

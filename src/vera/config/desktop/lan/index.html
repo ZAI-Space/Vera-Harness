@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VERA · 跨设备互联</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><strong>VERA</strong><span id="status">正在连接…</span></header>
+<main>
+<label for="sessions">会话</label><select id="sessions" aria-label="选择会话"></select>
+<p id="error" role="alert"></p><div id="messages" aria-live="polite"></div>
+<div id="permissions"></div>
+<form id="composer" hidden><label for="message">发送消息</label><textarea id="message" rows="3" maxlength="32000" placeholder="继续当前会话…"></textarea><div class="actions"><button id="stop" type="button">停止任务</button><button id="send" type="submit">发送</button></div></form>
+<p id="readonly">当前为只读模式，可在电脑端开启“允许远程控制”。</p>
+</main><script src="/app.js"></script>
+</body></html>

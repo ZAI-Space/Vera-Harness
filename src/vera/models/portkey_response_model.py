@@ -1,3 +1,5 @@
+"""Adapt Portkey Responses to VERA messages and tool actions."""
+
 import json
 import logging
 import os

@@ -2,7 +2,9 @@
   "name": "vera-desktop",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=22 <26" },
+  "engines": {
+    "node": ">=22 <26"
+  },
   "type": "module",
   "description": "VERA desktop frontend and backend integration boundary",
   "main": "out/main/index.js",
@@ -12,7 +14,8 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "lint": "biome check src electron.vite.config.ts vitest.config.ts",
+    "test:ui": "node tests/ui/run-acceptance.mjs",
+    "lint": "biome check src tests electron.vite.config.ts vitest.config.ts",
     "postinstall": "node node_modules/electron/install.js && patch-package",
     "check:boundary": "node scripts/check-boundary.mjs"
   },
@@ -24,10 +27,10 @@
     "@lexical/history": "0.52.0",
     "@lexical/react": "0.52.0",
     "@lexical/rich-text": "0.52.0",
-    "katex": "0.16.47",
+    "katex": "0.19.1",
     "lexical": "0.52.0",
     "markstream-react": "0.0.55",
-    "mermaid": "11.17.2",
+    "mermaid": "12.3.0",
     "monaco-editor": "0.55.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -44,15 +47,18 @@
     "@types/react-dom": "19.2.4",
     "@types/semver": "7.8.0",
     "@vitejs/plugin-react": "5.2.0",
-    "electron": "43.3.0",
+    "electron": "43.8.12",
     "electron-vite": "5.0.0",
     "happy-dom": "21.0.4",
     "patch-package": "8.0.1",
+    "playwright-core": "1.65.0",
     "shiki": "4.4.3",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
-    "vite": "7.3.6",
-    "vite-plugin-singlefile": "2.3.3",
-    "vitest": "3.2.7"
+    "vite": "7.3.8",
+    "vitest": "5.1.1"
+  },
+  "overrides": {
+    "dompurify": "3.4.17"
   }
 }

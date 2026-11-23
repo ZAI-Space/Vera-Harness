@@ -96,7 +96,13 @@ def main():
 
     token = os.environ.get("VERA_DESKTOP_TOKEN") or secrets.token_urlsafe(48)
     config = get_config_from_spec(str(args.config)) if args.config else None
-    service = DesktopService(args.directory, config)
+    service = DesktopService(
+        args.directory,
+        config,
+        context_directory=global_config_dir / "user-context"
+        if args.directory.resolve() == (global_config_dir / "desktop").resolve()
+        else None,
+    )
     server = DesktopServer(("127.0.0.1", args.port), service, token)
     if args.connection_file:
         from vera.evolution.process import write_json

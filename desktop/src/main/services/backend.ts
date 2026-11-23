@@ -27,7 +27,6 @@ function disconnectedSnapshot(method: string): unknown {
 		case "listSlashCommandsForCwd":
 		case "listConfiguredPackages":
 			return [];
-		case "getQuota":
 		case "getContextUsage":
 		case "getGitBranch":
 			return null;

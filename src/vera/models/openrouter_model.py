@@ -1,3 +1,5 @@
+"""Query OpenRouter Chat Completions and normalize usage and action observations."""
+
 import json
 import logging
 import os

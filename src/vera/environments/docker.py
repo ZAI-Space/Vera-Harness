@@ -1,3 +1,5 @@
+"""Execute independent Bash actions in an owned Docker or Podman container."""
+
 import logging
 import os
 import platform

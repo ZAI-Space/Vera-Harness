@@ -35,7 +35,6 @@ import type {
 	PermissionRequest,
 	PermissionResolved,
 	QueuedMessages,
-	QuotaInfo,
 	SessionBaseline,
 	SessionCloseIntent,
 	SessionEventEnvelope,
@@ -51,13 +50,10 @@ import type {
 	UiState,
 } from "./session";
 import type { SessionMediaJob, SessionMediaTransaction } from "./session-media-maintenance";
-import type { SessionSwitchFixture, SessionSwitchProbe } from "./session-switch-diagnostics";
 import type {
 	CustomProviderInput,
 	CustomProviderUpdateInput,
 	ListProvidersOptions,
-	LoginEventPayload,
-	LoginResult,
 	ModelPrefs,
 	ProviderInfo,
 	ProviderTestResult,
@@ -66,9 +62,8 @@ import type {
 	UpstreamModelsResult,
 } from "./settings";
 import type { TodoItem } from "./todo";
-import type { UiPluginInfo, UiPluginManifest, UiPluginsConfig, UiPluginsEventPayload } from "./ui-plugins";
+import type { UiPluginInfo, UiPluginsConfig, UiPluginsEventPayload } from "./ui-plugins";
 import type { UpdateState } from "./update";
-import type { UpdateDiagnosticsInfo } from "./update-diagnostics";
 
 /**
  * IPC invoke 通道单一事实源（D5）：key（= DesktopClientApi 方法名）→ 通道字符串 + 参数/返回类型。
@@ -144,8 +139,6 @@ export const SESSION_CHANNELS = {
 		"environment",
 		"read",
 	)<{ cwd?: string }, SessionMeta[]>({ cwd: input.optional(input.id) }),
-	/** opencode-go 套餐额度（全局；无 key/无订阅 null） */
-	getQuota: ch("session:getQuota", "environment", "read")<void, QuotaInfo | null>(),
 	/** 设置当前会话模型（同步 SDK；失败 renderer 回滚） */
 	setModel: ch(
 		"session:setModel",
@@ -665,6 +658,8 @@ export const SETTINGS_CHANNELS = {
 		"environment",
 		"read",
 	)<UpstreamModelsInput, UpstreamModelsResult>({
+		template: input.optional(input.text),
+		fullUrl: input.optional(input.boolean),
 		providerId: input.optional(input.id),
 		baseUrl: input.text,
 		api: input.text,
@@ -747,28 +742,6 @@ export const SETTINGS_CHANNELS = {
 	)<{ enabled: boolean }, ModelPrefs>({ enabled: input.boolean }),
 	/** 只列内置与用户级 subagent（设置是全局配置，不绑定项目） */
 	listSubagents: ch("settings:listSubagents", "environment", "read")<void, SubagentInfo[]>(),
-	/** 启动 provider 交互登录（事件经 onProviderLoginEvent 推送，流程结束 resolve，取消不算错误） */
-	startProviderLogin: ch(
-		"settings:loginStart",
-		"environment",
-		"mutation",
-	)<{ loginId: string; providerId: string }, LoginResult>({ loginId: input.id, providerId: input.id }),
-	/** 取消进行中的登录流程（未知 loginId 静默忽略） */
-	cancelProviderLogin: ch(
-		"settings:loginCancel",
-		"environment",
-		"mutation",
-	)<{ loginId: string }, void>({ loginId: input.id }),
-	/** 应答登录过程中的输入/选择提示（promptId 已被外部取消时静默忽略） */
-	respondProviderLogin: ch(
-		"settings:loginRespond",
-		"environment",
-		"mutation",
-	)<{ loginId: string; promptId: string; value: string }, void>({
-		loginId: input.id,
-		promptId: input.id,
-		value: input.text,
-	}),
 	/** 权限请求应答（requestId 全局唯一，gate 遍历幂等） */
 	respondPermission: ch(
 		"permission:respond",
@@ -836,12 +809,6 @@ export const SETTINGS_CHANNELS = {
 export const APP_CHANNELS = {
 	/** 当前是否已装配自有后端适配器，与桌面窗口是否可用分别表达。 */
 	getBackendStatus: ch("backend:status", "desktop", "read")<void, { connected: boolean }>(),
-	getSessionSwitchFixtures: ch("app:sessionSwitchFixtures", "desktop", "read")<
-		void,
-		SessionSwitchFixture[]
-	>(),
-	beginSessionSwitchProbe: ch("app:beginSessionSwitchProbe", "desktop", "mutation")<void, void>(),
-	finishSessionSwitchProbe: ch("app:finishSessionSwitchProbe", "desktop", "read")<void, SessionSwitchProbe>(),
 	setTaskNotificationNavigationReady: ch("notifications:navigationReady", "desktop")<
 		{ ready: boolean },
 		void
@@ -908,10 +875,6 @@ export const APP_CHANNELS = {
 	downloadUpdate: ch("update:download", "desktop")<void, void>(),
 	/** 重启并安装已下载的更新 */
 	installUpdate: ch("update:install", "desktop")<void, void>(),
-	/** 上一次安装交接是否已观察到目标版本启动（不推断安装器退出结果） */
-	getUpdateDiagnostics: ch("update:diagnostics", "desktop")<void, UpdateDiagnosticsInfo>(),
-	/** 用户选择路径后导出专用更新诊断；取消返回 null，不含会话/认证文件 */
-	exportUpdateDiagnostics: ch("update:exportDiagnostics", "desktop")<void, string | null>(),
 	/** 渲染端声明「退出确认由我接管」（App 挂载时置位）——未接管时 main 关窗直接放行 */
 	setQuitGuard: ch("app:setQuitGuard", "desktop")<{ enabled: boolean }, void>(),
 	/** 渲染端回执「退出确认窗已上屏」→ main 撤掉兑底计时（超时 = 渲染进程卡死，直接放行退出） */
@@ -928,11 +891,6 @@ export const UI_PLUGINS_CHANNELS = {
 	uiPluginsSetEnabled: ch("uiPlugins:setEnabled", "desktop")<{ enabled: boolean }, void>(),
 	/** 列 UI 插件（含 enabled/trusted/buildError/invalidReason） */
 	uiPluginsList: ch("uiPlugins:list", "desktop")<void, UiPluginInfo[]>(),
-	/** 读插件构建产物（name 必须是扫描到的合法插件名，禁路径） */
-	uiPluginsReadCode: ch("uiPlugins:readCode", "desktop")<
-		{ name: string },
-		{ manifest: UiPluginManifest; code: string } | { error: string }
-	>(),
 	/** 启用/停用单个插件（启用=信任，同步落盘） */
 	uiPluginsSetPluginEnabled: ch("uiPlugins:setPluginEnabled", "desktop")<
 		{ name: string; enabled: boolean },
@@ -1025,7 +983,6 @@ export const SUBSCRIPTION_TABLE = {
 	onTaskNotificationClick: subscription<import("./task-notifications").TaskNotificationClick, "desktop">(
 		"desktop",
 	)("TaskNotificationClick", "notifications:clicked"),
-	onProviderLoginEvent: subscription<LoginEventPayload>()("SettingsLoginEvent", "settings:loginEvent"),
 	onMcpServersChanged: subscription<McpServersChangedPayload>()("McpServersChanged", "mcp:serversChanged"),
 	onChannelSubscriptionsChanged: subscription<ChannelSubscriptionsSnapshot>()(
 		"ChannelSubscriptionsChanged",

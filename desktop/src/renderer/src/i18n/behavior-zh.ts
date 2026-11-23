@@ -1,5 +1,9 @@
 /** 行为页仅包含会话默认项和当前 Harness 支持的沙箱配置字段。 */
 export const behaviorZh = {
+	yoloTitle: "开启完全自动执行？",
+	yoloWarning:
+		"开启后，智能体可以无需逐项确认执行命令、修改或删除文件，并调用已启用的外部工具。这可能造成数据丢失、信息外发或产生 API 费用。请仅在可信项目和受控环境中使用。",
+	yoloConfirm: "了解风险并开启",
 	sessionDefaults: "会话默认",
 	sessionDefaultsHint: "新对话的默认设置",
 	mode: "默认模式",
@@ -7,9 +11,12 @@ export const behaviorZh = {
 	modes: { agent: "智能体", plan: "规划", goal: "目标" },
 	permissions: "权限模式",
 	permissionsHint: "选择操作前确认、自动执行或手动输入命令",
-	permissionModes: { confirm: "每次询问", yolo: "自动执行", human: "人工接管" },
+	permissionModes: { confirm: "Confirm", yolo: "Yolo", human: "Human" },
 	shell: "命令 Shell",
 	shellHint: "选择命令解释器，当前仅保存偏好",
+	detecting: "检测中…",
+	detectShells: "重新检测",
+	detectShellsFailed: "无法检测命令 Shell，请重新检测。",
 	shells: {
 		system: "系统默认",
 		"windows-powershell": "Windows PowerShell",

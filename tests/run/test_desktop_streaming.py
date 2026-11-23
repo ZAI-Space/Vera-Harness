@@ -216,6 +216,7 @@ def test_deltas_precede_completion_and_preserve_reasoning_and_tools(streaming_de
     assert key in service.sessions.running and not release.is_set()
     baseline = service.sessions.baseline(key)
     assert "Visible reasoning" in baseline["transcript"]["streaming"]["thinking"]
+    assert any("First streamed fragment." in message["text"] for message in service.lan.snapshot(key)["messages"])
     release.set()
     assert time.monotonic() - started < 10, "Deltas must be observable while the provider is still waiting."
     wait_for(lambda: not service.sessions.baseline(key)["transcript"]["agentActive"])
@@ -226,6 +227,8 @@ def test_deltas_precede_completion_and_preserve_reasoning_and_tools(streaming_de
     assert any("Visible reasoning" in row.get("thinking", "") for row in messages)
     assert any(tool["state"] == "done" for row in messages for tool in row.get("tools", []))
     assert any("stream-verified" in row["text"] for row in messages)
+    trajectory = next((service.store.directory / "artifacts").rglob("trajectory.json"))
+    assert "local-sse-only" not in trajectory.read_text(encoding="utf-8")
     events = service.events.read(0, 0)["events"]
     updates = [row["payload"]["event"] for row in events if row["method"] == "onEvent"]
     assert any(

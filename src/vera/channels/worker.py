@@ -112,14 +112,14 @@ def execute(directory: Path, key: str) -> None:
         raise
 
 
-def listen_feishu(directory: Path, account: str) -> None:
+def listen_feishu(directory: Path, account: str, *, desktop_inbox: bool = False) -> None:
     """Receive SDK events in a dedicated process so its event loop cannot block other channels."""
     from vera.channels.feishu import FeishuClient
     from vera.channels.gateway import authorized
 
     config = ChannelConfig.model_validate(CredentialStore(directory).load("runtime-profile")["config"])
     settings = config.accounts[account]
-    store = ChannelStore(directory)
+    store = ChannelStore(directory, defer_dispatch=desktop_inbox)
 
     def accept(message):
         if authorized(settings, message):
@@ -176,6 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--state", type=Path, required=True)
     parser.add_argument("--message")
     parser.add_argument("--feishu")
+    parser.add_argument("--desktop-inbox", action="store_true")
     parser.add_argument("--pair-feishu")
     args = parser.parse_args()
     if sum(bool(value) for value in (args.message, args.feishu, args.pair_feishu)) != 1:
@@ -183,6 +184,6 @@ if __name__ == "__main__":
     if args.message:
         execute(args.state, args.message)
     elif args.feishu:
-        listen_feishu(args.state, args.feishu)
+        listen_feishu(args.state, args.feishu, desktop_inbox=args.desktop_inbox)
     else:
         pair_feishu(args.state, args.pair_feishu)

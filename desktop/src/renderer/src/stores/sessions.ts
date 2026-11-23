@@ -903,9 +903,13 @@ export const useSessionsStore = create<SessionsStore>((_set, get) => ({
 					? saved.lastUsedModel
 					: null;
 			const current = environment.kind === "local" ? get().lastUsedModel : get().newSessionDraft?.model;
+			const available = (model: { provider: string; modelId: string } | null | undefined) =>
+				model && models.some((row) => row.provider === model.provider && row.id === model.modelId);
 			const fallback = models.find((m) => m.authed) ?? models[0];
 			const nextLastUsedModel =
-				savedModel ?? current ?? (fallback ? { provider: fallback.provider, modelId: fallback.id } : null);
+				savedModel ??
+				(available(current) ? current : null) ??
+				(fallback ? { provider: fallback.provider, modelId: fallback.id } : null);
 			// 持久化级别也按当前选中模型的能力夹紧（避免恢复后 store 与 UI/SDK 实际生效值不一致）
 			const nextModelRecord = nextLastUsedModel
 				? models.find((m) => m.provider === nextLastUsedModel.provider && m.id === nextLastUsedModel.modelId)
@@ -918,7 +922,7 @@ export const useSessionsStore = create<SessionsStore>((_set, get) => ({
 					: rawLevel;
 			// draft 的起步模型：已定（会话快照/用户选过）就保留，没定就用刚解析出的默认值
 			const draft = get().newSessionDraft;
-			const draftModel = draft?.modelResolved ? draft.model : nextLastUsedModel;
+			const draftModel = draft?.modelResolved && available(draft.model) ? draft.model : nextLastUsedModel;
 			const draftModelRecord = draftModel
 				? models.find((m) => m.provider === draftModel.provider && m.id === draftModel.modelId)
 				: undefined;

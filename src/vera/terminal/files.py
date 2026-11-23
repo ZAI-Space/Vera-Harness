@@ -6,6 +6,7 @@ import fnmatch
 import json
 import os
 import re
+import stat
 import subprocess
 from collections.abc import Sequence
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -49,6 +50,27 @@ class ProjectFiles:
             for part in parts
         )
 
+    def _plain_windows_path(self, path: Path) -> bool:
+        """Accept MSIX's merged workspace namespace only when no component redirects via a link.
+
+        Windows can resolve a newly written AppData file to a package's LocalCache
+        while resolving its existing parent to the logical directory. Check the
+        original workspace path, including its root, for junctions/reparse points
+        before retaining that namespace path instead of an outside resolved path.
+        """
+        if os.name != "nt" or not path.is_relative_to(self.root):
+            return False
+        for component in (path, *path.parents):
+            try:
+                attributes = component.lstat().st_file_attributes
+            except OSError:
+                return False  # A missing or concurrently removed path grants no namespace exception.
+            if attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+                return False
+            if component == self.root:
+                return True
+        return False
+
     def resolve(self, name: str) -> Path:
         """Validate an explicit relative file; reject traversal, credentials and escaping links."""
         relative = PurePosixPath(name)
@@ -62,7 +84,10 @@ class ProjectFiles:
             or not self._allowed(name)
         ):
             raise ToolError("Choose a non-sensitive file relative to the current project.")
-        path = (self.root / name).resolve()
+        namespace_path = self.root / name
+        path = namespace_path.resolve()
+        if not path.is_relative_to(self.root) and self._plain_windows_path(namespace_path):
+            path = namespace_path
         if not path.is_relative_to(self.root) or not path.is_file():
             raise ToolError(f"Project file is unavailable: {name!r}.")
         return path
@@ -97,7 +122,11 @@ class ProjectFiles:
                 children[:] = sorted(
                     name
                     for name in children
-                    if self._allowed(name) and (Path(directory) / name).resolve() == Path(directory) / name
+                    if self._allowed(name)
+                    and (
+                        (Path(directory) / name).resolve() == Path(directory) / name
+                        or self._plain_windows_path(Path(directory) / name)
+                    )
                 )
                 names.extend((Path(directory) / name).relative_to(self.root).as_posix() for name in files)
                 if len(names) >= 10_000:

@@ -114,6 +114,7 @@ export function ModelRowsEditor({
 	upstream = [],
 	fetching = false,
 	fetchError = null,
+	fetchDisabled = false,
 	onFetch,
 }: {
 	rows: ModelRow[];
@@ -122,6 +123,7 @@ export function ModelRowsEditor({
 	upstream?: readonly UpstreamModelInfo[];
 	fetching?: boolean;
 	fetchError?: string | null;
+	fetchDisabled?: boolean;
 	/** 触发「自动获取模型」；不传则不显示该按钮 */
 	onFetch?: () => void;
 }) {
@@ -154,6 +156,20 @@ export function ModelRowsEditor({
 
 	return (
 		<div className="mt-1.5">
+			<div className="mb-2 flex items-center justify-between gap-3">
+				<h4 className="text-ui-12 font-medium text-ink-dim">{t("modelAdvanced.modelId")}</h4>
+				{onFetch && (
+					<button
+						type="button"
+						className="flex items-center gap-1 rounded-lg bg-hover px-2 py-1 text-ui-11 text-ink-dim transition-colors hover:text-ink disabled:opacity-40"
+						disabled={fetching || fetchDisabled}
+						onClick={onFetch}
+					>
+						<DownloadIcon size={11} />
+						{fetching ? t("settings.providers.fetchingUpstream") : t("settings.providers.fetchUpstream")}
+					</button>
+				)}
+			</div>
 			{rows.map((row, i) => (
 				// 行随增删变化，无稳定 id，用序号做 key（局部编辑器，重排场景不存在）
 				// biome-ignore lint/suspicious/noArrayIndexKey: 行编辑器无稳定标识
@@ -186,17 +202,6 @@ export function ModelRowsEditor({
 					<PlusIcon size={10} />
 					{t("modelAccess.addManual")}
 				</button>
-				{onFetch && (
-					<button
-						type="button"
-						className="flex items-center gap-1 rounded-lg bg-hover px-2 py-1 text-ui-11 text-ink-dim transition-colors hover:text-ink disabled:opacity-40"
-						disabled={fetching}
-						onClick={onFetch}
-					>
-						<DownloadIcon size={11} />
-						{fetching ? t("settings.providers.fetchingUpstream") : t("settings.providers.fetchUpstream")}
-					</button>
-				)}
 				{rows.some((row) => row.id.trim()) && (
 					<button
 						type="button"

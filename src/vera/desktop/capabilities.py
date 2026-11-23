@@ -4,9 +4,9 @@ from pathlib import Path
 
 from vera.agents.subagents import SubagentConfig
 from vera.environments.sandbox_profiles import SandboxProfiles
-from vera.markets.mcp import MCPRegistry
+from vera.markets.docker import DockerCatalog
 from vera.markets.skills import SkillMarket
-from vera.plugins import PluginManager
+from vera.plugins import PluginManager, load_plugins
 from vera.plugins.source import PluginSource
 from vera.terminal.session import COMMANDS
 from vera.tools.mcp import parse_mcp_servers
@@ -36,6 +36,7 @@ class Capabilities:
         "setSubagentPreferBuiltin",
         "listSubagents",
         "getBehaviorSettings",
+        "getCommandShells",
         "saveBehaviorSettings",
         "getSubagentRoles",
         "saveSubagentRoles",
@@ -43,8 +44,12 @@ class Capabilities:
         "saveSandboxProfiles",
         "mcpConfigList",
         "mcpConfigUpsert",
+        "saveMcpJson",
+        "discoverLocalMcpConfigs",
+        "loadLocalMcpConfig",
         "mcpConfigRemove",
         "mcpConfigReload",
+        "probeMcpServer",
         "listSlashCommands",
         "listSlashCommandsForCwd",
         "getLoadedResources",
@@ -56,6 +61,8 @@ class Capabilities:
         "getPlugins",
         "pluginAction",
         "pluginMarket",
+        "getPluginRepositories",
+        "addPluginRepository",
         "searchMcpMarket",
         "inspectMcpMarket",
         "addMcpMarket",
@@ -70,6 +77,7 @@ class Capabilities:
         self.store = service.store
         self.profiles = SandboxProfiles(self.store.directory / "sandboxes.sqlite3")
         self.plugins = PluginManager(self.store.directory / "plugins")
+        self.mcp_market = DockerCatalog(self.store)
 
     def preferences(self):
         return self.store.get(
@@ -79,6 +87,11 @@ class Capabilities:
         )
 
     def invoke(self, method: str, args: dict):
+        if method in {"discoverLocalMcpConfigs", "loadLocalMcpConfig"}:
+            from vera.desktop.mcp_discovery import discover, load
+
+            workspace = Path(args.get("cwd") or self.store.directory).expanduser().resolve(strict=True)
+            return discover(workspace) if method == "discoverLocalMcpConfigs" else load(workspace, args["id"])
         providers = self.service.providers
         if method == "getCapabilityStatus":
             return {
@@ -97,11 +110,9 @@ class Capabilities:
                     "scheduler": True,
                     "plan": True,
                     "goal": True,
-                    "oauth": False,
                     "ssh": False,
-                    "accountQuota": False,
                     "manualCompaction": False,
-                    "lanControl": False,
+                    "lanControl": True,
                 },
             }
         if method == "listProviders":
@@ -203,12 +214,20 @@ class Capabilities:
                     "defaultSandbox": None,
                 },
             )
+        if method == "getCommandShells":
+            from vera.desktop.shells import command_shells
+
+            return [
+                {key: value for key, value in row.items() if key != "command"}
+                for row in command_shells(refresh=args.get("refresh", False))
+            ]
         if method == "saveBehaviorSettings":
             value = args["settings"]
             if value.get("permissionPolicy") not in {"confirm", "human", "yolo"}:
                 raise ValueError("Choose confirm, human or yolo.")
-            if value.get("commandShell") not in {"system", "git-bash", "bash"}:
-                raise ValueError("VERA local execution currently uses Bash. Choose Git Bash or Bash.")
+            from vera.desktop.shells import shell_command
+
+            shell_command(value.get("commandShell", "system"))
             self.store.save("settings", "behavior", value)
             return value
         if method in {"getSubagentRoles", "listSubagents"}:
@@ -234,9 +253,6 @@ class Capabilities:
                             "instructions",
                             "tools",
                             "skills",
-                            "step_limit",
-                            "cost_limit",
-                            "wall_time_limit_seconds",
                         )
                     }
                     if row.get("model"):
@@ -279,6 +295,8 @@ class Capabilities:
                     "exposure": "direct",
                     "tools": [],
                     "description": row.get("description", ""),
+                    "verification": self.store.get("mcp-verification", name),
+                    "config": row["config"],
                     "transport": {"kind": "url", "url": row["config"]["url"]}
                     if row["config"].get("url")
                     else {"kind": "stdio", "command": row["config"]["command"], "args": row["config"].get("args", [])},
@@ -292,6 +310,29 @@ class Capabilities:
                 "projectTrusted": True,
                 "globalPath": str(self.store.path),
             }
+        if method == "saveMcpJson":
+            from vera.plugins.manifest import _servers
+
+            value = args.get("config")
+            if not isinstance(value, dict) or not value:
+                raise ValueError("请提供非空的 mcpServers JSON 对象。")
+            # Reuse the plugin transport normalizer for standard type/env/header
+            # syntax. All entries are validated before any configuration is saved.
+            parsed = _servers(self.store.directory, value)
+            if not parsed:
+                raise ValueError("配置中没有 MCP 服务。")
+            entries = self.store.get("settings", "mcp", {})
+            for name, config in parsed.items():
+                previous = entries.get(name, {})
+                entries[name] = {
+                    "config": config.model_dump(exclude_none=True),
+                    "enabled": previous.get("enabled", False),
+                    "description": previous.get("description", ""),
+                }
+            self.store.save("settings", "mcp", entries)
+            for name in parsed:
+                self.store.delete("mcp-verification", name)
+            return self.mcp_mutation()
         if method == "mcpConfigUpsert":
             row = args.get("input", args)
             if row.get("scope") == "project":
@@ -304,20 +345,32 @@ class Capabilities:
             parse_mcp_servers({row["name"]: config})
             entries[row["name"]] = {
                 "config": config,
-                "enabled": row.get("enabled", False),
-                "description": row.get("description", ""),
+                "enabled": row.get("enabled", entries.get(row["name"], {}).get("enabled", False)),
+                "description": row.get("description", entries.get(row["name"], {}).get("description", "")),
             }
             self.store.save("settings", "mcp", entries)
+            self.store.delete("mcp-verification", row["name"])
             return self.mcp_mutation()
         if method == "mcpConfigRemove":
             if args.get("scope") == "project":
                 raise ValueError("Project MCP configuration is not managed by this desktop.")
             entries = self.store.get("settings", "mcp", {})
             entries.pop(args["name"], None)
+            self.store.delete("mcp-verification", args["name"])
             self.store.save("settings", "mcp", entries)
             return self.mcp_mutation()
         if method == "mcpConfigReload":
             return self.mcp_mutation()
+        if method == "probeMcpServer":
+            from vera.desktop.mcp import probe_server
+
+            entry = self.store.get("settings", "mcp", {}).get(args["name"])
+            if entry is None:
+                raise ValueError("Unknown MCP server.")
+            result = probe_server(args["name"], entry["config"])
+            if self.store.get("settings", "mcp", {}).get(args["name"]) == entry:
+                self.store.save("mcp-verification", args["name"], result)
+            return result
         if method in {"listSlashCommands", "listSlashCommandsForCwd", "getLoadedResources"}:
             cwd = (
                 Path(self.service.sessions.get(args["sessionId"])["meta"]["cwd"])
@@ -325,14 +378,23 @@ class Capabilities:
                 else Path(args.get("cwd") or self.store.directory)
             )
             skills = discover_skills(SkillConfig(directories=[self.store.directory / "skills"]), cwd)
+            plugin_config = {"directory": str(self.store.directory / "plugins")}
+            if args.get("sessionId"):
+                selections = self.service.sessions.get(args["sessionId"])["selections"]
+                if "plugins" in selections:
+                    plugin_config["names"] = selections["plugins"]
+            plugin_skills = load_plugins({"plugins": plugin_config}).skills
+            skills.update(plugin_skills)
             if method == "getLoadedResources":
                 return {
                     "skills": [
                         {
                             "name": name,
                             "description": skill.description,
-                            "scope": "user",
-                            "source": "VERA",
+                            "scope": "project"
+                            if skill.directory.is_relative_to(cwd / ".agents" / "skills")
+                            else "user",
+                            "source": "plugin" if name in plugin_skills else "VERA",
                             "path": str(skill.directory / "SKILL.md"),
                             "disableModelInvocation": False,
                         }
@@ -406,7 +468,6 @@ class Capabilities:
         if method == "listConfiguredPackages":
             return self.store.list("package")
         if method == "checkPackageUpdates":
-            # These are pinned Git skills, not npm packages. Updating requires explicit reinstall.
             return []
         if method == "removePackage":
             from vera.markets.skills import remove_market_skill
@@ -418,15 +479,15 @@ class Capabilities:
             self.store.delete("package", args["source"])
             return None
         if method == "searchMcpMarket":
-            return MCPRegistry().search(args.get("query", ""))
+            return self.mcp_market.search(args.get("query", ""), refresh=bool(args.get("refresh")))
         if method == "inspectMcpMarket":
-            return MCPRegistry().preview(args["identifier"])
+            return self.mcp_market.preview(args["identifier"])
         if method == "addMcpMarket":
-            plan = MCPRegistry().preview(args["identifier"])
-            if plan["required_inputs"] or plan["missing_environment"]:
-                raise ValueError(
-                    "Configure the required arguments or credential environment before adding this service."
-                )
+            plan = self.mcp_market.preview(args["identifier"])
+            if args.get("version") and args["version"] != plan["version"]:
+                raise ValueError("目录已更新，请重新查看此服务的配置后添加。")
+            if plan["required_inputs"]:
+                raise ValueError("Configure the required arguments before adding this service.")
             entries = self.store.get("settings", "mcp", {})
             if plan["name"] in entries:
                 raise ValueError("An MCP service already uses this name.")
@@ -438,30 +499,114 @@ class Capabilities:
             return [
                 {
                     "id": name,
-                    "name": name,
+                    "name": row.get("displayName", name),
                     "description": row.get("description", ""),
+                    "longDescription": row.get("longDescription", ""),
+                    "icon": row.get("icon", ""),
                     "version": row.get("version", row.get("commit", ""))[:12],
-                    "author": "",
+                    "author": row.get("author", {}).get("name", "")
+                    if isinstance(row.get("author", {}), dict)
+                    else str(row["author"]),
                     "category": "development",
-                    "capabilities": [],
+                    "capabilities": [
+                        *["skill:" + skill for skill in row.get("skills", [])],
+                        *["mcp:" + server for server in row.get("mcp_servers", {})],
+                        *["subagent:" + role for role in row.get("subagents", [])],
+                    ],
                     "source": row.get("source", ""),
                     "enabled": row["enabled"],
                     "status": "ready",
                 }
                 for name, row in rows
             ]
+        if method == "getPluginRepositories":
+            return [
+                {"id": "anthropic", "name": "Anthropic 官方 · GitHub"},
+                {"id": "github", "name": "Codex 官方 · GitHub"},
+                {"id": "gitee", "name": "Claude Code · Gitee"},
+                *[
+                    {"id": name, "name": name, "source": row["source"]}
+                    for name, row in self.plugins.list_marketplaces().items()
+                    if name not in {"claude-plugins-official", "openai-curated", "claude-code-plugins"}
+                ],
+            ]
+        if method == "addPluginRepository":
+            from vera.plugins.source import normalize_source
+
+            source = normalize_source(args["source"])
+            existing = next(
+                ((name, row) for name, row in self.plugins.list_marketplaces().items() if row["source"] == source), None
+            )
+            if existing:
+                name, catalog = existing
+            else:
+                catalog = self.plugins.add_marketplace(source)
+                name = catalog["name"]
+            alias = {
+                "claude-plugins-official": "anthropic",
+                "openai-curated": "github",
+                "claude-code-plugins": "gitee",
+            }.get(name, name)
+            return {"id": alias, "name": name, "source": catalog["source"]}
         if method == "pluginMarket":
-            self.plugins.use_marketplace(PluginSource(args.get("source", "github")))
-            catalog = self.plugins.list_marketplaces()[self.plugins.selected_marketplace()]
+            source = args.get("source", "anthropic")
+            if source in {"github", "gitee"}:
+                selected = self.plugins.use_marketplace(PluginSource(source), refresh=bool(args.get("refresh")))
+                name = selected["marketplace"]
+            elif source == "anthropic":
+                name = "claude-plugins-official"
+                if name not in self.plugins.list_marketplaces():
+                    self.plugins.add_marketplace("anthropics/claude-plugins-official")
+                elif args.get("refresh"):
+                    self.plugins.refresh_marketplace(name)
+            else:
+                name = source
+                if args.get("refresh"):
+                    self.plugins.refresh_marketplace(name)
+            marketplace_name = name
+            catalog = self.plugins.list_marketplaces()[marketplace_name]
+            if catalog.get("presentation_version") != 1:
+                self.plugins.refresh_marketplace(marketplace_name)
+                catalog = self.plugins.list_marketplaces()[marketplace_name]
             return [
                 {
                     "id": name,
-                    "name": name,
-                    "description": entry.get("unsupported", ""),
-                    "version": catalog["commit"][:12],
-                    "author": args.get("source", "github"),
-                    "category": "development",
-                    "capabilities": [],
+                    "name": entry.get("displayName", name),
+                    "marketplace": marketplace_name,
+                    "description": entry.get("description") or entry.get("shortDescription", ""),
+                    "longDescription": entry.get("longDescription", ""),
+                    "compatibility": entry.get("unsupported", ""),
+                    "source": catalog["source"],
+                    "version": entry.get("version") or (catalog["commit"] or "local")[:12],
+                    "author": entry.get("author", {}).get("name", source)
+                    if isinstance(entry.get("author", {}), dict)
+                    else entry["author"],
+                    "category": str(entry.get("category", "development")).lower()
+                    if str(entry.get("category", "development")).lower() in {"development", "design", "productivity"}
+                    else "development",
+                    "capabilities": (
+                        entry.get("capabilities")
+                        or [
+                            capability
+                            for capability, marker in (
+                                ("skills", entry.get("skills")),
+                                ("mcp", entry.get("mcpServers", entry.get("mcp_servers"))),
+                                ("subagents", entry.get("subagents")),
+                            )
+                            if marker
+                        ]
+                        or [str(entry.get("category", "development")).lower()]
+                    ),
+                    "icon": entry.get("icon")
+                    or (
+                        "skills"
+                        if entry.get("skills")
+                        else "mcp"
+                        if entry.get("mcpServers", entry.get("mcp_servers"))
+                        else "subagents"
+                        if entry.get("subagents")
+                        else str(entry.get("category", "development")).lower()
+                    ),
                     "enabled": False,
                     "status": "error" if entry.get("unsupported") else "ready",
                 }
@@ -470,7 +615,9 @@ class Capabilities:
         if method == "pluginAction":
             action, name = args["action"], args["name"]
             if action == "install":
-                if args.get("source"):
+                if args.get("marketplace"):
+                    self.plugins.install_from_marketplace(name, args["marketplace"])
+                elif args.get("source"):
                     self.plugins.install(args["source"])
                 else:
                     self.plugins.install_named(name)

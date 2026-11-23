@@ -1,5 +1,9 @@
-import type { CustomProviderModelInput, ModelThinkingLevelMap } from "@vera/contracts";
-import { type ModelAdvancedOptions, validateModelAdvanced } from "../../../stores/model-advanced-preferences";
+import type { CustomProviderModelInput, ModelRequestOptions, ModelThinkingLevelMap } from "@vera/contracts";
+import {
+	DEFAULT_MODEL_ADVANCED,
+	type ModelAdvancedOptions,
+	validateModelAdvanced,
+} from "../../../stores/model-advanced-preferences";
 
 /** 模型行编辑器的一行：数字字段保留原文（支持 k/M 后缀），提交时才解析 */
 export interface ModelRow {
@@ -10,7 +14,7 @@ export interface ModelRow {
 	imageInput: boolean;
 	/** 从 SDK 内置目录带出的思考档位映射；行内不可编辑，原样回传落盘 */
 	thinkingLevelMap?: ModelThinkingLevelMap;
-	/** 仅保存到本机前端偏好，rowsToModelInputs 不会向现有后端发送这些字段。 */
+	/** 提交时转换成后端验证并执行的模型参数。 */
 	advanced?: ModelAdvancedOptions;
 }
 
@@ -55,10 +59,23 @@ export function modelsToRows(
 		contextWindow?: number;
 		maxTokens?: number;
 		imageInput?: boolean;
+		advanced?: ModelRequestOptions;
 	}[],
 ): ModelRow[] {
 	const rows = models.map((m) => ({
 		id: m.id,
+		...(m.advanced
+			? {
+					advanced: {
+						toolCallLimit: String(m.advanced.toolCallLimit ?? DEFAULT_MODEL_ADVANCED.toolCallLimit),
+						reasoningParameter: m.advanced.reasoningParameter ?? DEFAULT_MODEL_ADVANCED.reasoningParameter,
+						reasoningValues: [...(m.advanced.reasoningValues ?? DEFAULT_MODEL_ADVANCED.reasoningValues)],
+						temperature: m.advanced.temperature === undefined ? "" : String(m.advanced.temperature),
+						topP: m.advanced.topP === undefined ? "" : String(m.advanced.topP),
+						topK: m.advanced.topK === undefined ? "" : String(m.advanced.topK),
+					},
+				}
+			: {}),
 		contextWindow: m.contextWindow !== undefined ? formatTokenCount(m.contextWindow) : "",
 		maxTokens: m.maxTokens !== undefined ? formatTokenCount(m.maxTokens) : "",
 		reasoning: m.reasoning === true,
@@ -74,12 +91,25 @@ export function rowsToModelInputs(rows: ModelRow[]): CustomProviderModelInput[] 
 		.filter((row) => row.id.trim())
 		.map((row) => ({
 			id: row.id.trim(),
+			advanced: toRequestOptions(row.advanced ?? DEFAULT_MODEL_ADVANCED),
 			reasoning: row.reasoning || undefined,
 			...(row.thinkingLevelMap ? { thinkingLevelMap: row.thinkingLevelMap } : {}),
 			contextWindow: (row.contextWindow.trim() && parseTokenCount(row.contextWindow)) || undefined,
 			maxTokens: (row.maxTokens.trim() && parseTokenCount(row.maxTokens)) || undefined,
 			imageInput: row.imageInput || undefined,
 		}));
+}
+
+/** Empty sampling inputs inherit provider defaults; zero remains an explicit valid value. */
+function toRequestOptions(value: ModelAdvancedOptions): ModelRequestOptions {
+	return {
+		toolCallLimit: Number(value.toolCallLimit || 500),
+		reasoningParameter: value.reasoningParameter.trim(),
+		reasoningValues: value.reasoningValues,
+		...(value.temperature.trim() ? { temperature: Number(value.temperature) } : {}),
+		...(value.topP.trim() ? { topP: Number(value.topP) } : {}),
+		...(value.topK.trim() ? { topK: Number(value.topK) } : {}),
+	};
 }
 
 /**
@@ -112,6 +142,7 @@ export function splitPastedModelIds(text: string): [string, ...string[]] | null 
  */
 export function rowFromUpstreamModel(model: {
 	id: string;
+	reasoningValues?: string[];
 	reasoning?: boolean;
 	thinkingLevelMap?: ModelThinkingLevelMap;
 	contextWindow?: number;
@@ -120,6 +151,9 @@ export function rowFromUpstreamModel(model: {
 }): ModelRow {
 	return {
 		id: model.id,
+		...(model.reasoningValues
+			? { advanced: { ...DEFAULT_MODEL_ADVANCED, reasoningValues: model.reasoningValues } }
+			: {}),
 		contextWindow: model.contextWindow === undefined ? "" : formatTokenCount(model.contextWindow),
 		maxTokens: model.maxTokens === undefined ? "" : formatTokenCount(model.maxTokens),
 		reasoning: model.reasoning === true,

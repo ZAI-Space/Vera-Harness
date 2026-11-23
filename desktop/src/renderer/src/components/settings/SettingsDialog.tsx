@@ -2,7 +2,6 @@ import { LOCAL_ENVIRONMENT } from "@vera/contracts";
 import type { ComponentType, CSSProperties } from "react";
 import { useMemo, useRef } from "react";
 import { EnvironmentContext } from "../../environment-context";
-import { isHarnessConnected } from "../../harness-api";
 import { useT } from "../../i18n";
 import { useEdgeFade } from "../../lib/use-edge-fade";
 import { PluginBoundary } from "../../plugins/PluginBoundary";
@@ -14,10 +13,11 @@ import { useUiPluginsStore } from "../../stores/ui-plugins";
 import {
 	ArchiveIcon,
 	DevicesIcon,
-	FileTextIcon,
+	EditIcon,
 	GearIcon,
 	InfoIcon,
 	PuzzleIcon,
+	SearchIcon,
 	ShieldIcon,
 	SlidersIcon,
 	SubagentIcon,
@@ -26,51 +26,55 @@ import { AboutPanel } from "./AboutPanel";
 import { AppearancePanel } from "./AppearancePanel";
 import { ArchivedChatsPanel } from "./ArchivedChatsPanel";
 import { BehaviorPanel } from "./BehaviorPanel";
-import { ExtensionsPanel } from "./extensions/ExtensionsPanel";
-import { LanObserverPanel } from "./LanObserverPanel";
 import { McpPanel } from "./mcp/McpPanel";
 import { ProvidersPanel } from "./providers/ProvidersPanel";
-import { SkillsPanel } from "./SkillsPanel";
+import { RemoteConnectionsPanel } from "./RemoteConnectionsPanel";
+import { RulesMemoryPanel } from "./RulesMemoryPanel";
+import { StatisticsPanel } from "./StatisticsPanel";
 import { SubagentsPanel } from "./subagents/SubagentsPanel";
+import { WebToolsPanel } from "./WebToolsPanel";
 
 const STATIC_CATEGORIES = [
 	"appearance",
 	"behavior",
+	"rules",
 	"subagents",
 	"archived",
 	"models",
-	"skills",
+	"web",
 	"mcp",
-	"extensions",
 	"lan",
+	"statistics",
 	"about",
 ] as const satisfies readonly SettingsCategory[];
 
 const CATEGORY_ICONS = {
 	appearance: GearIcon,
 	behavior: ShieldIcon,
+	rules: EditIcon,
+	statistics: SlidersIcon,
+	about: InfoIcon,
 	subagents: SubagentIcon,
 	archived: ArchiveIcon,
 	models: SlidersIcon,
-	skills: FileTextIcon,
+	web: SearchIcon,
 	mcp: SubagentIcon,
-	extensions: PuzzleIcon,
 	lan: DevicesIcon,
-	about: InfoIcon,
 } satisfies Record<(typeof STATIC_CATEGORIES)[number], ComponentType<{ size?: number }>>;
 
 /** 面板注册表：新增分类 = 写一个面板组件 + 在这里登记（未登记显示 coming soon） */
 const PANELS: Partial<Record<SettingsCategory, ComponentType>> = {
 	appearance: AppearancePanel,
 	behavior: BehaviorPanel,
+	rules: RulesMemoryPanel,
+	statistics: StatisticsPanel,
+	about: AboutPanel,
 	subagents: SubagentsPanel,
 	archived: ArchivedChatsPanel,
 	models: ProvidersPanel,
-	skills: SkillsPanel,
+	web: WebToolsPanel,
 	mcp: McpPanel,
-	extensions: ExtensionsPanel,
-	lan: LanObserverPanel,
-	about: AboutPanel,
+	lan: RemoteConnectionsPanel,
 };
 
 /** settings.panel 贡献的分类 id：plugin:<pluginName>:<contributionId>（spec §17） */
@@ -135,7 +139,7 @@ function SettingsDialogBody() {
 
 	return (
 		<div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/20" role="dialog" aria-modal>
-			<div className="flex h-[70vh] w-[720px] flex-col overflow-hidden rounded-xl bg-surface shadow-dialog">
+			<div className="flex h-[80vh] w-[900px] max-w-[95vw] flex-col overflow-hidden rounded-xl bg-surface shadow-dialog">
 				{/* 顶栏底边不画 1px 实线（与对话页顶栏同一决策）：下面的内容滚动时用边界淡出区分 */}
 				<div className="flex shrink-0 items-center justify-between px-4 py-3">
 					<h2 className="text-ui-14 leading-[calc(1.25_/_0.875)] font-semibold text-ink">
@@ -162,12 +166,6 @@ function SettingsDialogBody() {
 							return (
 								<button
 									key={id}
-									disabled={isHarnessConnected() && (id === "lan" || id === "extensions")}
-									title={
-										isHarnessConnected() && (id === "lan" || id === "extensions")
-											? "Unavailable in this VERA runtime"
-											: undefined
-									}
 									type="button"
 									className={`mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-ui-13 transition-colors ${
 										category === id

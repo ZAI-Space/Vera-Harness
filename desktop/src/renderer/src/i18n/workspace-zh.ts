@@ -2,6 +2,16 @@
 export const workspaceZh = {
 	workspace: { preview: "前端预览：插件与定时任务尚未连接服务，草稿仅保留在本次运行。" },
 	plugins: {
+		addRepository: "添加插件仓库",
+		repositoryHint: "添加包含插件市场清单的仓库，保存后可在来源筛选中选择。",
+		repositoryName: "仓库名称",
+		saveRepository: "添加仓库",
+		sourceFilter: "筛选来源",
+		refreshMarket: "更新目录",
+		configureRepository: "配置仓库",
+		loadingMarket: "正在加载插件市场…",
+		retryMarket: "重新加载",
+		emptyMarket: "此市场暂无可安装插件",
 		title: "插件",
 		description: "浏览与管理扩展能力，让工作区适合你的工作方式。",
 		tabs: { installed: "已添加", market: "插件市场" },

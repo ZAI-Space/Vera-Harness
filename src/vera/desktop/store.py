@@ -9,6 +9,8 @@ from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
+from vera.desktop.media_codec import decode_images, encode_images
+
 
 class DesktopStore:
     """Atomic JSON documents in SQLite; callers receive detached copies.
@@ -24,23 +26,71 @@ class DesktopStore:
         self.lock = threading.RLock()
         with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("CREATE TABLE IF NOT EXISTS documents (kind TEXT, id TEXT, value TEXT, PRIMARY KEY(kind,id))")
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS image_blobs (owner TEXT, digest TEXT, content BLOB, PRIMARY KEY(owner,digest))"
+            )
+            db.execute("CREATE TABLE IF NOT EXISTS image_layouts (owner TEXT PRIMARY KEY)")
 
     def get(self, kind: str, key: str, default=None):
         with self.lock, closing(sqlite3.connect(self.path)) as db:
             row = db.execute("SELECT value FROM documents WHERE kind=? AND id=?", (kind, key)).fetchone()
-        return json.loads(row[0]) if row else deepcopy(default)
+            return (
+                decode_images(json.loads(row[0]), key, db)
+                if row and kind == "session"
+                else json.loads(row[0])
+                if row
+                else deepcopy(default)
+            )
 
     def save(self, kind: str, key: str, value) -> None:
         with self.lock, closing(sqlite3.connect(self.path)) as db, db:
+            if kind in {"session", "delegated-session"}:
+                # Saving a pre-event snapshot must never rewind the client's replay cursor.
+                previous = db.execute("SELECT value FROM documents WHERE kind=? AND id=?", (kind, key)).fetchone()
+                sequence = json.loads(previous[0]).get("sequence", 0) if previous else 0
+                value = value | {"sequence": max(sequence, value.get("sequence", 0))}
+            if kind == "session" and db.execute("SELECT 1 FROM image_layouts WHERE owner=?", (key,)).fetchone():
+                blobs = {}
+                value = encode_images(value, blobs)
+                db.executemany(
+                    "INSERT OR IGNORE INTO image_blobs VALUES (?,?,?)",
+                    [(key, digest, content) for digest, content in blobs.items()],
+                )
             db.execute("INSERT OR REPLACE INTO documents VALUES (?,?,?)", (kind, key, json.dumps(value)))
 
     def delete(self, kind: str, key: str) -> None:
         with self.lock, closing(sqlite3.connect(self.path)) as db, db:
             db.execute("DELETE FROM documents WHERE kind=? AND id=?", (kind, key))
+            if kind == "session":
+                db.execute("DELETE FROM image_blobs WHERE owner=?", (key,))
+                db.execute("DELETE FROM image_layouts WHERE owner=?", (key,))
 
     def list(self, kind: str) -> list:
         with self.lock, closing(sqlite3.connect(self.path)) as db:
-            return [json.loads(row[0]) for row in db.execute("SELECT value FROM documents WHERE kind=?", (kind,))]
+            return [
+                decode_images(json.loads(row[1]), row[0], db) if kind == "session" else json.loads(row[1])
+                for row in db.execute("SELECT id,value FROM documents WHERE kind=?", (kind,)).fetchall()
+            ]
+
+    def image_layout(self, key: str, value: dict, *, enabled: bool, records: tuple = ()) -> None:
+        """Atomically compact/restore one session without changing its decoded content."""
+        with self.lock, closing(sqlite3.connect(self.path)) as db, db:
+            blobs = {}
+            stored = encode_images(value, blobs) if enabled else value
+            db.execute("DELETE FROM image_blobs WHERE owner=?", (key,))
+            db.execute("DELETE FROM image_layouts WHERE owner=?", (key,))
+            if enabled:
+                db.execute("INSERT INTO image_layouts VALUES (?)", (key,))
+                db.executemany(
+                    "INSERT INTO image_blobs VALUES (?,?,?)",
+                    [(key, digest, content) for digest, content in blobs.items()],
+                )
+            db.execute("UPDATE documents SET value=? WHERE kind='session' AND id=?", (json.dumps(stored), key))
+            db.executemany(
+                "INSERT OR REPLACE INTO documents VALUES (?,?,?)",
+                [(kind, identifier, json.dumps(document)) for kind, identifier, document in records],
+            )
+        self.checkpoint_session(value)
 
     def create_session(self, options: dict) -> dict:
         """Bind a new conversation to a real workspace; no model request is made."""
@@ -82,4 +132,8 @@ class DesktopStore:
 
         path = self.directory / "sessions" / (value["meta"]["sessionId"] + ".json")
         path.parent.mkdir(exist_ok=True)
-        write_json(path, {"meta": value["meta"], "messages": value["messages"]})
+        exported = {"meta": value["meta"], "messages": value["messages"]}
+        with self.lock, closing(sqlite3.connect(self.path)) as db:
+            if db.execute("SELECT 1 FROM image_layouts WHERE owner=?", (value["meta"]["sessionId"],)).fetchone():
+                exported = encode_images(exported, {})
+        write_json(path, exported)

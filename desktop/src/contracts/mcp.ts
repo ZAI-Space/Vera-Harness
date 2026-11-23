@@ -20,6 +20,7 @@ export type McpTransportView =
 /** 单个 MCP 工具（官方 `ToolInfo.annotations.readOnlyHint` 映射过来） */
 export interface McpToolView {
 	name: string;
+	displayName?: string;
 	/** 只读（免确认）；false/undefined = 会改动 → 调用要确认 */
 	readOnly?: boolean;
 }
@@ -49,6 +50,10 @@ export interface McpGlobalNotice {
 
 /** 单个 MCP server 的视图（配置 + 运行态合流） */
 export interface McpServerView {
+	/** Validated transport options, including environment references, for JSON editing. */
+	config?: Record<string, unknown>;
+	/** Last explicit connection test. Its transport is already closed, not a live session connection. */
+	verification?: { ok: boolean; checkedAt: number; tools: McpToolView[]; error?: string } | null;
 	name: string;
 	source: "user" | "project";
 	transport: McpTransportView;

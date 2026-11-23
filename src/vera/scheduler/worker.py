@@ -31,6 +31,12 @@ def execute(directory: Path, key: str) -> None:
     try:
         spec = JobSpec.model_validate_json(row["snapshot"])
         config = recursive_merge(get_config_from_spec("vera.yaml"), spec.config)
+        provider_ref = config.pop("desktop_provider_ref", None)
+        state_dir = config.pop("desktop_state_dir", None)
+        if provider_ref and state_dir:
+            from vera.desktop.providers import restore_model_config
+
+            restore_model_config(config, state_dir, provider_ref)
         config["scheduler"] = {"enabled": False}
         config.setdefault("environment", {})["cwd"] = str(spec.workspace)
         if "sandbox" in config:

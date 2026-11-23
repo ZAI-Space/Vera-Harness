@@ -2,10 +2,12 @@
 
 Only the desktop worker chooses these adapters. The shared Agent Loop is unchanged.
 Provider text, visible reasoning and argument fragments are forwarded on arrival;
-the completed response still goes through the original cost/action validation.
+the completed response uses the configured accounting and completion policy.
 """
 
 import json
+import time
+from uuid import uuid4
 
 import litellm
 
@@ -57,14 +59,53 @@ class StreamBlocks:
             )
 
 
-class StreamingChatModel(LitellmModel):
+class DesktopUsage:
+    """Report every consumed response once, even when later format validation rejects it."""
+
+    def query(self, messages, **kwargs):
+        """Reset attempt observation per model turn without changing its retry policy."""
+        self._desktop_attempts = 0
+        return super().query(messages, **kwargs)
+
+    def _stream_blocks(self):
+        self._desktop_attempts = getattr(self, "_desktop_attempts", 0) + 1
+        if self._desktop_attempts > 1:
+            send("retry", reason="model")
+        self._desktop_request_id = uuid4().hex
+        send("model_request", id=self._desktop_request_id)
+        return StreamBlocks()
+
+    def _calculate_cost(self, response):
+        counters = super()._calculate_cost(response)
+        if counters.get("usage_reported"):
+            identifier = uuid4().hex
+            counters["usage_id"] = identifier
+            provider, _, model = self.config.model_name.partition("/")
+            identity = self.config.usage_identity or {"provider": provider, "modelId": model}
+            send(
+                "usage",
+                id=identifier,
+                message={
+                    "timestamp": int(time.time() * 1000),
+                    "usageReported": True,
+                    "usage": counters["usage"],
+                    "provider": identity["provider"],
+                    "model": identity["modelId"],
+                    "requestId": self._desktop_request_id,
+                },
+            )
+        return counters
+
+
+class StreamingChatModel(DesktopUsage, LitellmModel):
     """Use LiteLLM's normalized Chat stream for OpenAI, Anthropic and Gemini."""
 
     def _query(self, messages, **kwargs):
-        blocks = StreamBlocks()
+        blocks = self._stream_blocks()
         chunks = []
-        stream = super()._query(messages, **(kwargs | {"stream": True, "stream_options": {"include_usage": True}}))
+        stream = None
         try:
+            stream = super()._query(messages, **(kwargs | {"stream": True, "stream_options": {"include_usage": True}}))
             for chunk in stream:
                 chunks.append(chunk)
                 if not chunk.choices:
@@ -89,20 +130,24 @@ class StreamingChatModel(LitellmModel):
             response = litellm.stream_chunk_builder(chunks, messages=messages)
             blocks.finish()
             return response
+        except Exception as error:
+            send("model_failure", category=type(error).__name__)
+            raise
         finally:
             close = getattr(stream, "close", None)
             if close:
                 close()
 
 
-class StreamingResponsesModel(LitellmResponseModel):
+class StreamingResponsesModel(DesktopUsage, LitellmResponseModel):
     """Preserve Responses reasoning items/signatures in the final provider object."""
 
     def _query(self, messages, **kwargs):
-        blocks = StreamBlocks()
+        blocks = self._stream_blocks()
         response = None
-        stream = super()._query(messages, **(kwargs | {"stream": True}))
+        stream = None
         try:
+            stream = super()._query(messages, **(kwargs | {"stream": True}))
             for event in stream:
                 value = event.model_dump() if hasattr(event, "model_dump") else dict(event)
                 kind = value.get("type")
@@ -131,6 +176,9 @@ class StreamingResponsesModel(LitellmResponseModel):
                 raise ValueError("Provider stream ended without a final response.")
             blocks.finish()
             return response
+        except Exception as error:
+            send("model_failure", category=type(error).__name__)
+            raise
         finally:
             close = getattr(stream, "close", None)
             if close:

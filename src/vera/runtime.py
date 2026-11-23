@@ -22,6 +22,8 @@ from vera.tools import ToolError, make_tool_registry
 from vera.tools.mcp import open_mcp_tools, parse_mcp_servers
 from vera.tools.skills import Skill, SkillConfig, discover_skills, register_skill_tools
 from vera.tools.web import WebConfig, configure_web_tools
+from vera.user_context import DEFAULT_DIRECTORY as USER_CONTEXT_DIRECTORY
+from vera.user_context import UserContext, apply_user_context
 
 
 @dataclass
@@ -89,6 +91,9 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
             raise ToolError("Selected MCP services are no longer available.")
         config["mcp_servers"] = {name: server for name, server in configured.items() if name in selected}
     model_config = config.get("model", {})
+    if planning or readonly or config.get("run_mode") == "goal":
+        # These modes produce host-owned artifacts/decisions through a finish tool.
+        model_config = model_config | {"allow_text_final": False}
     model = get_model(config=model_config)
     web = WebConfig.model_validate(config.get("web", {}))
     skill_config = SkillConfig.model_validate(config.get("skills", {}))
@@ -165,6 +170,9 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
 
             register_project_tools(registry, Path(workspace).expanduser().resolve())
         agent = get_agent(model, env, config.get("agent", {}), default_type=default_type, tool_registry=registry)
+        apply_user_context(
+            agent, UserContext(config.get("user_context", {}).get("directory", USER_CONTEXT_DIRECTORY)).render()
+        )
         if subagents.roles:
             register_subagent_tools(registry, agent, subagents, model_config, catalog)
         policy = sandbox.model_dump_json() if sandbox else ""

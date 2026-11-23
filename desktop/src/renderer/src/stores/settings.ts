@@ -3,6 +3,7 @@ import type {
 	CustomProviderUpdateInput,
 	LanStatus,
 	LoadedExtension,
+	LoadedResources,
 	LoadedSkill,
 	ModelPrefs,
 	ProviderInfo,
@@ -27,20 +28,25 @@ import { create, useStore } from "zustand";
 import { getDesktopApi } from "../api";
 import { getExecutionApi } from "../environment-api";
 import { useEnvironment } from "../environment-context";
+import { harness, isHarnessConnected } from "../harness-api";
+import { selectActiveCwd } from "../lib/active-cwd";
 import { useSessionsStore } from "./sessions";
 import { pushToast } from "./toasts";
 
 export type SettingsCategory =
 	| "appearance"
 	| "behavior"
+	| "rules"
+	| "statistics"
+	| "about"
 	| "subagents"
 	| "archived"
 	| "models"
+	| "web"
 	| "skills"
 	| "mcp"
 	| "extensions"
 	| "lan"
-	| "about"
 	// 插件自带设置页分类（settings.panel 贡献动态拼接，id = plugin:<pluginName>:<contributionId>）
 	| `plugin:${string}`;
 
@@ -65,6 +71,7 @@ interface SettingsStore {
 	/** 局域网观察服务运行状态（null = 未加载）。 */
 	lanStatus: LanStatus | null;
 	lanSaving: boolean;
+	lanError: string | null;
 	/** 当前活跃会话已加载的 skills（null = 未加载/无会话） */
 	skills: LoadedSkill[] | null;
 	skillDiagnostics: ResourceDiagnosticInfo[];
@@ -321,16 +328,18 @@ function createSettingsStore(environment: EnvironmentRef) {
 		const loadLoadedResources = async (): Promise<void> => {
 			const activeSessionId = useSessionsStore.getState().activeSessionId;
 			if (
-				!activeSessionId ||
-				!sameEnvironment(environmentEntityRef(activeSessionId).environment, environment)
+				(!activeSessionId && !isHarnessConnected()) ||
+				(activeSessionId && !sameEnvironment(environmentEntityRef(activeSessionId).environment, environment))
 			) {
 				set({ skills: null, skillDiagnostics: [], extensions: null, extensionErrors: [] });
 				return;
 			}
 			try {
-				const resources = await getExecutionApi(environment).getLoadedResources({
-					sessionId: activeSessionId,
-				});
+				const resources = activeSessionId
+					? await getExecutionApi(environment).getLoadedResources({ sessionId: activeSessionId })
+					: await harness<LoadedResources>("getLoadedResources", {
+							cwd: selectActiveCwd(useSessionsStore.getState()) ?? undefined,
+						});
 				// 竞态守卫：await 期间活跃会话已切换则丢弃（防把 A 项目的资源写到 B 会话的面板）
 				if (useSessionsStore.getState().activeSessionId === activeSessionId) {
 					set({
@@ -351,6 +360,39 @@ function createSettingsStore(environment: EnvironmentRef) {
 		 */
 		let permissionFlight: Promise<void> | null = null;
 		let codemodeRevision = 0;
+		let lanRevision = 0;
+		let lanReadSequence = 0;
+		/** 状态读取不得覆盖较新的开关结果；后台读取失败不接管其他面板的错误。 */
+		const readLanStatus = async (silent = false): Promise<void> => {
+			if (get().lanSaving) return;
+			const revision = lanRevision;
+			const sequence = ++lanReadSequence;
+			const isCurrent = () => revision === lanRevision && sequence === lanReadSequence && !get().lanSaving;
+			try {
+				const lanStatus = await getDesktopApi().lanGetStatus();
+				if (isCurrent()) set({ lanStatus, lanError: null });
+			} catch (error) {
+				if (isCurrent() && !silent) set({ lanError: errorMessage(error), error: errorMessage(error) });
+			}
+		};
+		/** 两个互联开关串行写入，查询和重复点击都不能抢占正在保存的状态。 */
+		const changeLan = async (
+			method: "lanSetEnabled" | "lanSetRemoteControl",
+			enabled: boolean,
+		): Promise<void> => {
+			if (get().lanSaving) return;
+			++lanRevision;
+			set({ lanSaving: true });
+			try {
+				const lanStatus = await getDesktopApi()[method]({ enabled });
+				set({ lanStatus, lanError: null });
+			} catch (error) {
+				set({ lanError: errorMessage(error), error: errorMessage(error) });
+			} finally {
+				++lanRevision;
+				set({ lanSaving: false });
+			}
+		};
 		const loadPermissionGate = (): Promise<void> => {
 			if (permissionFlight) return permissionFlight;
 			const work = getExecutionApi(environment)
@@ -406,7 +448,10 @@ function createSettingsStore(environment: EnvironmentRef) {
 				case "behavior":
 				case "subagents":
 				case "mcp":
+				case "statistics":
+				case "rules":
 				case "about":
+				case "web":
 					break;
 				default:
 					void get().refresh();
@@ -418,10 +463,7 @@ function createSettingsStore(environment: EnvironmentRef) {
 			void loadPermissionGate();
 			loadGeneral();
 			// Full-refresh's historical silent LAN read must not take over the catalog error field.
-			void getDesktopApi()
-				.lanGetStatus()
-				.then((lanStatus) => set({ lanStatus }))
-				.catch(() => {});
+			void readLanStatus(true);
 			await loadModelsData("local");
 			// 已加载资源：顺序排在目录之后（沿用改造前顺序）；目录失败也照取
 			await loadLoadedResources();
@@ -442,6 +484,7 @@ function createSettingsStore(environment: EnvironmentRef) {
 			codemodeSaving: false,
 			lanStatus: null,
 			lanSaving: false,
+			lanError: null,
 			skills: null,
 			skillDiagnostics: [],
 			extensions: null,
@@ -535,33 +578,9 @@ function createSettingsStore(environment: EnvironmentRef) {
 				}
 			},
 
-			refreshLanStatus: async () => {
-				try {
-					set({ lanStatus: await getDesktopApi().lanGetStatus() });
-				} catch (error) {
-					set({ error: errorMessage(error) });
-				}
-			},
-
-			setLanEnabled: async (enabled) => {
-				set({ lanSaving: true });
-				try {
-					const lanStatus = await getDesktopApi().lanSetEnabled({ enabled });
-					set({ lanStatus, lanSaving: false });
-				} catch (error) {
-					set({ lanSaving: false, error: error instanceof Error ? error.message : String(error) });
-				}
-			},
-
-			setLanRemoteControl: async (enabled) => {
-				set({ lanSaving: true });
-				try {
-					const lanStatus = await getDesktopApi().lanSetRemoteControl({ enabled });
-					set({ lanStatus, lanSaving: false });
-				} catch (error) {
-					set({ lanSaving: false, error: error instanceof Error ? error.message : String(error) });
-				}
-			},
+			refreshLanStatus: () => readLanStatus(),
+			setLanEnabled: (enabled) => changeLan("lanSetEnabled", enabled),
+			setLanRemoteControl: (enabled) => changeLan("lanSetRemoteControl", enabled),
 
 			saveKey: async (providerId, key) => {
 				try {
@@ -582,23 +601,15 @@ function createSettingsStore(environment: EnvironmentRef) {
 			},
 
 			addCustom: async (input) => {
-				try {
-					await getExecutionApi(environment).addCustomProvider({ input });
-					await afterMutation();
-				} catch (error) {
-					set({ error: errorMessage(error) });
-					throw error;
-				}
+				set({ error: null });
+				await getExecutionApi(environment).addCustomProvider({ input });
+				await afterMutation();
 			},
 
 			updateCustom: async (input) => {
-				try {
-					await getExecutionApi(environment).updateCustomProvider({ input });
-					await afterMutation();
-				} catch (error) {
-					set({ error: errorMessage(error) });
-					throw error;
-				}
+				set({ error: null });
+				await getExecutionApi(environment).updateCustomProvider({ input });
+				await afterMutation();
 			},
 
 			listUpstreamModels: (input) => getExecutionApi(environment).listUpstreamModels(input),

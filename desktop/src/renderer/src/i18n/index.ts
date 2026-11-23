@@ -11,12 +11,12 @@ export function setRuntimeCopy(connected: boolean): void {
 
 export type Language = "zh" | "en";
 
-const STORAGE_KEY = "pi-desktop.lang";
+const STORAGE_KEY = "vera.lang";
 const dictionaries: Record<Language, Messages> = { zh, en };
 
 /** 默认跟随系统语言（仅首期支持中/英，其他按英文处理） */
 function detectLanguage(): Language {
-	const saved = localStorage.getItem(STORAGE_KEY);
+	const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("pi-desktop.lang");
 	if (saved === "zh" || saved === "en") return saved;
 	return navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
 }

@@ -2,7 +2,7 @@ import type { AvailableModel } from "@vera/contracts";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useActiveModelInfo, useThinkingLevelState } from "../../hooks/use-session-state";
 import { useT } from "../../i18n";
-import { thinkingLevelKey } from "../../lib/thinking";
+import { isThinkingLevel, thinkingLevelKey } from "../../lib/thinking";
 import { useSessionsStore } from "../../stores/sessions";
 import { CheckIcon, ChevronDownIcon, CloseIcon, SearchIcon } from "../icons";
 import { Tooltip } from "../ui/Tooltip";
@@ -145,7 +145,13 @@ export function ModelPicker() {
 				{/* 模型名先截断，档位后缀永不截断（否则长模型名下看不到当前档位） */}
 				<span className="truncate">{label}</span>
 				<span className="shrink-0 text-ink-faint">·</span>
-				<span className="shrink-0 text-ink-faint">{t(thinkingLevelKey(display))}</span>
+				<span className="shrink-0 text-ink-faint">
+					{isThinkingLevel(display)
+						? t(thinkingLevelKey(display))
+						: display === "default"
+							? t("modelAdvanced.defaultReasoning")
+							: display}
+				</span>
 				<ChevronDownIcon className={open ? "rotate-180 transition-transform" : "transition-transform"} />
 			</button>
 			{/* 右对齐（不是 left-0）：模型按钮就在 composer 右侧，288px 弹层向左展开才能留在视口内。
