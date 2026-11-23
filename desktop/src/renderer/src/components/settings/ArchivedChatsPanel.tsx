@@ -18,6 +18,11 @@ import { Tooltip } from "../ui/Tooltip";
 
 const sorts: SessionCatalogSort[] = ["archived", "modified", "created", "name"];
 
+/** Record failure stages and exception types without session content or transport credentials. */
+function reportReadError(stage: string, error: unknown): void {
+	console.error("Archived chat read failed", stage, error instanceof Error ? error.name : "unknown");
+}
+
 /** This panel never opens a session; all requests belong to its selected environment and query. */
 export function ArchivedChatsPanel() {
 	const t = useT();
@@ -98,7 +103,8 @@ export function ArchivedChatsPanel() {
 					...result,
 					sessions: combine ? [...(previous?.sessions ?? []), ...result.sessions] : result.sessions,
 				});
-			} catch {
+			} catch (cause) {
+				reportReadError("catalog", cause);
 				if (valid()) setError(true);
 			} finally {
 				if (valid()) setLoading(false);
@@ -119,7 +125,8 @@ export function ArchivedChatsPanel() {
 				.then((value: SessionCatalogProjects) => {
 					if (active && latestEnv.current === envKey && token === projectGeneration) setProjects(value);
 				})
-				.catch(() => {
+				.catch((cause) => {
+					reportReadError("projects", cause);
 					if (active && latestEnv.current === envKey && token === projectGeneration) setError(true);
 				});
 		};
@@ -134,10 +141,12 @@ export function ArchivedChatsPanel() {
 				.then((value) => {
 					if (active && latestEnv.current === envKey) setDaily(value);
 				})
-				.catch(() => {
+				.catch((cause) => {
+					reportReadError("daily-directory", cause);
 					if (active && latestEnv.current === envKey) setError(true);
 				});
-		} catch {
+		} catch (cause) {
+			reportReadError("subscription", cause);
 			if (latestEnv.current === envKey) setError(true);
 		}
 		return () => {

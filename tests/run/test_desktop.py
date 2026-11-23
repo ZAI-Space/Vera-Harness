@@ -1,6 +1,9 @@
 """Exercise the desktop's real HTTP/process boundary, approvals and persistence."""
 
 import json
+import os
+import subprocess
+import sys
 import threading
 import time
 
@@ -61,6 +64,67 @@ def wait_until(predicate):
             return value
         time.sleep(0.05)
     pytest.fail("Desktop worker did not reach the expected state.")
+
+
+def test_server_expands_home_before_selecting_shared_context(tmp_path):
+    """A quoted tilde path must use the same store and context as its absolute path."""
+    home = tmp_path / "home"
+    home.mkdir()
+    connection = tmp_path / "connection.json"
+    environment = os.environ | {
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "VERA_GLOBAL_CONFIG_DIR": str(home / "vera"),
+        "VERA_SILENT_STARTUP": "1",
+    }
+    with (tmp_path / "server.log").open("wb") as output:
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "vera.desktop.server",
+                "--port",
+                "0",
+                "--directory",
+                "~/vera/desktop",
+                "--connection-file",
+                str(connection),
+            ],
+            cwd=tmp_path,
+            env=environment,
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+        try:
+            deadline = time.monotonic() + 60
+            while not connection.exists():
+                assert process.poll() is None
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+            address = json.loads(connection.read_text())
+            response = requests.post(
+                address["url"] + "/invoke",
+                headers={"Authorization": "Bearer " + address["token"]},
+                json={
+                    "method": "saveUserContextEntry",
+                    "args": {
+                        "entry": {"kind": "rule", "title": "Shared context", "content": "Keep the shared profile."}
+                    },
+                },
+                timeout=10,
+            )
+            assert response.status_code == 200, response.text
+            assert (home / "vera/user-context/entries.json").is_file()
+            assert not (home / "vera/desktop/user-context/entries.json").exists()
+            assert not (tmp_path / "~").exists()
+        finally:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=10)
 
 
 @pytest.mark.parametrize(

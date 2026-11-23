@@ -3,6 +3,7 @@
 import argparse
 import hmac
 import json
+import logging
 import os
 import secrets
 import signal
@@ -45,7 +46,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         try:
             self.wfile.write(payload)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass
 
     def do_GET(self):
@@ -67,6 +68,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._reply(401, {"error": "Unauthorized local desktop client."})
         if self.path != "/invoke":
             return self._reply(404, {"error": "Unknown route."})
+        value = None
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if not 0 < length <= 12_000_000:
@@ -79,8 +81,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._reply(400, {"error": "Invalid configuration fields: " + ", ".join(fields)[:500]})
         except (KeyError, ValueError, TypeError) as error:
             return self._reply(400, {"error": str(error)[:600]})
-        except Exception:
+        except Exception as error:
             # Provider errors and raw configs may contain credentials; keep them private.
+            if isinstance(value, dict) and value.get("method") in {"querySessionCatalog", "querySessionProjects"}:
+                logging.getLogger(__name__).warning(
+                    "Desktop catalog request failed: %s (%s)", value["method"], type(error).__name__
+                )
             return self._reply(500, {"error": "Operation failed. Check configuration and local service logs."})
 
 
@@ -92,6 +98,7 @@ def main():
     parser.add_argument("--config", type=Path)
     parser.add_argument("--connection-file", type=Path)
     args = parser.parse_args()
+    args.directory = args.directory.expanduser().resolve()
     from vera.config import get_config_from_spec
 
     token = os.environ.get("VERA_DESKTOP_TOKEN") or secrets.token_urlsafe(48)

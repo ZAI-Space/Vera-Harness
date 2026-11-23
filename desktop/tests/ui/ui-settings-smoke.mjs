@@ -63,12 +63,13 @@ async function until(action, timeout = 15000) {
 	throw lastError;
 }
 
-async function invoke(method, args = {}) {
+async function invoke(method, args = {}, signal) {
 	const connection = JSON.parse(await readFile(connectionFile, "utf8"));
 	const response = await fetch(`${connection.url}/invoke`, {
 		method: "POST",
 		headers: { Authorization: `Bearer ${connection.token}`, "Content-Type": "application/json" },
 		body: JSON.stringify({ method, args }),
+		signal,
 	});
 	const result = await response.json();
 	if (!response.ok) throw new Error(result.error);
@@ -82,6 +83,51 @@ async function check(name, action) {
 		console.log(`PASS ${name}`);
 	} catch (error) {
 		checks.push({ name, status: "failed", error: String(error) });
+		if (name.startsWith("archive and restore")) {
+			const diagnostics = {};
+			for (const method of ["querySessionCatalog", "querySessionProjects"]) {
+				try {
+					const result = await invoke(
+						method,
+						method === "querySessionCatalog"
+							? { query: { archived: true, sort: "archived", limit: 20 } }
+							: {},
+						AbortSignal.timeout(10000),
+					);
+					const rows = result.sessions ?? result.projects;
+					diagnostics[method] = { count: rows.length, complete: result.complete };
+				} catch (cause) {
+					diagnostics[method] = { error: String(cause).slice(0, 600) };
+				}
+			}
+			if (page && !page.isClosed()) {
+				diagnostics.renderer = await Promise.race([
+					page.evaluate(async () => {
+						const api = window.vera.forEnvironment({ kind: "local" });
+						const result = {};
+						for (const method of ["querySessionCatalog", "querySessionProjects"]) {
+							try {
+								const value =
+									method === "querySessionCatalog"
+										? await api.querySessionCatalog({
+												query: { archived: true, sort: "archived", limit: 20 },
+											})
+										: await api.querySessionProjects();
+								result[method] = {
+									count: (value.sessions ?? value.projects).length,
+									complete: value.complete,
+								};
+							} catch (cause) {
+								result[method] = { error: String(cause).slice(0, 600) };
+							}
+						}
+						return result;
+					}),
+					new Promise((resolve_) => setTimeout(() => resolve_({ error: "Renderer probe timed out" }), 30000)),
+				]).catch((cause) => ({ error: String(cause).slice(0, 600) }));
+			}
+			await writeFile(join(directory, "archive-diagnostics.json"), JSON.stringify(diagnostics, null, 2));
+		}
 		if (page && !page.isClosed()) {
 			await page.screenshot({ path: join(directory, `failure-${checks.length}.png`) }).catch(() => {});
 			await writeFile(
@@ -101,6 +147,10 @@ async function check(name, action) {
 async function open() {
 	({ application, page } = await launchDesktop(connectionFile, profile, environment));
 	page.on("pageerror", (error) => errors.push(String(error)));
+	page.on("console", (message) => {
+		if (message.type() === "error" && message.text().startsWith("Archived chat read failed"))
+			console.error(message.text());
+	});
 	await page.getByText("后端已连接", { exact: true }).waitFor();
 }
 

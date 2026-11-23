@@ -85,5 +85,6 @@ jobs:
             ${{ runner.temp }}/vera-*-ui-*/failure-ui.txt
             ${{ runner.temp }}/vera-*-ui-*/report.json
             ${{ runner.temp }}/vera-*-ui-*/diagnostics.log
+            ${{ runner.temp }}/vera-*-ui-*/archive-diagnostics.json
           if-no-files-found: ignore
           retention-days: 7
