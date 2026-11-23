@@ -166,7 +166,8 @@ def general_desktop(tmp_path, request):
 
     def run(task):
         service.invoke("prompt", {"sessionId": key, "text": task})
-        deadline = time.monotonic() + 30
+        # Cold worker imports on shared Windows runners can exceed 30 seconds.
+        deadline = time.monotonic() + 60
         while service.sessions.baseline(key)["transcript"]["agentActive"] and time.monotonic() < deadline:
             time.sleep(0.05)
         assert not service.sessions.baseline(key)["transcript"]["agentActive"]

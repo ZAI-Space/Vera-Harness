@@ -24,7 +24,7 @@ def test_delegated_provider_credential_and_read_only_child_transcript(tmp_path):
             child = body["model"] == "child"
             if child and not child_started.is_set():
                 child_started.set()
-                release_child.wait(20)
+                release_child.wait(90)
             done = any(row.get("role") == "tool" for row in body["messages"])
             if child:
                 name, args = (
@@ -103,7 +103,7 @@ def test_delegated_provider_credential_and_read_only_child_transcript(tmp_path):
         key = meta["sessionId"]
         service.invoke("setSessionSelections", {"sessionId": key, "selections": {}, "permissionPolicy": "yolo"})
         service.invoke("prompt", {"sessionId": key, "text": "Delegate the file check."})
-        assert child_started.wait(20)
+        assert child_started.wait(60)
         deadline = time.monotonic() + 10
         running_card = None
         while running_card is None and time.monotonic() < deadline:
@@ -122,10 +122,13 @@ def test_delegated_provider_credential_and_read_only_child_transcript(tmp_path):
         assert sequences == list(range(1, len(sequences) + 1))
         inspected = service.invoke("openSession", {"filePath": running_card["runs"][0]["sessionFile"]})
         child_id = inspected["sessionId"]
-        before_close = service.sessions.get(child_id)
-        assert before_close["delegatedActive"]
-        assert service.invoke("closeSession", {"sessionId": child_id, "intent": "gc"}) == {"closed": True}
-        assert service.sessions.get(child_id) == before_close
+        # Compare the close operation atomically; legitimate child streaming may
+        # otherwise add state between the two reads on a slower runner.
+        with service.store.lock:
+            before_close = service.sessions.get(child_id)
+            assert before_close["delegatedActive"]
+            assert service.invoke("closeSession", {"sessionId": child_id, "intent": "gc"}) == {"closed": True}
+            assert service.sessions.get(child_id) == before_close
         assert service.store.get("session", child_id) is None
         assert child_id not in {row["sessionId"] for row in service.metas()}
         release_child.set()

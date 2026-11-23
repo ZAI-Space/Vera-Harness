@@ -24,6 +24,11 @@ export async function launchDesktop(connectionFile, profileDirectory, environmen
 	});
 	const page = await application.firstWindow();
 	page.setDefaultTimeout(8000);
+	// These scenarios use Chinese accessibility labels on every runner locale.
+	if ((await page.evaluate(() => localStorage.getItem("vera.lang"))) !== "zh") {
+		await page.evaluate(() => localStorage.setItem("vera.lang", "zh"));
+		await page.reload();
+	}
 	await page.getByText(/^(后端已连接|Backend connected)$/).waitFor();
 	// The workbench can be mounted behind the splash while its root is still transparent.
 	await page.locator("#splash").waitFor({ state: "detached", timeout: 20000 });
