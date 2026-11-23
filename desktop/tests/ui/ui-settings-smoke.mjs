@@ -151,7 +151,6 @@ async function open() {
 		if (message.type() === "error" && message.text().startsWith("Archived chat read failed"))
 			console.error(message.text());
 	});
-	await page.getByText("后端已连接", { exact: true }).waitFor();
 }
 
 async function settings(category) {

@@ -22,15 +22,21 @@ export async function launchDesktop(connectionFile, profileDirectory, environmen
 		args: [resolve(desktopRoot, "out/main/index.js"), "--vera-ui-acceptance"],
 		env: environment,
 	});
-	const page = await application.firstWindow();
-	page.setDefaultTimeout(8000);
-	// These scenarios use Chinese accessibility labels on every runner locale.
-	if ((await page.evaluate(() => localStorage.getItem("vera.lang"))) !== "zh") {
-		await page.evaluate(() => localStorage.setItem("vera.lang", "zh"));
-		await page.reload();
+	try {
+		const page = await application.firstWindow();
+		page.setDefaultTimeout(8000);
+		// These scenarios use Chinese accessibility labels on every runner locale.
+		if ((await page.evaluate(() => localStorage.getItem("vera.lang"))) !== "zh") {
+			await page.evaluate(() => localStorage.setItem("vera.lang", "zh"));
+			await page.reload();
+		}
+		// Connection state remains authoritative while the sidebar is hidden behind startup UI.
+		await page.locator('[data-backend-status="connected"]').waitFor({ state: "attached" });
+		await page.locator("#splash").waitFor({ state: "detached", timeout: 20000 });
+		return { application, page };
+	} catch (error) {
+		// A failed launch cannot return the application handle to the caller's cleanup.
+		await application.evaluate(({ app }) => app.exit(1)).catch(() => {});
+		throw error;
 	}
-	await page.getByText(/^(后端已连接|Backend connected)$/).waitFor();
-	// The workbench can be mounted behind the splash while its root is still transparent.
-	await page.locator("#splash").waitFor({ state: "detached", timeout: 20000 });
-	return { application, page };
 }
