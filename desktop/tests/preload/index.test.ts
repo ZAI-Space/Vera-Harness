@@ -28,6 +28,19 @@ describe("standalone renderer bridge", () => {
 		expect(fixture.name).toBe("vera");
 		expect(fixture.api).not.toHaveProperty("ipcRenderer");
 		expect(fixture.api).not.toHaveProperty("remoteConnect");
+		const executionApi = fixture.api?.forEnvironment({ kind: "local" });
+		for (const method of [
+			"searchCatalog",
+			"installPackage",
+			"removePackage",
+			"listConfiguredPackages",
+			"checkPackageUpdates",
+			"getCacheWarming",
+			"setCacheWarming",
+		]) {
+			expect(fixture.api).not.toHaveProperty(method);
+			expect(executionApi).not.toHaveProperty(method);
+		}
 	});
 	it("forwards desktop object payloads through the new request channel", async () => {
 		await fixture.api?.saveUiState({ state: { theme: "dark" } });

@@ -5,7 +5,6 @@ from pathlib import Path
 from vera.agents.subagents import SubagentConfig
 from vera.environments.sandbox_profiles import SandboxProfiles
 from vera.markets.docker import DockerCatalog
-from vera.markets.skills import SkillMarket
 from vera.plugins import PluginManager, load_plugins
 from vera.plugins.source import PluginSource
 from vera.terminal.session import COMMANDS
@@ -53,11 +52,6 @@ class Capabilities:
         "listSlashCommands",
         "listSlashCommandsForCwd",
         "getLoadedResources",
-        "searchCatalog",
-        "installPackage",
-        "removePackage",
-        "listConfiguredPackages",
-        "checkPackageUpdates",
         "getPlugins",
         "pluginAction",
         "pluginMarket",
@@ -437,47 +431,6 @@ class Capabilities:
                     for name, skill in skills.items()
                 ]
             )
-        if method == "searchCatalog":
-            rows = SkillMarket().search(args.get("query", ""))
-            return {
-                "packages": [
-                    {
-                        "name": row["name"],
-                        "description": row["id"],
-                        "author": row["id"].split("/")[0],
-                        "types": ["skill"],
-                        "downloads": row["installs"],
-                        "updatedAt": 0,
-                        "installSource": row["id"],
-                    }
-                    for row in rows
-                ],
-                "total": len(rows),
-                "page": 1,
-                "pageSize": 20,
-            }
-        if method == "installPackage":
-            identifier = args.get("source", args.get("name"))
-            receipt = SkillMarket().install(identifier, directory=self.store.directory / "skills")
-            self.store.save(
-                "package",
-                identifier,
-                {"source": identifier, "scope": "user", "name": receipt["name"], "resolvedPath": receipt["directory"]},
-            )
-            return None
-        if method == "listConfiguredPackages":
-            return self.store.list("package")
-        if method == "checkPackageUpdates":
-            return []
-        if method == "removePackage":
-            from vera.markets.skills import remove_market_skill
-
-            row = self.store.get("package", args["source"])
-            if not row or args["scope"] != "user":
-                raise ValueError("Choose a user skill installed by this desktop.")
-            remove_market_skill(row["name"], self.store.directory / "skills")
-            self.store.delete("package", args["source"])
-            return None
         if method == "searchMcpMarket":
             return self.mcp_market.search(args.get("query", ""), refresh=bool(args.get("refresh")))
         if method == "inspectMcpMarket":

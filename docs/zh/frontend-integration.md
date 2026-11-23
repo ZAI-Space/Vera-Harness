@@ -47,7 +47,7 @@ Plan、Goal、只读任务和 Subagent 保留各自的完成工具。基准测�
 | 文件附件 | `listProjectFiles({cwd})` → 项目相对路径；输入文档使用 `file.path` | `ProjectFiles` |
 | 模型配置 | 连接标识、协议、地址、模型定义；执行选择器仅列出已认证且可见的模型 | `Providers`、私有凭据库 |
 | 角色编辑 | 名称、指令、模型引用、工具、技能与预算 | `SubagentConfig`、共享 Runtime |
-| Skill / MCP 市场 | 显式搜索、预览、安装或添加；MCP 保存后默认停用 | `SkillMarket`、`MCPRegistry` |
+| MCP 市场 | 显式搜索、预览和添加；新服务默认停用 | `DockerCatalog` |
 | MCP 配置 | 用户级、stdio 或 URL、direct 暴露、启用状态、显式测试连接 | Python MCP SDK；测试仅初始化并读取工具清单 |
 | 插件 | GitHub / Gitee 市场、安装、启用、停用、卸载 | `PluginManager` |
 | 沙箱 | 配置与可用性、原因；不可用项禁选 | `SandboxProfiles` |
@@ -56,6 +56,8 @@ Plan、Goal、只读任务和 Subagent 保留各自的完成工具。基准测�
 | 导出、分支与撤回 | 展示历史、目标消息之前的模型上下文 | SQLite、不可变运行凭据 |
 
 完整 TypeScript 契约位于 `desktop/src/contracts/`，Python 分发位于 `src/vera/desktop/`。界面偏好保存在 Electron 用户目录；后端配置、会话、安全展示导出、凭据库和运行记录保存在 VERA 私有桌面状态目录。
+
+技能市场的搜索与安装使用 skills CLI；桌面通过资源目录加载已安装的 Skills。旧包市场与缓存预热桥接已移除，它们没有现行桌面设置入口。
 
 ## 常用桌面操作
 

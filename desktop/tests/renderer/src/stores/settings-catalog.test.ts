@@ -27,9 +27,6 @@ const api = vi.hoisted(() => ({
 	saveApiKey: vi.fn(),
 	removeCredential: vi.fn(),
 	setProviderBaseUrl: vi.fn(),
-	installPackage: vi.fn(),
-	removePackage: vi.fn(),
-	listConfiguredPackages: vi.fn(),
 }));
 vi.mock("../../../../src/renderer/src/api", () => ({
 	getDesktopApi: () =>
@@ -259,21 +256,6 @@ describe("D10 consumer and mutation responsibilities", () => {
 		expect(store.getState().error).toBe("catalog denied");
 		store.getState().openWith("lan");
 		await vi.waitFor(() => expect(store.getState().error).toBe("lan denied"));
-	});
-	it("actual package install/remove delegates the domain mutation entry, without broad refresh", async () => {
-		api.listProviders.mockResolvedValue([]);
-		api.listConfiguredPackages.mockResolvedValue([]);
-		api.installPackage.mockResolvedValue(undefined);
-		api.removePackage.mockResolvedValue(undefined);
-		sessionsState.activeSessionId = "packages";
-		const catalog = (await import("../../../../src/renderer/src/stores/catalog")).useCatalogStore;
-		await catalog.getState().installCatalogPackage("fixture");
-		await vi.waitFor(() => expect(api.loadModels).toHaveBeenCalledTimes(1));
-		await catalog.getState().removeConfiguredPackage("fixture", "user");
-		await vi.waitFor(() => expect(api.loadModels).toHaveBeenCalledTimes(2));
-		expect(api.getLoadedResources).toHaveBeenCalledTimes(2);
-		for (const mock of [api.getPermissionConfig, api.getChannelWatchConfig, api.lanGetStatus])
-			expect(mock).not.toHaveBeenCalled();
 	});
 });
 

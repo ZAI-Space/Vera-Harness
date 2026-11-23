@@ -110,7 +110,7 @@ export interface UiState {
 	windowBounds: Rect | null;
 	/**
 	 * 上次使用的项目目录（重启后启动页预填用）。**只记目录、不恢复任何会话**：
-	 * v10 起启动仍然是纯空会话页（与 pi 原生/Codex 一致），这里只让用户不用重选项目。
+	 * 启动保持空会话页，此偏好只恢复项目目录，不恢复已打开的会话。
 	 */
 	lastCwd: string | null;
 }

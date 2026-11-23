@@ -51,9 +51,6 @@ vi.mock("../../../../../src/renderer/src/i18n", () => ({ useT: () => (key: strin
 vi.mock("../../../../../src/renderer/src/components/settings/providers/CustomProviderForm", () => ({
 	CustomProviderForm: () => null,
 }));
-vi.mock("../../../../../src/renderer/src/components/settings/providers/SubagentPanel", () => ({
-	SubagentPanel: () => null,
-}));
 
 import { PermissionPicker } from "../../../../../src/renderer/src/components/composer/PermissionPicker";
 import { LanObserverPanel } from "../../../../../src/renderer/src/components/settings/LanObserverPanel";

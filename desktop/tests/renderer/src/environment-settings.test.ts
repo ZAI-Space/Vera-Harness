@@ -12,7 +12,6 @@ const fixture = vi.hoisted(() => {
 		listModels: vi.fn(async (): Promise<AvailableModel[]> => []),
 		setChannelWatchEnabled: vi.fn(async (_args: unknown) => {}),
 		mcpConfigList: vi.fn(async (_args: unknown) => ({ global: [], project: [] })),
-		listConfiguredPackages: vi.fn(async () => []),
 		listGitBranches: vi.fn(async (_args: unknown) => ({ current: "main", branches: ["main"] })),
 	});
 	const remote = api();
@@ -25,7 +24,6 @@ const fixture = vi.hoisted(() => {
 vi.mock("../../../src/renderer/src/api", () => ({ getDesktopApi: () => fixture.local }));
 
 import { getExecutionApi } from "../../../src/renderer/src/environment-api";
-import { getCatalogStore } from "../../../src/renderer/src/stores/catalog";
 import { getMcpStore } from "../../../src/renderer/src/stores/mcp";
 import { useSessionsStore } from "../../../src/renderer/src/stores/sessions";
 import { getSettingsStore } from "../../../src/renderer/src/stores/settings";
@@ -56,18 +54,14 @@ describe("settings operation ownership", () => {
 		expect(localStore.getState().channelWatchEnabled).toBe(false);
 		expect(localStore.getState().error).toBeNull();
 	});
-	it("MCP, package catalog and Git use the captured environment and unwrap only the owned directory", async () => {
+	it("MCP and Git use the captured environment and unwrap only the owned directory", async () => {
 		await getMcpStore(remote).getState().load(key("/same"));
-		await getCatalogStore(remote).getState().refreshConfiguredPackages(key("session"));
 		const git = getExecutionApi(key("/same"));
 		useSessionsStore.setState({ cwd: "/elsewhere" });
 		await git.listGitBranches({ cwd: key("/same") });
 		expect(fixture.remote.mcpConfigList).toHaveBeenCalledWith({ cwd: "/same" });
-		expect(fixture.remote.listConfiguredPackages).toHaveBeenCalledOnce();
-		expect(fixture.remote.listConfiguredPackages).toHaveBeenCalledWith({ sessionId: "session" });
 		expect(fixture.remote.listGitBranches).toHaveBeenCalledWith({ cwd: "/same" });
 		expect(fixture.local.mcpConfigList).not.toHaveBeenCalled();
-		expect(fixture.local.listConfiguredPackages).not.toHaveBeenCalled();
 		expect(fixture.local.listGitBranches).not.toHaveBeenCalled();
 	});
 });

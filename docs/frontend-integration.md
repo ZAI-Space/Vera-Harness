@@ -45,7 +45,7 @@ Priced evaluations and RSI tasks can retain strict monetary accounting. Desktop 
 | File attachment | `listProjectFiles({cwd})` → relative paths; composer `file.path` parts | `ProjectFiles` |
 | Model settings | Provider ID, protocol, base URL and definitions; execution pickers expose authenticated, visible models only | `Providers`, private credential vault |
 | Role editor | Name, instructions, model reference, tools, skills and budgets | `SubagentConfig`, shared Runtime |
-| Skill / MCP markets | Explicit search, preview and install/add; MCP saved disabled | `SkillMarket`, `MCPRegistry` |
+| MCP market | Explicit search, preview and add; new services stay disabled | `DockerCatalog` |
 | MCP settings | User scope, stdio or URL, direct exposure, enabled flag and explicit connection test | Python MCP SDK; tests initialize and list tools only |
 | Plugins | GitHub / Gitee market, install, enable, disable, remove | `PluginManager` |
 | Sandbox | Saved profile + availability/reason; unavailable choices disabled | `SandboxProfiles` |
@@ -54,6 +54,8 @@ Priced evaluations and RSI tasks can retain strict monetary accounting. Desktop 
 | Export / fork / recall | Display history and retained pre-turn model context | SQLite + immutable runtime receipts |
 
 Full TypeScript definitions live in `desktop/src/contracts/`; Python routing lives in `src/vera/desktop/`. UI preferences remain in Electron's user-data directory. Backend configuration, sessions, safe display exports, credential vault and run receipts live under the private VERA desktop state directory.
+
+Skill market search and installation use the skills CLI. The desktop loads installed Skills through the resource catalog. Legacy package-market and cache-warming bridges are removed; they have no active desktop settings page.
 
 ## Common desktop operations
 

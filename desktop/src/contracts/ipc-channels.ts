@@ -1,4 +1,3 @@
-import { CACHE_WARMING_MODES, type CacheWarmingInfo, type CacheWarmingMode } from "./cache-warming";
 import type { ChannelSubscriptionsSnapshot } from "./channel-subscriptions";
 import type { ComposerDocument } from "./composer-document";
 import type { EnvironmentUiState } from "./environment-ui-state";
@@ -11,12 +10,6 @@ import type {
 } from "./extension-dialog";
 import type { LanStatus } from "./lan";
 import type { McpConfigListResult, McpMutationResult, McpServersChangedPayload, McpUpsertInput } from "./mcp";
-import type {
-	CatalogPackageType,
-	CatalogSearchResult,
-	ConfiguredPackageInfo,
-	PackageUpdateInfo,
-} from "./packages";
 import { type ArgumentRules, input, validateArguments } from "./request-validation";
 import type {
 	AppInfo,
@@ -510,48 +503,6 @@ export const SESSION_CHANNELS = {
 	)<{ cwd: string }, boolean>({ cwd: input.id }),
 } as const;
 
-/** 社区包域：pi.dev 目录搜索 + 安装/卸载 + 已配置清单 */
-export const PACKAGES_CHANNELS = {
-	/** 搜索 pi.dev 社区包目录（服务端模糊匹配，50 条/页） */
-	searchCatalog: ch(
-		"packages:searchCatalog",
-		"environment",
-		"read",
-	)<{ query: string; type?: CatalogPackageType | ""; page?: number }, CatalogSearchResult>({
-		query: input.text,
-		type: input.optional(input.oneOf("extension", "skill", "prompt", "theme", "")),
-		page: input.optional(input.number),
-	}),
-	/** 安装社区包（npm:<name>，用户级）；成功后热重载非流式活跃会话 */
-	installPackage: ch(
-		"packages:install",
-		"environment",
-		"mutation",
-	)<{ name: string }, void>({ name: input.text }),
-	/** 卸载已配置的包（按 source + scope 移除并持久化）；成功后热重载非流式活跃会话 */
-	removePackage: ch(
-		"packages:remove",
-		"environment",
-		"mutation",
-	)<{ source: string; scope: "user" | "project"; sessionId?: string }, void>({
-		source: input.text,
-		scope: input.oneOf("user", "project"),
-		sessionId: input.optional(input.id),
-	}),
-	/** 列出 settings.json 已配置的包（「已安装」态匹配用） */
-	listConfiguredPackages: ch(
-		"packages:listConfigured",
-		"environment",
-		"read",
-	)<{ sessionId?: string }, ConfiguredPackageInfo[]>({ sessionId: input.optional(input.id) }),
-	/** 只查 npm 最新版本，不重复读取本地安装清单。 */
-	checkPackageUpdates: ch(
-		"packages:checkUpdates",
-		"environment",
-		"read",
-	)<{ names: string[] }, PackageUpdateInfo[]>({ names: input.array(input.text) }),
-} as const;
-
 /** MCP 域：官方内置扩展的 mcp.json 读写（连接/展开交给官方；工具运行态走 mcp.tools:changed 事件） */
 export const MCP_CHANNELS = {
 	/** 读全局 + 项目级 mcp.json（项目级只在受信项目读，与官方 trust-manager 同款） */
@@ -779,12 +730,6 @@ export const SETTINGS_CHANNELS = {
 		"environment",
 		"mutation",
 	)<{ only: boolean }, void>({ only: input.boolean }),
-	getCacheWarming: ch("cacheWarming:get", "environment", "read")<void, CacheWarmingInfo>(),
-	setCacheWarming: ch(
-		"cacheWarming:set",
-		"environment",
-		"mutation",
-	)<{ mode: CacheWarmingMode }, CacheWarmingInfo>({ mode: input.oneOf(...CACHE_WARMING_MODES) }),
 	setCodemodeEnabled: ch(
 		"codemode:setEnabled",
 		"environment",
@@ -921,7 +866,6 @@ export const CHANNEL_TABLE = {
 	}),
 	...SESSION_CHANNELS,
 	...SETTINGS_CHANNELS,
-	...PACKAGES_CHANNELS,
 	...MCP_CHANNELS,
 	...APP_CHANNELS,
 	...LAN_CHANNELS,

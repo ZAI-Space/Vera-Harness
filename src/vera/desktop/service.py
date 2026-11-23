@@ -475,8 +475,6 @@ class DesktopService:
             return {"sessionId": key, "topics": [], "generation": 0, "revision": 0, "live": False}
         if method in {"getChannelWatchConfig", "getCodemodeConfig"}:
             return {"enabled": False, "only": False}
-        if method == "getCacheWarming":
-            return {"mode": "off", "sessions": []}
         raise ValueError(f"{method} is not supported by this VERA runtime. No change was applied.")
 
     def close(self):

@@ -1,7 +1,7 @@
-/** Current-source Electron/IPC/Python regression for marketplace overlays and JSON configuration. */
+/** Real assistant conversation, approval and tool execution through Electron/IPC/Python. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -88,15 +88,6 @@ async function check(name, action) {
 		await writeFile(join(directory, "report.json"), JSON.stringify({ checks, pageErrors }, null, 2));
 	}
 }
-async function settings(category) {
-	const dialog = page
-		.getByRole("dialog")
-		.filter({ has: page.getByRole("heading", { name: "设置", exact: true }) });
-	if (!(await dialog.count())) await page.getByRole("button", { name: "设置", exact: true }).click();
-	await dialog.getByRole("button", { name: category, exact: true }).click();
-	return dialog;
-}
-
 try {
 	console.log(`EVIDENCE ${directory}`);
 	start([

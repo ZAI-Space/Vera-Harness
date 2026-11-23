@@ -63,6 +63,26 @@ def wait_until(predicate):
     pytest.fail("Desktop worker did not reach the expected state.")
 
 
+@pytest.mark.parametrize(
+    "method",
+    [
+        "searchCatalog",
+        "installPackage",
+        "removePackage",
+        "listConfiguredPackages",
+        "checkPackageUpdates",
+        "getCacheWarming",
+        "setCacheWarming",
+    ],
+)
+def test_retired_settings_methods_are_rejected(desktop, method):
+    """Retired panels must not leave callable package or cache-warming routes."""
+    _, _, url, headers = desktop
+    response = requests.post(url + "/invoke", headers=headers, json={"method": method, "args": {}}, timeout=10)
+    assert response.status_code == 400
+    assert "not supported" in response.json()["error"]
+
+
 def test_real_desktop_run_files_history_and_restart(desktop, tmp_path):
     service, invoke, url, headers = desktop
     workspace = tmp_path / "workspace"
