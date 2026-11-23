@@ -368,6 +368,8 @@ try {
 		const session = sidebar.getByRole("button", { name: "UI_CONFIRM verify the local file.", exact: true });
 		await session.click({ button: "right" });
 		await page.getByRole("menuitem", { name: "归档", exact: true }).click();
+		// The menu closes before the asynchronous archive operation finishes.
+		await session.waitFor({ state: "hidden" });
 		await settings("已归档的聊天");
 		await page.getByRole("button", { name: "取消归档", exact: true }).click();
 		await until(async () =>

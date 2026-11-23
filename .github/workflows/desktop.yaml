@@ -65,7 +65,25 @@ jobs:
           node node_modules/vite/bin/vite.js build --config web/vite.config.ts
       - name: Exercise actual Electron settings on Linux
         if: runner.os == 'Linux'
+        env:
+          TMPDIR: ${{ runner.temp }}
         run: xvfb-run -a npm run test:ui
       - name: Exercise actual Electron settings on Windows
         if: runner.os == 'Windows'
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: npm run test:ui
+      - name: Retain failed desktop acceptance evidence
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: desktop-acceptance-${{ runner.os }}
+          path: |
+            ${{ runner.temp }}/vera-*-ui-*/failure-*.png
+            ${{ runner.temp }}/vera-*-ui-*/failure.png
+            ${{ runner.temp }}/vera-*-ui-*/failure-ui.txt
+            ${{ runner.temp }}/vera-*-ui-*/report.json
+            ${{ runner.temp }}/vera-*-ui-*/diagnostics.log
+          if-no-files-found: ignore
+          retention-days: 7
