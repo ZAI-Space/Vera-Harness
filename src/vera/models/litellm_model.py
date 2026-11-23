@@ -55,6 +55,13 @@ class LitellmModelConfig(BaseModel):
 
 
 class LitellmModel(ToolCallingModel):
+    """Call a LiteLLM provider and normalize tool actions and usage metadata.
+
+    Configuration comes from ``LitellmModelConfig``. Provider credentials and
+    model availability are prerequisites. ``query`` may perform network I/O,
+    update global model statistics, and raise provider or format errors.
+    """
+
     abort_exceptions: list[type[Exception]] = [
         litellm.exceptions.BadRequestError,
         litellm.exceptions.UnsupportedParamsError,

@@ -55,6 +55,14 @@ class OpenRouterRateLimitError(Exception):
 
 
 class OpenRouterModel(ToolCallingModel):
+    """Call OpenRouter's chat-completions endpoint through the model protocol.
+
+    ``OpenRouterModelConfig`` supplies the model and request options. The
+    ``OPENROUTER_API_KEY`` environment variable is read by the adapter; calls
+    can perform network I/O, update usage statistics and raise API or format
+    errors.
+    """
+
     abort_exceptions: list[type[Exception]] = [OpenRouterAuthenticationError, KeyboardInterrupt]
 
     def __init__(self, **kwargs):

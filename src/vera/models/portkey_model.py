@@ -65,6 +65,14 @@ class PortkeyModelConfig(BaseModel):
 
 
 class PortkeyModel(ToolCallingModel):
+    """Call Portkey with tool definitions and normalize its response.
+
+    ``PortkeyModelConfig`` supplies model and formatting options. The adapter
+    requires ``PORTKEY_API_KEY`` and can use ``PORTKEY_VIRTUAL_KEY`` or a
+    configured provider. Queries perform network I/O, update usage statistics
+    and can raise authentication, provider or format errors.
+    """
+
     abort_exceptions: list[type[Exception]] = [KeyboardInterrupt, TypeError, ValueError]
 
     def __init__(self, *, config_class: type = PortkeyModelConfig, **kwargs):
