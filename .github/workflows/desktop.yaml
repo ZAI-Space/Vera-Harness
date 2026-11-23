@@ -23,7 +23,6 @@ jobs:
       PYTHONUTF8: '1'
       VERA_PYTHON: python
       LITELLM_LOCAL_MODEL_COST_MAP: 'True'
-      VERA_TASKBOARD_HOME: ${{ runner.temp }}/vera-taskboard
     defaults:
       run:
         working-directory: desktop
@@ -55,7 +54,10 @@ jobs:
         run: node tests/ui/font-assets.mjs
       - name: Prepare pinned optional Taskboard for acceptance
         shell: bash
+        env:
+          VERA_TASKBOARD_HOME: ${{ runner.temp }}/vera-taskboard
         run: |
+          printf 'VERA_TASKBOARD_HOME=%s\n' "$VERA_TASKBOARD_HOME" >> "$GITHUB_ENV"
           git clone --no-checkout https://github.com/chuspeeism/dashi-taskboard.git "$VERA_TASKBOARD_HOME"
           git -C "$VERA_TASKBOARD_HOME" checkout --detach bc25451c5c49a14abb6c4e8250b62c626b007f8a
           cd "$VERA_TASKBOARD_HOME"
