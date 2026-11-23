@@ -1,11 +1,8 @@
-"""
-This file provides:
+"""Expose package paths, version and structural interfaces for runtime adapters.
 
-- Path settings for global config file & relative directories
-- Version numbering
-- Protocols for the core components of VERA.
-  By the magic of protocols & duck typing, you can pretty much ignore them,
-  unless you want the static type checking.
+Importing this module creates the selected global configuration directory and
+loads its .env file without replacing existing environment values. Protocols
+describe adapter contracts for static checking; inheritance is not required.
 """
 
 __version__ = "2.4.6"
@@ -44,26 +41,44 @@ dotenv.load_dotenv(dotenv_path=global_config_file)
 apply_legacy_environment()
 
 
-# === Protocols ===
-# You can ignore them unless you want static type checking.
-
-
 class Model(Protocol):
     """Protocol for language models."""
 
     config: Any
 
-    def query(self, messages: list[dict[str, str]], **kwargs) -> dict: ...
+    def query(self, messages: list[dict[str, str]], **kwargs) -> dict:
+        """Query the configured provider and return an assistant message.
 
-    def format_message(self, **kwargs) -> dict: ...
+        Provider adapters can perform network requests and update usage counters.
+        Parsing failures raise FormatError with the response and usage retained
+        in its messages. Provider and configuration errors can propagate.
+        """
+        ...
+
+    def format_message(self, **kwargs) -> dict:
+        """Build a provider message from fields such as role and content.
+
+        Accepted fields and multimodal conversion depend on the adapter.
+        """
+        ...
 
     def format_observation_messages(
         self, message: dict, outputs: list[dict], template_vars: dict | None = None
-    ) -> list[dict]: ...
+    ) -> list[dict]:
+        """Convert ordered action outputs into provider observation messages.
 
-    def get_template_vars(self, **kwargs) -> dict[str, Any]: ...
+        Pass the assistant message that requested the actions and matching
+        outputs. Optional template variables customize observation rendering.
+        """
+        ...
 
-    def serialize(self) -> dict: ...
+    def get_template_vars(self, **kwargs) -> dict[str, Any]:
+        """Return adapter variables for prompt templates; these can contain secrets."""
+        ...
+
+    def serialize(self) -> dict:
+        """Return model metadata for trajectory merging; callers must redact secrets."""
+        ...
 
 
 class Environment(Protocol):
@@ -71,11 +86,22 @@ class Environment(Protocol):
 
     config: Any
 
-    def execute(self, action: dict, cwd: str = "") -> dict[str, Any]: ...
+    def execute(self, action: dict, cwd: str = "") -> dict[str, Any]:
+        """Execute an action in the configured environment, optionally overriding cwd.
 
-    def get_template_vars(self, **kwargs) -> dict[str, Any]: ...
+        Actions can change files and process state. Results contain output and
+        execution status; adapters define error details and timeout behavior.
+        A recognized completion action can raise Submitted instead of returning.
+        """
+        ...
 
-    def serialize(self) -> dict: ...
+    def get_template_vars(self, **kwargs) -> dict[str, Any]:
+        """Return environment template variables, which can include sensitive config."""
+        ...
+
+    def serialize(self) -> dict:
+        """Return environment metadata for merging; callers must redact secrets."""
+        ...
 
 
 class Agent(Protocol):
@@ -83,9 +109,21 @@ class Agent(Protocol):
 
     config: Any
 
-    def run(self, task: str, **kwargs) -> dict: ...
+    def run(self, task: str, **kwargs) -> dict:
+        """Run the model/tool loop for task and return its termination information.
 
-    def save(self, path: Path | None, *extra_dicts) -> dict: ...
+        Execution can change conversation, usage and environment state. Concrete
+        agents define limits, interaction policy and propagated error behavior.
+        """
+        ...
+
+    def save(self, path: Path | None, *extra_dicts) -> dict:
+        """Return serialized trajectory data and write it when path is provided.
+
+        Additional dictionaries merge into the trajectory. File errors propagate;
+        concrete agents define merge precedence and redaction behavior.
+        """
+        ...
 
 
 __all__ = [
