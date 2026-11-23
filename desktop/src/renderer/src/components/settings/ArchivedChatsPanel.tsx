@@ -24,16 +24,18 @@ function reportReadError(stage: string, error: unknown): void {
 }
 
 /** A restart or event-poll reconnect can briefly reject both catalog reads; retry once before showing an error. */
-async function retryCatalogRead<T>(read: () => Promise<T>): Promise<T> {
+async function retryCatalogRead<T>(read: () => Promise<T>, isCurrent: () => boolean): Promise<T> {
 	try {
 		return await read();
 	} catch (firstError) {
 		if (
+			!isCurrent() ||
 			!(firstError instanceof Error) ||
 			!/连接中断|响应超时|disconnected|timed out|timeout/i.test(firstError.message)
 		)
 			throw firstError;
 		await new Promise((resolve) => setTimeout(resolve, 250));
+		if (!isCurrent()) throw firstError;
 		try {
 			return await read();
 		} catch {
@@ -101,21 +103,23 @@ export function ArchivedChatsPanel() {
 				let result: SessionCatalogPage;
 				let combine = append;
 				try {
-					result = await retryCatalogRead(() =>
-						api.querySessionCatalog({
-							query: append ? { ...query, cursor: previous?.nextCursor } : query,
-						}),
+					result = await retryCatalogRead(
+						() =>
+							api.querySessionCatalog({
+								query: append ? { ...query, cursor: previous?.nextCursor } : query,
+							}),
+						valid,
 					);
 				} catch (cause) {
 					if (!valid()) return;
 					if (!append || !/stale/i.test(String(cause))) throw cause;
 					combine = false;
-					result = await retryCatalogRead(() => api.querySessionCatalog({ query }));
+					result = await retryCatalogRead(() => api.querySessionCatalog({ query }), valid);
 				}
 				if (!valid()) return;
 				if (combine && result.revision !== previous?.revision) {
 					combine = false;
-					result = await retryCatalogRead(() => api.querySessionCatalog({ query }));
+					result = await retryCatalogRead(() => api.querySessionCatalog({ query }), valid);
 					if (!valid()) return;
 				}
 				pageKey.current = queryKey;
@@ -141,7 +145,10 @@ export function ArchivedChatsPanel() {
 		let projectGeneration = 0;
 		const refreshProjects = () => {
 			const token = ++projectGeneration;
-			void retryCatalogRead(() => api.querySessionProjects())
+			void retryCatalogRead(
+				() => api.querySessionProjects(),
+				() => active && latestEnv.current === envKey && token === projectGeneration,
+			)
 				.then((value: SessionCatalogProjects) => {
 					if (active && latestEnv.current === envKey && token === projectGeneration) setProjects(value);
 				})

@@ -188,7 +188,12 @@ try {
 		assert.equal(provider.customModels[0].advanced.temperature, 0);
 		assert.equal(provider.customModels[0].advanced.toolCallLimit, 42);
 		assert.equal(provider.customModels[0].name, undefined);
-		await page.getByRole("dialog").getByRole("button", { name: "关闭", exact: true }).click();
+		await page.getByRole("dialog", { name: "添加服务商", exact: true }).waitFor({ state: "detached" });
+		await page
+			.getByRole("dialog")
+			.filter({ has: page.getByRole("heading", { name: "设置", exact: true }) })
+			.getByRole("button", { name: "关闭", exact: true })
+			.click();
 		await page
 			.getByRole("button", { name: /^(选择模型|gpt-4o-mini)/ })
 			.first()
@@ -238,6 +243,9 @@ try {
 		await page.getByRole("dialog").getByRole("button", { name: "关闭", exact: true }).click();
 	});
 	await check("original taskboard starts inside the iframe and creates a persisted task", async () => {
+		const prerequisites = await invoke("getTaskboardStatus");
+		assert.equal(prerequisites.installed, true, "Set VERA_TASKBOARD_HOME to a built Taskboard installation");
+		assert.equal(prerequisites.nodeAvailable, true, "Taskboard requires Node.js on PATH");
 		await page.getByRole("button", { name: "任务面板", exact: true }).click();
 		await page.getByRole("button", { name: "启动任务面板", exact: true }).click();
 		const frame = page.frameLocator('iframe[title="dashi-taskboard"]');

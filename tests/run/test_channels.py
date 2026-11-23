@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from threading import Event, Thread
 
 import pytest
 import yaml
@@ -16,6 +17,35 @@ from vera.channels.credentials import CredentialStore
 from vera.channels.gateway import ChannelGateway, authorized, gateway_lock
 from vera.channels.store import ChannelStore, chunks
 from vera.channels.weixin import WeixinClient, api_origin, login, normalize_message
+
+
+def test_cursor_read_waits_for_active_journal_transaction(tmp_path):
+    """A concurrent reader must survive journal contention beyond the previous five-second limit."""
+    store = ChannelStore(tmp_path)
+    started, finished = Event(), Event()
+    values, errors = [], []
+
+    def read_cursor():
+        started.set()
+        try:
+            values.append(store.cursor("unconfigured"))
+        except Exception as error:
+            errors.append(error)
+        finally:
+            finished.set()
+
+    reader = Thread(target=read_cursor, daemon=True)
+    try:
+        with store.connect():
+            reader.start()
+            assert started.wait(timeout=5)
+            finished_under_lock = finished.wait(timeout=5.5)
+    finally:
+        reader.join(timeout=10)
+    assert not reader.is_alive()
+    assert not finished_under_lock, errors
+    assert not errors
+    assert values == [""]
 
 
 def test_weixin_login_pin_wire_headers_and_reply_context(tmp_path):

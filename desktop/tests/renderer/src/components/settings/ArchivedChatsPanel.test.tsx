@@ -78,10 +78,64 @@ const page = (name: string, nextCursor?: string) => ({
 	nextCursor,
 });
 afterEach(() => {
+	vi.useRealTimers();
 	vi.resetAllMocks();
 	mocks.environment = { kind: "local" };
 	mocks.status = { state: "disconnected" };
 	vi.unstubAllGlobals();
+});
+
+it("连接暂时中断时只重读一次目录与项目，不重放写操作", async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+	mocks.query
+		.mockRejectedValueOnce(new Error("本机服务连接中断，请等待重新连接后重试。"))
+		.mockResolvedValueOnce(page("recovered"));
+	mocks.projects
+		.mockRejectedValueOnce(new Error("本机服务响应超时，请稍后重试。"))
+		.mockResolvedValueOnce({ projects: [], revision: "one", complete: true, errors: 0 });
+	mocks.watch.mockReturnValue(() => {});
+	const container = document.createElement("div");
+	const root = createRoot(container);
+	await act(async () => root.render(<ArchivedChatsPanel />));
+	expect(mocks.query).toHaveBeenCalledTimes(1);
+	expect(mocks.projects).toHaveBeenCalledTimes(1);
+	await act(async () => vi.advanceTimersByTimeAsync(250));
+	expect(container.textContent).toContain("recovered");
+	expect(mocks.query).toHaveBeenCalledTimes(2);
+	expect(mocks.projects).toHaveBeenCalledTimes(2);
+	expect(mocks.unarchive).not.toHaveBeenCalled();
+	await act(async () => root.unmount());
+});
+
+it("连接持续失败时保留错误和两次读取上限", async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+	mocks.query.mockRejectedValue(new Error("本机服务连接中断，请等待重新连接后重试。"));
+	mocks.projects.mockResolvedValue({ projects: [], revision: "one", complete: true, errors: 0 });
+	mocks.watch.mockReturnValue(() => {});
+	const container = document.createElement("div");
+	const root = createRoot(container);
+	await act(async () => root.render(<ArchivedChatsPanel />));
+	await act(async () => vi.advanceTimersByTimeAsync(1000));
+	expect(mocks.query).toHaveBeenCalledTimes(2);
+	expect(container.textContent).toContain("archive.error");
+	expect(container.textContent).not.toContain("archive.empty");
+	await act(async () => root.unmount());
+});
+
+it("卸载期间已失效的连接重试不能再读取旧环境", async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+	mocks.query.mockRejectedValue(new Error("本机服务连接中断，请等待重新连接后重试。"));
+	mocks.projects.mockRejectedValue(new Error("本机服务响应超时，请稍后重试。"));
+	mocks.watch.mockReturnValue(() => {});
+	const root = createRoot(document.createElement("div"));
+	await act(async () => root.render(<ArchivedChatsPanel />));
+	await act(async () => root.unmount());
+	await act(async () => vi.advanceTimersByTimeAsync(1000));
+	expect(mocks.query).toHaveBeenCalledTimes(1);
+	expect(mocks.projects).toHaveBeenCalledTimes(1);
 });
 it("搜索加载时保留旧行但禁止操作，失败不冒充空结果", async () => {
 	vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);

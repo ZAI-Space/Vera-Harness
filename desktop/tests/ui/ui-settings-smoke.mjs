@@ -167,7 +167,11 @@ async function settings(category) {
 }
 
 async function closeSettings() {
-	await page.getByRole("dialog").last().getByRole("button", { name: "关闭", exact: true }).click();
+	await page
+		.getByRole("dialog")
+		.filter({ has: page.getByRole("heading", { name: "设置", exact: true }) })
+		.getByRole("button", { name: "关闭", exact: true })
+		.click();
 }
 
 async function choose(label, option) {
