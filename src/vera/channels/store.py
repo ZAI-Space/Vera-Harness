@@ -60,7 +60,9 @@ class ChannelStore:
     @contextmanager
     def connect(self):
         """Serialize short journal transactions; no network calls occur under this lock."""
-        with closing(sqlite3.connect(self.path, timeout=5)) as db, db:
+        # Channel workers and the sender may briefly overlap on Windows, where
+        # SQLite file locks can outlast the short transaction that owns them.
+        with closing(sqlite3.connect(self.path, timeout=30)) as db, db:
             db.row_factory = sqlite3.Row
             db.execute("BEGIN IMMEDIATE")
             yield db
