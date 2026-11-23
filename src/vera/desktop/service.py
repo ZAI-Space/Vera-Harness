@@ -2,6 +2,7 @@
 
 import html
 import json
+import os
 import subprocess
 import time
 from copy import deepcopy
@@ -444,16 +445,27 @@ class DesktopService:
                 branch = args["branch"]
                 if not branch or branch.startswith("-"):
                     raise ValueError("Invalid branch.")
-                subprocess.run(["git", "-C", workspace, "switch", "--", branch], check=True, capture_output=True)
+                subprocess.run(
+                    ["git", "-C", workspace, "switch", "--", branch],
+                    check=True,
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                )
                 return None
             result = subprocess.run(
-                ["git", "-C", workspace, "branch", "--show-current"], capture_output=True, text=True
+                ["git", "-C", workspace, "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
             current = result.stdout.strip() or None
             if method == "getGitBranch":
                 return current
             branches = subprocess.run(
-                ["git", "-C", workspace, "branch", "--format=%(refname:short)"], capture_output=True, text=True
+                ["git", "-C", workspace, "branch", "--format=%(refname:short)"],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
             return {"current": current, "branches": branches.stdout.splitlines()}
         if method == "getChannelSubscriptionSessionIds":

@@ -310,6 +310,22 @@ def test_state_reader_handles_real_windows_sharing_errors(tmp_path, is_transient
         read_json(path)
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows console visibility")
+def test_background_process_has_no_console_window(tmp_path):
+    """Scheduler and optimizer workers must not create visible console windows."""
+    log = tmp_path / "worker.log"
+    outcome = run_process(
+        [sys.executable, "-c", "import ctypes;print(ctypes.windll.kernel32.GetConsoleWindow())"],
+        cwd=tmp_path,
+        env=os.environ.copy(),
+        log=log,
+        timeout=10,
+        cancel=tmp_path / "cancel.request",
+    )
+    assert outcome["returncode"] == 0
+    assert log.read_text().strip() == "0"
+
+
 def test_process_lease_failure_reaps_started_child(tmp_path):
     """An unpublishable process lease must not leave the worker running."""
     marker = tmp_path / "unexpected-completion"

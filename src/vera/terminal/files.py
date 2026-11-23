@@ -111,6 +111,7 @@ class ProjectFiles:
                 ],
                 capture_output=True,
                 timeout=5,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
         except (OSError, subprocess.TimeoutExpired):
             result = None

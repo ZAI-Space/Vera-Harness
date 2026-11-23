@@ -126,7 +126,12 @@ def _process_stamp(pid: int) -> str | None:
 
 def _kill_tree(pid: int) -> None:
     if os.name == "nt":
-        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, timeout=15)
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            capture_output=True,
+            timeout=15,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
     else:
         # Bash/MCP commands may create their own sessions. Capture descendants
         # before killing the owner, while /proc still preserves their ancestry.
@@ -240,7 +245,7 @@ def run_process(command: list[str], *, cwd: Path, env: dict, log: Path, timeout:
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
             start_new_session=os.name != "nt",
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
+            creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW) if os.name == "nt" else 0,
         )
         lease_path = log.with_suffix(".process.json")
         try:
