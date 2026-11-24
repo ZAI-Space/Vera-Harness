@@ -14,7 +14,7 @@ from tests.run.test_skill_tools import run_cli, write_skill
 from tests.run.test_terminal_runtime import runtime_profile
 from vera.markets.mcp import MCPRegistry, MCPServices, merge_services
 from vera.markets.skills import SkillMarket, install_skill_snapshot, remove_market_skill
-from vera.plugins.source import open_source
+from vera.plugins.source import normalize_source, open_source
 from vera.runtime import open_agent_runtime
 from vera.terminal.session import TerminalSession
 from vera.tools import ToolError, ToolRegistry
@@ -245,6 +245,26 @@ def test_skill_market_search_snapshot_assets_discovery_and_safe_removal(tmp_path
     assert not (destination / "good-skill").exists()
     with pytest.raises(ToolError):
         remove_market_skill("../project", destination)
+
+
+@pytest.mark.parametrize("operation", ["inspect", "install"])
+def test_skill_market_keeps_github_source_and_ref_despite_local_collision(tmp_path, monkeypatch, operation):
+    """A project directory cannot replace the requested GitHub skill revision."""
+    (tmp_path / "example" / "repository").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    revision = "a" * 40
+
+    class SourceInspected(Exception):
+        """Stop before fetching after checking the actual source normalization."""
+
+    def inspect_source(source, ref):
+        assert normalize_source(source) == "https://github.com/example/repository.git"
+        assert ref == revision
+        raise SourceInspected
+
+    monkeypatch.setattr("vera.markets.skills.open_source", inspect_source)
+    with pytest.raises(SourceInspected):
+        getattr(SkillMarket(), operation)("example/repository/good-skill", ref=revision)
 
 
 def test_market_cli_help_never_starts_a_model_or_service(tmp_path):

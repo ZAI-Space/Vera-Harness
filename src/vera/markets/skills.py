@@ -47,7 +47,7 @@ class SkillMarket:
         match = _IDENTIFIER.fullmatch(identifier)
         if not match:
             raise ToolError("Use a skills.sh owner/repo/skill identifier.")
-        with open_source(match[1], ref) as source:
+        with open_source(f"https://github.com/{match[1]}", ref) as source:
             return install_skill_snapshot(source, match[2], directory or global_config_dir / "skills")
 
     def inspect(self, identifier: str, *, ref: str = "HEAD") -> dict:
@@ -55,7 +55,10 @@ class SkillMarket:
         match = _IDENTIFIER.fullmatch(identifier)
         if not match:
             raise ToolError("Use a skills.sh owner/repo/skill identifier.")
-        with open_source(match[1], ref) as source, TemporaryDirectory(prefix="vera-skill-preview-") as temporary:
+        with (
+            open_source(f"https://github.com/{match[1]}", ref) as source,
+            TemporaryDirectory(prefix="vera-skill-preview-") as temporary,
+        ):
             path, skill = _export_skill(source, match[2], Path(temporary) / match[2])
             return {
                 "name": skill.name,
