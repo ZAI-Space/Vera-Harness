@@ -93,6 +93,8 @@ SSH, PI extensions, codemode/deferred MCP exposure and manual context compaction
 
 Behavior settings detect installed Bash runtimes, including available WSL Bash on Windows. They do not silently install or replace a shell. Users explicitly maintain global rules and memory. Usage statistics track tokens; an unknown cost does not mean free execution.
 
+For WSL, explicitly configured environment overrides and Python encoding settings are forwarded through `WSLENV`. Other Windows variables are not copied wholesale into the distribution; existing `WSLENV` flags remain effective.
+
 Device interconnect starts disabled. Enabling it creates a separate LAN listener and pairing token; remote control needs an additional opt-in. Weixin/Feishu use the existing paired-user channel controls. See [API boundaries](desktop-api.md). The optional [taskboard](taskboard.md) is installed separately and leaves execution results ready for review.
 
 ## Verification

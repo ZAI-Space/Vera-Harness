@@ -95,6 +95,8 @@ SSH、PI 扩展、codemode/deferred MCP 和手动上下文压缩尚未由当前�
 
 行为设置可检测已安装的 Bash，Windows 也可选择检测成功的 WSL Bash；不会静默安装或替换 Shell。全局规则与记忆由用户显式维护；统计页记录 Token，不将未知金额解释为免费。
 
+WSL 通过 `WSLENV` 接收显式配置的环境变量覆盖项与 Python 编码设置，不会整体复制 Windows 环境；已有的 `WSLENV` 标志保持生效。
+
 跨设备互联默认关闭，开启后使用独立 LAN 监听和配对 token；远程控制需另行开启。微信与飞书使用已有渠道的配对与用户白名单。详见[接口边界](desktop-api.md)。可选[任务看板](taskboard.md)独立安装，执行结果进入待审核。
 
 ## 验证

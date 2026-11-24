@@ -10,6 +10,8 @@ config setup 交互填写模型和凭据；set/unset 修改指定键；edit 使�
 
 ## 变量职责
 
+LiteLLM、OpenRouter 和 Portkey 适配器支持 `VERA_COST_TRACKING` 的 `default`、`ignore_errors`、`tokens` 三种值。`tokens` 只记录服务商报告的用量，不确定金额；兼容字段中的零费用不表示请求免费。
+
 新配置默认写入 VERA 用户配置目录；仅有旧目录时复用，`VERA_GLOBAL_CONFIG_DIR` 显式指定时优先。供应商凭据变量沿用供应商名称，不因为产品品牌改名而更改。
 
 | 变量 | 职责 |
