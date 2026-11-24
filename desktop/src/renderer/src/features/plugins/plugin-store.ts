@@ -1,18 +1,21 @@
 import { create } from "zustand";
 import { harness, isHarnessConnected, reportHarnessFailure } from "../../harness-api";
+import { errText } from "../../lib/error-text";
 import type { WorkspacePlugin } from "./model";
 
 interface PluginStore {
 	plugins: WorkspacePlugin[];
 	market: WorkspacePlugin[];
-	marketSource: "github" | "gitee";
+	marketSource: string;
+	repositories: { id: string; name: string; source?: string }[];
+	addRepository: (source: string) => Promise<boolean>;
 	marketLoaded: boolean;
 	marketLoading: boolean;
 	marketError: string | null;
 	error: string | null;
 	busy: string | null;
 	refresh: () => Promise<void>;
-	loadMarket: (source: "github" | "gitee", refresh?: boolean) => Promise<void>;
+	loadMarket: (source: string, refresh?: boolean) => Promise<void>;
 	add: (plugin: WorkspacePlugin) => Promise<boolean> | boolean;
 	setEnabled: (id: string, enabled: boolean) => Promise<boolean> | boolean;
 	remove: (id: string) => Promise<boolean> | boolean;
@@ -21,6 +24,8 @@ interface PluginStore {
 /** 安装与启用分开；仅后端成功返回后改变目录。 */
 export const usePluginPreviewStore = create<PluginStore>((set, get) => {
 	let marketRequest = 0;
+	const catalogs = new Map<string, WorkspacePlugin[]>();
+	const flights = new Map<string, Promise<WorkspacePlugin[]>>();
 	const action = async (args: Record<string, unknown>): Promise<boolean> => {
 		if (get().busy) return false;
 		set({ busy: String(args.name), error: null });
@@ -29,7 +34,7 @@ export const usePluginPreviewStore = create<PluginStore>((set, get) => {
 			set({ plugins });
 			return true;
 		} catch (error) {
-			set({ error: String(error) });
+			set({ error: errText(error) ?? String(error) });
 			await reportHarnessFailure(error);
 			return false;
 		} finally {
@@ -39,7 +44,26 @@ export const usePluginPreviewStore = create<PluginStore>((set, get) => {
 	return {
 		plugins: [],
 		market: [],
-		marketSource: "github",
+		marketSource: "anthropic",
+		repositories: [
+			{ id: "anthropic", name: "Anthropic 官方 · GitHub" },
+			{ id: "github", name: "Codex 官方 · GitHub" },
+			{ id: "gitee", name: "Claude Code · Gitee" },
+		],
+		addRepository: async (source) => {
+			try {
+				const repository = await harness<{ id: string; name: string; source: string }>(
+					"addPluginRepository",
+					{ source },
+				);
+				await get().refresh();
+				await get().loadMarket(repository.id);
+				return true;
+			} catch (error) {
+				set({ error: errText(error) ?? String(error) });
+				return false;
+			}
+		},
 		marketLoaded: false,
 		marketLoading: false,
 		marketError: null,
@@ -48,19 +72,39 @@ export const usePluginPreviewStore = create<PluginStore>((set, get) => {
 		refresh: async () => {
 			if (!isHarnessConnected()) return;
 			try {
-				set({ plugins: await harness<WorkspacePlugin[]>("getPlugins"), error: null });
+				const [plugins, repositories] = await Promise.all([
+					harness<WorkspacePlugin[]>("getPlugins"),
+					harness<PluginStore["repositories"]>("getPluginRepositories"),
+				]);
+				set({ plugins, repositories, error: null });
 			} catch (error) {
-				set({ error: String(error) });
+				set({ error: errText(error) ?? String(error) });
 			}
 		},
 		loadMarket: async (source, refresh = false) => {
 			const request = ++marketRequest;
-			set({ marketSource: source, marketLoading: true, marketLoaded: false, marketError: null, market: [] });
+			const cached = catalogs.get(source);
+			set({
+				marketSource: source,
+				marketLoading: !cached || refresh,
+				marketLoaded: !!cached,
+				marketError: null,
+				market: cached ?? [],
+			});
+			if (cached && !refresh) return;
 			try {
-				const market = await harness<WorkspacePlugin[]>("pluginMarket", { source, refresh });
+				let flight = flights.get(source);
+				if (!flight) {
+					flight = harness<WorkspacePlugin[]>("pluginMarket", { source, refresh }).finally(() =>
+						flights.delete(source),
+					);
+					flights.set(source, flight);
+				}
+				const market = await flight;
+				catalogs.set(source, market);
 				if (request === marketRequest) set({ market, marketLoaded: true });
 			} catch (error) {
-				if (request === marketRequest) set({ marketError: String(error) });
+				if (request === marketRequest) set({ marketError: errText(error) ?? String(error) });
 			} finally {
 				if (request === marketRequest) set({ marketLoading: false });
 			}

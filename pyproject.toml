@@ -90,9 +90,9 @@ contree = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/zml-mis/Vera-Harness/tree/dev/docs"
-Repository = "https://github.com/zml-mis/Vera-Harness"
-"Bug Tracker" = "https://github.com/zml-mis/Vera-Harness/issues"
+Documentation = "https://github.com/ZAI-Space/Vera-Harness/tree/main/docs"
+Repository = "https://github.com/ZAI-Space/Vera-Harness"
+"Bug Tracker" = "https://github.com/ZAI-Space/Vera-Harness/issues"
 
 [project.scripts]
 vera = "vera.run.cli:app"

@@ -2,28 +2,51 @@
 
 # Repository structure
 
-VERA uses a small monorepo layout with one Python package and one desktop
-application. Source, tests, examples, documentation and generated output have
-separate ownership.
+This repository contains the VERA Runtime, terminal and desktop adapters, tests, examples and user documentation. Keep each file in the directory that owns its behavior.
 
-| Path | Ownership | What belongs here |
+| Path | Contents | Commit policy |
 | --- | --- | --- |
-| `src/vera/` | Python source | Runtime, agents, models, tools, memory, channels and CLI modules |
-| `desktop/` | Desktop source | Electron main process, preload, renderer, contracts and desktop tests |
-| `tests/` | Python verification | Unit, integration and system tests plus small fixtures |
-| `examples/` | Public demonstrations | Safe plugin, Skill, MCP and configuration examples |
-| `docs/` | Product documentation | English/Chinese tutorials, how-to guides, reference and architecture explanations |
-| `scripts/` | Maintainer tools | Portable startup, documentation, boundary and verification scripts |
-| `.github/` | Repository automation | CI workflows, issue forms and pull-request templates |
-| `site/`, `dist/`, `.venv/`, `node_modules/`, `desktop/out/` | Generated/local | Never commit; recreate from the lockfiles and build commands |
+| `src/vera/` | Python Runtime, models, agents, tools, environments, storage, channels and adapters | Commit source and maintained package data. |
+| `desktop/src/` | Electron main process, preload bridge, contracts and React renderer | Commit source; maintained tests belong in `desktop/tests/`. Keep the renderer independent from the Python Agent SDK. |
+| `tests/` | Python unit, integration and local protocol tests | Put maintained tests here. Use `tests/run/` for cross-module and process tests. |
+| `desktop/tests/` | Frontend unit and component tests | Mirror the tested source paths; UI acceptance lives in `desktop/tests/ui/`. |
+| `examples/` | Safe plugin and configuration examples | Use placeholder credentials and local paths. Do not call paid services. |
+| `docs/` and `docs/zh/` | Paired English and Chinese documentation | Update both pages when behavior changes. Preserve exact commands and identifiers. |
+| `website/` | Static landing page source | Build the shared documentation into `website/docs/`; commit source only. See [website documentation](website.md). |
+| `desktop/third_party/` and `THIRD_PARTY_NOTICES.md` | Source and license notices | Keep notices with redistributed source. |
+| `scripts/` | Repository maintenance and launch scripts | Do not store credentials or reports in the repository. |
 
-Root files are limited to project entry points and repository policy: README
-editions, license and notices, package metadata, Git configuration, startup
-entry points and contributor/agent instructions. A feature guide belongs in
-`docs/`; an executable public example belongs in `examples/`; a verification
-fixture belongs in `tests/`.
+## Generated and local files
 
-The repository does not keep phase plans, temporary acceptance reports,
-screenshots, local logs or copied build output. Durable verification procedures
-belong in tests and durable facts about the product belong in the paired
-documentation pages.
+Do not commit `.venv/`, Python caches, coverage output, `desktop/node_modules/`, `desktop/out/`, `desktop/.local/`, `desktop/coverage/`, `site/`, `website/docs/`, local trajectories, logs, reports or credentials. The UI acceptance command writes screenshots and logs to a temporary directory; keep those artifacts outside the repository.
+
+## Naming and ownership
+
+Use `snake_case` for Python modules and functions, `PascalCase` for React components, and the existing `camelCase` convention for TypeScript functions and stores. Name a file for one topic. Split a file when it approaches 1,000 lines or combines unrelated responsibilities.
+
+Use English for Python API names and public technical documentation. Preserve Chinese UI comments and bilingual documentation where they are part of the product surface. Comments must describe current behavior and must not preserve disabled code.
+
+## Checks before delivery
+
+Run the relevant checks from the repository root:
+
+```bash
+python -m ruff format --check src tests
+python -m ruff check src tests
+python -m pytest -n 2 -ra
+python scripts/check_docs.py
+python -m mkdocs build --strict
+```
+
+Run the desktop checks from `desktop/`:
+
+```bash
+npm run check:boundary
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run test:ui
+```
+
+Record unavailable optional services, paid model runs and manual acceptance as separate evidence. A local fixture proves the fixture path only.

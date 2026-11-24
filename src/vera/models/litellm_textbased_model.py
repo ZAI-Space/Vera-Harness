@@ -1,3 +1,5 @@
+"""Parse Bash actions from text responses through the LiteLLM adapter."""
+
 import litellm
 
 from vera.models.litellm_model import LitellmModel, LitellmModelConfig

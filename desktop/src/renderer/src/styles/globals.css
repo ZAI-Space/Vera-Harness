@@ -149,6 +149,15 @@
 	--scrollbar-thumb-hover: #5d5d66;
 }
 
+/* 空态品牌标题：用紧凑的粗体层级强调 VERA，保持输入区上方的留白。 */
+.empty-state-slogan {
+	font-weight: 700;
+}
+
+.empty-state-slogan-brand {
+	color: #2583f7;
+}
+
 /* 子代理状态：工作中在 80×22 透明区域里放三颗打字点；终态从右向左收成 6px 圆点（左端固定）。
    终态用 Apple 系统绿/红，只作用于子代理，不影响通用 severity / UI 插件状态点。 */
 .subagent-slot {
@@ -1164,7 +1173,7 @@ code {
    （消息 600px / 代码块 180px，无 auto 记忆），视口外一律按估值占位、滚近才恢复真实高度——
    真实高度远超估值的消息在上滚进入渲染窗口时突然「长高」，浏览器滚动锚定把视口往下推，
    表现为上滚被顶住、偶发被拽回吸底（2026-09-16 实测复现，见 PITFALLS）。
-   长会话的渲染成本控制由挂载窗口（mount-window）承担，不依赖库这层跳过。
+   长会话的渲染成本控制由 MessageList 的虚拟窗口承担，不依赖库这层跳过。
    content-visibility:visible 只停跳过，contain:layout/content 的布局隔离仍然保留。 */
 .markdown-body .markdown-renderer {
 	content-visibility: visible;

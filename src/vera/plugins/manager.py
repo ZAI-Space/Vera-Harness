@@ -11,9 +11,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from vera.plugins.manifest import load_bundle, read_json
+from vera.plugins.presentation import marketplace_presentations, package_presentation
 from vera.plugins.source import (
     PluginError,
     PluginSource,
+    Source,
     filesystem_path,
     inventory,
     normalize_source,
@@ -164,10 +166,17 @@ class PluginManager:
             if not isinstance(entries, list) or len(entries) > 1000:
                 raise PluginError("Marketplace must contain a plugins array with at most 1,000 entries.")
             plugins = {}
+            local_paths = set()
             for entry in entries:
                 if not isinstance(entry, dict):
                     raise PluginError("Marketplace entries must be objects.")
-                plugin_name = _name(entry.get("name", ""))
+                try:
+                    plugin_name = _name(entry.get("name", ""))
+                except PluginError:
+                    # A catalog may contain a package identity that VERA cannot
+                    # represent safely (for example a name starting with digits).
+                    # Omit that entry instead of rejecting the complete catalog.
+                    continue
                 if plugin_name in plugins:
                     raise PluginError(f"Duplicate marketplace plugin: {plugin_name}.")
                 origin = entry.get("source")
@@ -198,18 +207,50 @@ class PluginManager:
                     plugins[plugin_name] = {"unsupported": f"Unsupported marketplace source: {kind!r}."}
                     continue
                 specification["path"] = relative_path(origin.get("path", "."))
+                specification.update(
+                    {
+                        key: entry[key]
+                        for key in (
+                            "description",
+                            "author",
+                            "category",
+                            "version",
+                            "skills",
+                            "mcpServers",
+                            "mcp_servers",
+                            "subagents",
+                            "capabilities",
+                        )
+                        if key in entry
+                    }
+                )
+                if kind == "local":
+                    local_paths.add(specification["path"])
                 policy = entry.get("policy", {})
                 if not isinstance(policy, dict):
                     raise PluginError("Marketplace policy must be an object.")
                 if policy.get("installation") == "NOT_AVAILABLE":
                     specification["unsupported"] = "Marketplace policy marks this plugin NOT_AVAILABLE."
                 plugins[plugin_name] = specification
+            presentations = {}
+            if local_paths:
+                try:
+                    presentations = marketplace_presentations(fetched, list(local_paths), set(fetched.files()))
+                except (PluginError, OSError):
+                    presentations = {path: {} for path in local_paths}
+            for specification in plugins.values():
+                if specification.get("source") == fetched.location and specification.get("path") in local_paths:
+                    unsupported = specification.get("unsupported")
+                    specification.update(presentations[specification["path"]])
+                    if unsupported:
+                        specification["unsupported"] = unsupported
             record = {
                 "source": fetched.location,
                 "ref": ref,
                 "commit": fetched.commit,
                 "catalog": f"{catalog_path}/marketplace.json",
                 "plugins": plugins,
+                "presentation_version": 1,
             }
             with self._state(write=True) as state:
                 if replace is None and name in state["marketplaces"]:
@@ -245,6 +286,7 @@ class PluginManager:
                 if expected is not None and name != expected:
                     raise PluginError(f"Expected plugin {expected!r}, received {name!r}.")
                 files = inventory(candidate)
+                presentation = package_presentation(Source(fetched.location, candidate, None), ".", set(files))
                 digest = _digest(files)
                 destination = objects / digest
                 if destination.exists():
@@ -253,6 +295,7 @@ class PluginManager:
                 else:
                     os.rename(candidate, destination)
             record = {
+                **presentation,
                 **bundle.manifest.model_dump(),
                 "source": fetched.location,
                 "ref": ref,

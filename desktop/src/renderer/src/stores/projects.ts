@@ -21,11 +21,11 @@ import { useSessionsStore } from "./sessions";
 import { useSubagentReturnStore } from "./subagent-return";
 import { useUiPreferencesStore } from "./ui-preferences";
 
-const ADDED_KEY = "pi-desktop.projects";
+const ADDED_KEY = "vera.projects";
 
 function loadAddedProjects(): string[] {
 	try {
-		const raw = localStorage.getItem(ADDED_KEY);
+		const raw = localStorage.getItem(ADDED_KEY) ?? localStorage.getItem("pi-desktop.projects");
 		const parsed = raw ? (JSON.parse(raw) as unknown) : [];
 		return Array.isArray(parsed)
 			? parsed.filter((p): p is string => {
@@ -267,10 +267,19 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => {
 			const added = get().addedProjects.filter((p) => p !== cwd);
 			localStorage.setItem(ADDED_KEY, JSON.stringify(localProjects(added)));
 			set({ addedProjects: added });
+			// Removing a project also clears its draft/startup location; otherwise the next task recreates it.
+			const fallback = await initDailyDir(environmentEntityRef(cwd).environment);
+			const sessionsState = useSessionsStore.getState();
+			if (sessionsState.newSessionDraft?.cwd === cwd) {
+				if (sessionsState.activeSessionId === null && fallback) sessionsState.setDraftCwd(fallback);
+				else useSessionsStore.setState({ newSessionDraft: null });
+			}
+			if (useSessionsStore.getState().cwd === cwd) useSessionsStore.setState({ cwd: fallback });
+			if (useUiPreferencesStore.getState().lastCwd === cwd)
+				useUiPreferencesStore.getState().setLastCwd(fallback);
 			const { selectedCwd } = get();
 			if (selectedCwd === cwd) {
-				const projects = deriveProjects(get());
-				set({ selectedCwd: projects[0]?.cwd ?? null, search: "" });
+				set({ selectedCwd: fallback, search: "" });
 			}
 		},
 

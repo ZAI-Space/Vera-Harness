@@ -17,6 +17,7 @@ from vera.models import get_model
 from vera.storage import StorageError
 from vera.tools import ToolError, ToolRegistry, ToolSpec
 from vera.tools.skills import Skill, register_skill_tools
+from vera.user_context import apply_user_context
 
 _DELEGATION_TOOLS = {"subagents_list", "subagent_run", "subagent_finish"}
 _SKILL_TOOLS = {"skills_list", "skill_view"}
@@ -31,9 +32,9 @@ class SubagentRole(BaseModel):
     model: dict | None = None
     tools: list[str] = Field(default_factory=list)
     skills: list[str] = Field(default_factory=list)
-    step_limit: int = Field(default=12, ge=1, le=200)
-    cost_limit: float = Field(default=0.5, gt=0)
-    wall_time_limit_seconds: int = Field(default=180, ge=1, le=3600)
+    step_limit: int = Field(default=0, ge=0, le=200)
+    cost_limit: float = Field(default=0, ge=0)
+    wall_time_limit_seconds: int = Field(default=0, ge=0, le=3600)
 
     @field_validator("model")
     @classmethod
@@ -155,12 +156,15 @@ def register_subagent_tools(
         cost_limit = role.cost_limit
         time_limit = role.wall_time_limit_seconds
         if parent.config.cost_limit > 0:
-            cost_limit = min(cost_limit, parent.config.cost_limit - parent.cost)
+            remaining_cost = parent.config.cost_limit - parent.cost
+            if remaining_cost <= 0:
+                raise ToolError("Parent budget exhausted before delegation.")
+            cost_limit = min(cost_limit, remaining_cost) if cost_limit else remaining_cost
         if parent.config.wall_time_limit_seconds > 0:
             remaining = parent.config.wall_time_limit_seconds - int(time.time() - parent._start_time)
-            time_limit = min(time_limit, remaining)
-        if cost_limit <= 0 or time_limit <= 0:
-            raise ToolError("Parent budget exhausted before delegation.")
+            if remaining <= 0:
+                raise ToolError("Parent budget exhausted before delegation.")
+            time_limit = min(time_limit, remaining) if time_limit else remaining
         child_registry = registry.select(role.tools)
         if role.skills:
             register_skill_tools(child_registry, {skill: skills[skill] for skill in role.skills})
@@ -184,7 +188,8 @@ def register_subagent_tools(
         output = parent_path.parent / f"{parent_path.stem}.subagents" / f"{run_id}.traj.json" if parent_path else None
         child = None
         try:
-            model = get_model(config=parent_model_config if role.model is None else role.model)
+            selected_model = parent_model_config if role.model is None else role.model
+            model = get_model(config=selected_model | {"allow_text_final": False})
             child = _DelegatedAgent(
                 model,
                 parent.env,
@@ -201,6 +206,7 @@ def register_subagent_tools(
                 output_path=output,
             )
             record = parent.run_record
+            apply_user_context(child, parent.extra_template_vars.get("user_global_context", ""))
             tracking = (
                 record.store.track(child, run_id=run_id, parent_id=record.id, role=name) if record else nullcontext()
             )
@@ -216,6 +222,8 @@ def register_subagent_tools(
         finally:
             if child is not None:
                 parent.cost += child.cost
+                for counter, value in child.token_usage.items():
+                    parent.token_usage[counter] += value
         return _observation(
             {
                 "run_id": run_id,

@@ -3,16 +3,21 @@
 import json
 import os
 import subprocess
-import sys
 import threading
 import time
 from pathlib import Path
 from uuid import uuid4
 
+from pydantic import ValidationError
+
 from vera.config import get_config_from_spec
 from vera.desktop.events import LiveReply, assistant_message, history_message, message_events, transcript
+from vera.desktop.model_settings import ModelOptions, apply_reasoning
+from vera.desktop.performance import TaskObservation
 from vera.evolution.process import _kill_tree
 from vera.terminal.session import TerminalSession
+from vera.utils.python_process import python_module_command
+from vera.utils.serialize import recursive_merge, strip_sensitive
 
 
 class Sessions:
@@ -26,9 +31,16 @@ class Sessions:
         self.cancelled = set()
         self.watchers = set()
         self.base_config = config
+        self.user_context_directory = store.directory / "user-context"
+        self.usage = None
+        from vera.desktop.delegation import DelegatedConversations
+
+        self.delegation = DelegatedConversations(self)
 
     def get(self, key: str) -> dict:
         value = self.store.get("session", key)
+        if value is None:
+            value = self.store.get("delegated-session", key)
         if value is None:
             raise ValueError("Unknown session.")
         return value
@@ -38,7 +50,8 @@ class Sessions:
             value = self.get(key)
             value["sequence"] += 1
             value["meta"]["modifiedAt"] = int(time.time() * 1000)
-            self.store.save("session", key, value)
+            kind = "delegated-session" if value["meta"].get("parentSessionId") else "session"
+            self.store.save(kind, key, value)
             self.events.emit("onEvent", {"sessionId": key, "sequence": value["sequence"], "event": event})
 
     def baseline(self, key: str) -> dict:
@@ -48,7 +61,7 @@ class Sessions:
                 "hydrationToken": key,
                 "meta": value["meta"],
                 "sequence": value["sequence"],
-                "transcript": transcript(value, key in self.running),
+                "transcript": transcript(value, key in self.running or value.get("delegatedActive", False)),
                 "permissionMode": value["permissionMode"],
             }
 
@@ -56,7 +69,12 @@ class Sessions:
         from copy import deepcopy
 
         config = deepcopy(self.base_config) if self.base_config else get_config_from_spec("vera.yaml")
+        if self.base_config is None:
+            config = recursive_merge(config, get_config_from_spec("desktop/assistant.yaml"))
         behavior = self.store.get("settings", "behavior", {})
+        from vera.desktop.shells import shell_command
+
+        config.setdefault("environment", {})["shell_command"] = shell_command(behavior.get("commandShell", "system"))
         permission = value.get("permissionPolicy", behavior.get("permissionPolicy", "confirm"))
         if permission == "human":
             config["model"] = {
@@ -66,32 +84,55 @@ class Sessions:
                 "cost_per_call": 0,
             }
         elif value["meta"].get("model"):
-            config["model"] = self.providers.model_config(value["meta"]["model"])
+            templates = {
+                name: config.get("model", {})[name]
+                for name in ("format_error_template", "observation_template", "multimodal_regex", "allow_text_final")
+                if name in config.get("model", {})
+            }
+            config["model"] = self.providers.model_config(value["meta"]["model"]) | templates
         elif not config.get("model", {}).get("model_name"):
             raise ValueError("Configure and select a model before sending a task.")
+        if config["model"].get("model_class", "litellm") in {"litellm", "litellm_response"}:
+            config["model"]["cost_tracking"] = "tokens"
+            config["agent"]["cost_limit"] = 0
         config["agent"].update(mode=permission)
         config["agent"]["desktop_workspace"] = value["meta"]["cwd"]
-        config["agent"]["step_limit"] = 100
-        options = value.get("modelOptions") or {}
+        reference = value["meta"].get("model")
+        definition = self.providers.definition(reference) if reference and permission != "human" else {}
+        raw_options = definition.get("advanced")
+        if raw_options is None:
+            raw_options = {name: item for name, item in (value.get("modelOptions") or {}).items() if item != ""}
+        try:
+            options = ModelOptions.model_validate(raw_options).model_dump(by_alias=True)
+        except ValidationError:
+            raise ValueError("会话模型参数无效，请重新保存有效的模型选项后重试。") from None
         if options.get("toolCallLimit"):
             config["agent"]["desktop_tool_call_limit"] = int(options["toolCallLimit"])
         kwargs = config["model"].setdefault("model_kwargs", {})
         for field, parameter in (("temperature", "temperature"), ("topP", "top_p"), ("topK", "top_k")):
-            if options.get(field):
+            if options.get(field) is not None:
                 kwargs[parameter] = float(options[field]) if field != "topK" else int(options[field])
         level = value["meta"].get("thinkingLevel", "off")
-        if level not in {"off", "default"}:
+        if reference and permission != "human":
+            kwargs.update(self.providers.reasoning_kwargs(reference, level, options))
+        elif level not in {"off", "default"}:
             parameter = options.get("reasoningParameter", "reasoning_effort")
-            if parameter == "reasoning.effort":
-                kwargs["reasoning"] = {"effort": level}
-            else:
-                kwargs["reasoning_effort"] = level
-        config["agent"]["wall_time_limit_seconds"] = 600
+            if definition.get("advanced") and level not in options["reasoningValues"]:
+                raise ValueError("所选模型不支持此思考强度，请重新选择。")
+            apply_reasoning(kwargs, parameter, level)
         config["sandbox"] = {"mode": "local", "workspace": value["meta"]["cwd"]}
         config["sandbox_profiles"] = {"path": str(self.store.directory / "sandboxes.sqlite3")}
         if sandbox := value["selections"].get("sandbox") or behavior.get("defaultSandbox"):
             config["sandbox_profile"] = sandbox
         config["terminal"] = {"session_id": value["meta"]["sessionId"]}
+        # Parent and workers must share one explicit goal root despite different startup environments.
+        config["goal"] = {
+            "max_turns": 0,
+            "cost_limit": 0,
+            "timeout": 0,
+            **config.get("goal", {}),
+            "directory": str(self.store.directory / "goals"),
+        }
         config["plugins"] = {"directory": str(self.store.directory / "plugins")}
         if "plugins" in value["selections"]:
             config["plugins"]["names"] = value["selections"]["plugins"]
@@ -99,6 +140,7 @@ class Sessions:
         mcp = self.store.get("settings", "mcp", {})
         config["mcp_servers"] = {name: entry["config"] for name, entry in mcp.items() if entry["enabled"]}
         config["subagents"] = {"roles": self.store.get("settings", "roles", {})}
+        config["desktop_subagent_refs"] = {}
         preferences = self.store.get("settings", "modelPrefs", {})
         for name, role in config["subagents"]["roles"].items():
             reference = self.store.get("settings", "roleModels", {}).get(name)
@@ -107,7 +149,9 @@ class Sessions:
                 reference = {"provider": provider, "modelId": model_id}
             if reference:
                 role["model"] = self.providers.model_config(reference)
+                config["desktop_subagent_refs"][name] = reference
         config["web"] = self.store.get("settings", "web", config.get("web", {}))
+        config["user_context"] = {"directory": str(self.user_context_directory)}
         return config
 
     def terminal(self, value: dict, config: dict | None = None) -> TerminalSession:
@@ -121,8 +165,11 @@ class Sessions:
 
     def prompt(self, key: str, text: str, document: dict | None = None, images: list | None = None) -> None:
         """Accept once, then publish real worker progress; failures never report success."""
+        started, timestamp = time.monotonic(), int(time.time() * 1000)
         with self.lock:
             value = self.get(key)
+            if value["meta"].get("parentSessionId"):
+                raise ValueError("Subagent conversations are read-only. Continue in the parent conversation.")
             if value["meta"].get("archivedAt"):
                 raise ValueError("Unarchive this session before running it.")
             if key in self.running:
@@ -137,6 +184,12 @@ class Sessions:
                 self.emit(key, {"type": "queue_update", "steering": [], "followUp": [text]})
                 return
             config = self.config(value)
+            if images and (config["agent"]["mode"] == "human" or not value["meta"].get("model")):
+                raise ValueError("图片需要选择支持图片输入的模型；手动执行模式不支持图片。")
+            if images and value["meta"].get("model"):
+                definition = self.providers.definition(value["meta"]["model"])
+                if not definition.get("imageInput", False):
+                    raise ValueError("当前模型未启用图片输入，请切换支持图片的模型后重试。")
             terminal = self.terminal(value, config)
             if document:
                 text = ""
@@ -175,6 +228,20 @@ class Sessions:
                 self.store.checkpoint_session(self.get(key))
                 return
             config = terminal.runtime_config()
+            if config["agent"].get("mode") == "human":
+                # Manual Bash needs only its selected execution environment, never model-side services.
+                config["mcp_servers"] = {}
+                config["mcp_selection"] = []
+                config["plugins"]["names"] = []
+                config["web"] = {}
+                config["subagents"]["roles"] = {}
+            # Human commands do not use the selected provider or require its credentials.
+            if config["agent"].get("mode") != "human" and (provider_ref := value["meta"].get("model")):
+                config["desktop_provider_ref"] = provider_ref
+                config["desktop_state_dir"] = str(self.store.directory)
+                config = strip_sensitive(config)
+            # Explicit --config credentials have no provider reference to restore.
+            # They travel only through the worker's private stdin, never a request file.
             task = result.task
             if images:
                 # The existing multimodal adapter expands these markers.
@@ -203,6 +270,7 @@ class Sessions:
                 history_message(user)
                 | {"runtimeIndex": len(value["runtimeMessages"])}
                 | ({"document": document} if document else {})
+                | ({"images": images} if images else {})
             )
             value["meta"]["messageCount"] = len(value["messages"])
             if not value["meta"].get("name"):
@@ -214,10 +282,14 @@ class Sessions:
                 "VERA_GLOBAL_CONFIG_DIR": str(self.store.directory),
                 "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
             }
+            if config.get("web") and config.get("run_mode") != "plan":
+                from vera.desktop.web import WebSettings
+
+                environment.update(WebSettings(self.store).environment(config["web"]))
             error_log = (run / "worker.log").open("w", encoding="utf-8")
             try:
                 process = subprocess.Popen(
-                    [sys.executable, "-m", "vera.desktop.worker", "-"],
+                    python_module_command("vera.desktop.worker", "-"),
                     cwd=value["meta"]["cwd"],
                     env=environment,
                     stdin=subprocess.PIPE,
@@ -233,15 +305,23 @@ class Sessions:
             process.stdin.write(json.dumps(request) + "\n")
             process.stdin.flush()
             self.running[key] = process
+            self.emit(key, {"type": "session_info_changed", "name": value["meta"].get("name")})
             self.emit(key, {"type": "agent_start"})
             self.emit(key, {"type": "message_start", "message": user})
             self.emit(key, {"type": "message_end", "message": user})
             self.events.emit("onSessionCatalogChanged", {"revision": uuid4().hex, "complete": True})
-            watcher = threading.Thread(target=self._watch, args=(key, process, request_path), daemon=True)
+            observation = (
+                TaskObservation(
+                    self.usage, run.name, value["meta"].copy(), started, timestamp, bool(value["runtimeMessages"])
+                )
+                if self.usage
+                else None
+            )
+            watcher = threading.Thread(target=self._watch, args=(key, process, request_path, observation), daemon=True)
             self.watchers.add(watcher)
             watcher.start()
 
-    def _watch(self, key, process, request_path):
+    def _watch(self, key, process, request_path, observation=None):
         completed = False
         pending_message = None
         live = None
@@ -250,17 +330,10 @@ class Sessions:
                 frame = json.loads(line)
                 with self.lock:
                     value = self.get(key)
+                    if observation:
+                        observation.observe(frame)
                     if frame.get("parentToolCallId") and frame["type"] in {"stream_start", "stream_delta"}:
-                        self.emit(
-                            key,
-                            {
-                                "type": "tool_execution_update",
-                                "toolCallId": frame["parentToolCallId"],
-                                "toolName": "subagent_run",
-                                "args": {},
-                                "partialResult": {"childUpdate": frame.get("update")},
-                            },
-                        )
+                        self.delegation.stream(value, frame)
                         continue
                     if frame["type"] == "tools_ready":
                         configured = self.store.get("settings", "mcp", {})
@@ -300,8 +373,17 @@ class Sessions:
                         if pending_message:
                             self.emit(key, {"type": "turn_end", "message": pending_message, "toolResults": []})
                         message = assistant_message(frame["message"], value["meta"].get("model"))
+                        if not message["model"] and self.base_config:
+                            reference = self.base_config.get("model", {}).get("model_name", "configured/unknown")
+                            message["provider"], _, message["model"] = reference.partition("/")
+                        history = history_message(message)
+                        if "runtimeIndex" in frame:
+                            history["runtimeIndex"] = frame["runtimeIndex"]
+                        if self.usage:
+                            identifier = frame["message"].get("extra", {}).get("usage_id") or history["id"]
+                            self.usage.record(identifier, message, value["meta"]["cwd"])
                         pending_message = message
-                        value["messages"].append(history_message(message))
+                        value["messages"].append(history)
                         value["stats"]["inputTokens"] += message["usage"]["input"]
                         value["stats"]["outputTokens"] += message["usage"]["output"]
                         self.store.save("session", key, value)
@@ -321,8 +403,19 @@ class Sessions:
                         self.events.emit(
                             "onExtensionNotify", {"level": "info", "message": frame["text"], "extensionPath": "VERA"}
                         )
+                    elif frame["type"] == "usage" and self.usage:
+                        self.usage.record(
+                            frame["id"],
+                            {
+                                "provider": (value["meta"].get("model") or {}).get("provider", "configured"),
+                                "model": (value["meta"].get("model") or {}).get("modelId", "unknown"),
+                            }
+                            | frame["message"],
+                            value["meta"]["cwd"],
+                        )
                     elif frame["type"] == "finished":
                         completed = True
+                        value["lastRunResult"] = strip_sensitive(frame["result"])
                         value["runtimeMessages"] = [m for m in frame["messages"] if m.get("role") != "exit"]
                         value["stats"]["cost"] += frame["cost"]
                         value["meta"]["messageCount"] = len(value["messages"])
@@ -348,6 +441,11 @@ class Sessions:
             request_path.unlink(missing_ok=True)  # Do not retain decrypted provider credentials.
             with self.lock:
                 value = self.get(key)
+                if key in self.cancelled or not completed:
+                    value["lastRunResult"] = {
+                        "exit_status": "Cancelled" if key in self.cancelled else "WorkerFailed",
+                        "submission": "",
+                    }
                 if live:
                     value["messages"].append(live.history())
                 value.pop("liveStreaming", None)
@@ -355,7 +453,12 @@ class Sessions:
                 if pending_message:
                     self.emit(key, {"type": "turn_end", "message": pending_message, "toolResults": []})
                 self.store.checkpoint_session(self.get(key))
+                if observation:
+                    observation.finish(value["lastRunResult"].get("exit_status", "WorkerFailed"))
                 self.running.pop(key, None)
+                for call_id, child_id in value.get("delegatedRuns", {}).items():
+                    if self.get(child_id).get("delegatedActive"):
+                        self.delegation.finish(value, {"toolCallId": call_id, "result": {}})
                 for request_id, pending in list(self.approvals.items()):
                     if pending["sessionId"] == key:
                         self.approvals.pop(request_id)
@@ -382,16 +485,54 @@ class Sessions:
         }
         if frame["type"] == "tool_start":
             event["args"] = frame["args"]
+            if frame["toolName"] == "subagent_run":
+                details = self.delegation.start(key, value, frame)
+                value["messages"].append(
+                    {
+                        "kind": "subagent",
+                        "id": uuid4().hex,
+                        "timestamp": int(time.time() * 1000),
+                        "runs": [{**run, "key": frame["toolCallId"]} for run in details["results"]],
+                    }
+                )
+                for message in value["messages"]:
+                    if "tools" in message:
+                        message["tools"] = [tool for tool in message["tools"] if tool["id"] != frame["toolCallId"]]
+                self.store.save("session", key, value)
+                event.update(toolName="subagent", args={"agent": frame["args"]["role"], "task": frame["args"]["task"]})
+                self.emit(key, event)
+                self.emit(
+                    key,
+                    {
+                        "type": "tool_execution_update",
+                        "toolCallId": frame["toolCallId"],
+                        "toolName": "subagent",
+                        "partialResult": {"details": details},
+                    },
+                )
+                return
         else:
             result = frame["result"]
             output = str(result.get("output", ""))
             event.update(
                 result={"content": [{"type": "text", "text": output}]}, isError=bool(result.get("returncode", 0))
             )
+            if frame["toolName"] == "subagent_run":
+                if details := self.delegation.finish(value, frame):
+                    event["result"]["details"] = details
+                    # Reconnects and active inspection retain the same card throughout execution.
+                    for message in value["messages"]:
+                        if message.get("kind") == "subagent" and any(
+                            run["key"] == frame["toolCallId"] for run in message["runs"]
+                        ):
+                            message["runs"] = [{**run, "key": frame["toolCallId"]} for run in details["results"]]
+                    self.store.save("session", key, value)
             for message in reversed(value["messages"]):
                 tool = next((tool for tool in message.get("tools", []) if tool["id"] == frame["toolCallId"]), None)
                 if tool:
                     tool.update(output=output, state="error" if event["isError"] else "done")
+                    if frame["toolName"] == "subagent_run":
+                        message["tools"].remove(tool)
                     self.store.save("session", key, value)
                     break
         self.emit(key, event)

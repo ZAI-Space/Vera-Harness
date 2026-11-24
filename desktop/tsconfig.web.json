@@ -13,6 +13,8 @@
   },
   "include": [
     "src/renderer/src",
-    "src/contracts"
+    "src/contracts",
+    "tests/renderer",
+    "tests/contracts"
   ]
 }

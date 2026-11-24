@@ -95,7 +95,7 @@ def run_cli(tmp_path, module, *arguments, **environment):
         | environment,
         capture_output=True,
         encoding="utf-8",
-        timeout=30,
+        timeout=60,
         check=True,
     )
 

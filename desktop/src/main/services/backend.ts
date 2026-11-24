@@ -25,9 +25,7 @@ function disconnectedSnapshot(method: string): unknown {
 		case "getLoadedSessions":
 		case "getChannelSubscriptionSessionIds":
 		case "listSlashCommandsForCwd":
-		case "listConfiguredPackages":
 			return [];
-		case "getQuota":
 		case "getContextUsage":
 		case "getGitBranch":
 			return null;
@@ -43,8 +41,6 @@ function disconnectedSnapshot(method: string): unknown {
 			return { enabled: false };
 		case "getCodemodeConfig":
 			return { enabled: false, only: false };
-		case "getCacheWarming":
-			return { mode: "off", sessions: [] };
 		case "querySessionCatalog":
 			return { sessions: [], revision: "frontend-preview", complete: true, errors: 0, total: 0 };
 		case "querySessionProjects":
@@ -57,8 +53,6 @@ function disconnectedSnapshot(method: string): unknown {
 			return { skills: [], skillDiagnostics: [], extensions: [], extensionErrors: [] };
 		case "mcpConfigList":
 			return { global: [], project: [], errors: [], projectTrusted: false, globalPath: "" };
-		case "searchCatalog":
-			return { packages: [], total: 0, page: 1, pageSize: 50 };
 		case "lanGetStatus":
 			return { enabled: false, remoteControl: false, urls: [], clients: 0, port: null };
 		default:

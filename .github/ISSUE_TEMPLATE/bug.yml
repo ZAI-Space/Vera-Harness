@@ -8,13 +8,13 @@ body:
     label: Describe the bug
     description: >
       A clear and concise description of what the bug is.
-      Please copy as much as possible from the output, in particular any error message.
+      Include a minimal reproduction and the relevant error message.
       Any hint about how to reproduce your issue will help us help you!
       Please also include your operating system where relevant.
       Markdown formatting is appreciated 😉
 
-      Hint: The full history of your last `mini` run is saved to your global config directory.
-      Including it helps us understand the issue.
+      VERA run records can contain source code, prompts and credentials.
+      Share only the smallest relevant excerpt after removing sensitive values.
   validations:
     required: true
 - type: markdown

@@ -77,6 +77,13 @@ def get_swebench_docker_image_name(instance: dict) -> str:
 
 
 def get_sb_environment(config: dict, instance: dict) -> Environment:
+    """Build the configured SWE-bench environment for one benchmark instance.
+
+    The instance selects the Docker-compatible image name. The function maps
+    that image for Docker, Modal, Singularity or Contree and runs the optional
+    rendered startup command. A nonzero startup result raises ``RuntimeError``;
+    environment construction errors propagate.
+    """
     env_config = {**config.get("environment", {})}
     env_config["environment_class"] = env_config.get("environment_class", "docker")
     image_name = get_swebench_docker_image_name(instance)

@@ -1,9 +1,12 @@
 // Session-default layout adapted from PI-Desktop AgentBehaviorSettings.tsx, LGPL-3.0-only.
+
+import { useCallback, useEffect, useState } from "react";
 import { getDesktopApi } from "../../api";
-import { isHarnessConnected } from "../../harness-api";
+import { harness, isHarnessConnected } from "../../harness-api";
 import { useT } from "../../i18n";
 import { type CommandShell, useBehaviorPreferencesStore } from "../../stores/behavior-preferences";
 import type { PermissionPolicy } from "../../stores/permission-policy";
+import { YoloWarning } from "../composer/YoloWarning";
 import { Select } from "../ui/Select";
 import { BehaviorSettingRow } from "./BehaviorSettingRow";
 import { SandboxSettings } from "./sandbox/SandboxSettings";
@@ -11,6 +14,24 @@ import { SandboxSettings } from "./sandbox/SandboxSettings";
 /** 行为设置只保留会话默认项与沙箱；偏好是前端意图，不改写现有运行会话。 */
 export function BehaviorPanel() {
 	const t = useT();
+	const [warning, setWarning] = useState(false);
+	const [detected, setDetected] = useState<Array<{ id: CommandShell; label: string }>>([]);
+	const [detecting, setDetecting] = useState(false);
+	const [shellError, setShellError] = useState(false);
+	const detect = useCallback(async (refresh = false) => {
+		setDetecting(true);
+		setShellError(false);
+		try {
+			setDetected(await harness<Array<{ id: CommandShell; label: string }>>("getCommandShells", { refresh }));
+		} catch {
+			setShellError(true);
+		} finally {
+			setDetecting(false);
+		}
+	}, []);
+	useEffect(() => {
+		if (isHarnessConnected()) void detect();
+	}, [detect]);
 	const mode = useBehaviorPreferencesStore((s) => s.defaultMode);
 	const setMode = useBehaviorPreferencesStore((s) => s.setDefaultMode);
 	const permission = useBehaviorPreferencesStore((s) => s.permissionPolicy);
@@ -19,14 +40,19 @@ export function BehaviorPanel() {
 	const setShell = useBehaviorPreferencesStore((s) => s.setCommandShell);
 	const storageError = useBehaviorPreferencesStore((s) => s.storageError);
 	const platform = getDesktopApi().platform;
-	const shells: CommandShell[] = isHarnessConnected()
-		? platform === "win32"
-			? ["system", "git-bash"]
-			: ["system", "bash"]
-		: platform === "win32"
-			? ["system", "windows-powershell", "pwsh", "git-bash"]
-			: ["system", "bash", "zsh"];
+	const connected = isHarnessConnected();
+	let shells: CommandShell[] = platform === "win32" ? ["system", "git-bash"] : ["system", "bash"];
+	if (!connected)
+		shells =
+			platform === "win32" ? ["system", "windows-powershell", "pwsh", "git-bash"] : ["system", "bash", "zsh"];
+	if (detected.length) shells = detected.map((row) => row.id);
 	if (!shells.includes(shell)) shells.push(shell);
+	const shellOptions = shells.map((value) => ({
+		value,
+		label: value.startsWith("wsl:")
+			? (detected.find((row) => row.id === value)?.label ?? value)
+			: t(`behavior.shells.${value as Exclude<CommandShell, `wsl:${string}`>}`),
+	}));
 	return (
 		<div className="flex flex-col gap-7">
 			<section aria-labelledby="behavior-session-defaults">
@@ -57,7 +83,10 @@ export function BehaviorPanel() {
 							variant="ghost"
 							ariaLabel={t("behavior.permissions")}
 							value={permission}
-							onChange={(value) => setPermission(value as PermissionPolicy)}
+							onChange={(value) => {
+								if (value === "yolo" && permission !== "yolo") setWarning(true);
+								else setPermission(value as PermissionPolicy);
+							}}
 							options={(["confirm", "yolo", "human"] as const).map((value) => ({
 								value,
 								label: t(`behavior.permissionModes.${value}`),
@@ -65,20 +94,46 @@ export function BehaviorPanel() {
 						/>
 					</BehaviorSettingRow>
 					<BehaviorSettingRow title={t("behavior.shell")} hint={t("behavior.shellHint")}>
-						<Select
-							variant="ghost"
-							ariaLabel={t("behavior.shell")}
-							value={shell}
-							onChange={(value) => setShell(value as CommandShell)}
-							options={shells.map((value) => ({ value, label: t(`behavior.shells.${value}`) }))}
-						/>
+						<div className="flex items-center gap-2">
+							<Select
+								variant="ghost"
+								ariaLabel={t("behavior.shell")}
+								value={shell}
+								onChange={(value) => setShell(value as CommandShell)}
+								options={shellOptions}
+							/>
+							{isHarnessConnected() && (
+								<button
+									type="button"
+									className="text-ui-12 text-ink-dim"
+									disabled={detecting}
+									onClick={() => void detect(true)}
+								>
+									{detecting ? t("behavior.detecting") : t("behavior.detectShells")}
+								</button>
+							)}
+						</div>
 					</BehaviorSettingRow>
 				</div>
 			</section>
 			<SandboxSettings />
+			{shellError && (
+				<p role="alert" className="text-ui-12 text-err">
+					{t("behavior.detectShellsFailed")}
+				</p>
+			)}
+			{warning && (
+				<YoloWarning
+					onCancel={() => setWarning(false)}
+					onConfirm={() => {
+						setPermission("yolo");
+						setWarning(false);
+					}}
+				/>
+			)}
 			<p className="text-ui-11 leading-relaxed text-ink-faint">{t("behavior.frontendNotice")}</p>
 			{storageError && (
-				<p role="alert" className="text-ui-12 text-danger">
+				<p role="alert" className="text-ui-12 text-err">
 					{t("behavior.storageError")}
 				</p>
 			)}

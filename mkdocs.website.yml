@@ -1,0 +1,36 @@
+# Build the existing documentation beside the landing page with a separate theme.
+INHERIT: mkdocs.yml
+site_name: VERA · 文档
+hooks:
+  - scripts/build_website_docs.py
+theme:
+  custom_dir: docs/overrides/website
+  language: zh
+  palette:
+    scheme: default
+    primary: white
+    accent: blue
+  features:
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - content.action.edit
+    - content.code.copy
+    - content.code.annotate
+    - content.footnote.tooltips
+extra:
+  homepage: ../
+  version: null
+extra_javascript:
+  - assets/js/sh-annotation.js
+  - assets/js/gif-controls.js
+  - assets/website.js?v=docs-shell-3
+extra_css:
+  - assets/custom.css
+  - assets/gif-controls.css
+  - assets/mkdocstrings.css
+  - assets/image_theme.css
+  - assets/bubbles.css
+  - assets/navigation_cards.css
+  - assets/website.css?v=docs-shell-3

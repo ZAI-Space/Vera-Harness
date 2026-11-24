@@ -52,6 +52,8 @@ def provider_service(messages=(), *, ws_url="", login_statuses=None):
         "models": [],
         "statuses": list(login_statuses or []),
         "send_status": 200,
+        "tenant_token_error": None,
+        "bot_info_error": None,
     }
 
     class Handler(BaseHTTPRequestHandler):
@@ -69,7 +71,7 @@ def provider_service(messages=(), *, ws_url="", login_statuses=None):
         def do_GET(self):
             state["requests"].append((self.path, None, dict(self.headers)))
             if self.path == "/open-apis/bot/v3/info/":
-                self.send_json({"code": 0, "bot": {"app_name": "test"}})
+                self.send_json(state["bot_info_error"] or {"code": 0, "bot": {"app_name": "test"}})
                 return
             status = state["statuses"].pop(0) if state["statuses"] else "confirmed"
             self.send_json(
@@ -120,7 +122,10 @@ def provider_service(messages=(), *, ws_url="", login_statuses=None):
                     }
                 )
             elif self.path == "/open-apis/auth/v3/tenant_access_token/internal":
-                self.send_json({"code": 0, "tenant_access_token": "fake-tenant-token", "expire": 7200})
+                self.send_json(
+                    state["tenant_token_error"]
+                    or {"code": 0, "tenant_access_token": "fake-tenant-token", "expire": 7200}
+                )
             elif self.path.startswith("/open-apis/im/v1/messages"):
                 state["replies"].append(body)
                 self.send_json({"code": 0, "data": {"message_id": "delivered"}})

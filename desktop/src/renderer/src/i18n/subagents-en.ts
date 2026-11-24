@@ -56,6 +56,10 @@ export const subagentsEn = {
 		storage: "Could not save locally. Your form is preserved; please retry.",
 	},
 	presets: {
+		"coding-workflow": {
+			name: "Coding workflow",
+			description: "Opt-in inspection, reproduction, changes and verification",
+		},
 		explorer: {
 			name: "Explorer",
 			description: "Map the codebase and find implementations, reporting key paths and evidence.",

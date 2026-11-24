@@ -61,10 +61,10 @@ def package_path(root: Path, value: str) -> Path:
 
 
 def normalize_source(source: str, host: PluginSource = PluginSource.github) -> str:
-    """Resolve owner/repo on GitHub/Gitee, or an explicit local/HTTPS package source."""
+    """Resolve owner/repo or local paths; URL-form sources always remain remote."""
     if not isinstance(source, str):
         raise PluginError("Plugin sources must be strings.")
-    if Path(source).expanduser().is_dir():
+    if "://" not in source and Path(source).expanduser().is_dir():
         return str(Path(source).expanduser().resolve())
     if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source):
         source = f"https://{PluginSource(host).value}.com/{source.removesuffix('.git')}.git"
@@ -83,7 +83,7 @@ def normalize_source(source: str, host: PluginSource = PluginSource.github) -> s
     return f"https://{url.netloc}/{url.path.strip('/').removesuffix('.git')}.git"
 
 
-def _git(directory: Path, *arguments: str) -> str:
+def _git(directory: Path, *arguments: str, binary: bool = False, input: bytes | None = None) -> str | bytes:
     if shutil.which("git") is None:
         raise PluginError("Git is required for GitHub sources. Install Git (Git for Windows on Windows).")
     environment = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")} | {
@@ -93,18 +93,19 @@ def _git(directory: Path, *arguments: str) -> str:
     try:
         result = subprocess.run(
             ["git", "-c", "core.hooksPath=", "-c", "protocol.ext.allow=never", *arguments],
+            input=input,
             cwd=directory,
             env=environment,
             capture_output=True,
-            encoding="utf-8",
-            errors="replace",
+            **({} if binary else {"encoding": "utf-8", "errors": "replace"}),
             timeout=120,
         )
     except subprocess.TimeoutExpired:
         raise PluginError("Git operation timed out after 120 seconds.") from None
     if result.returncode:
-        raise PluginError(f"Git operation failed: {result.stderr.strip()[-1200:]}")
-    return result.stdout.strip()
+        detail = result.stderr.decode("utf-8", errors="replace") if binary else result.stderr
+        raise PluginError(f"Git operation failed: {detail.strip()[-1200:]}")
+    return result.stdout if binary else result.stdout.strip()
 
 
 def inventory(root: Path) -> dict[str, str]:
@@ -141,6 +142,66 @@ class Source:
     location: str
     root: Path
     commit: str | None
+
+    def read_files(self, paths: list[str], *, limit: int = 1024 * 1024) -> dict[str, bytes]:
+        """Read bounded metadata in two Git batches instead of launching Git for every file.
+
+        Oversized/non-regular files are omitted; the complete batch is limited to
+        16 MiB. Local packages retain the same path and symlink checks as read_file.
+        """
+        paths = sorted({relative_path(path) for path in paths})
+        if not paths:
+            return {}
+        if self.commit is None:
+            result = {}
+            total = 0
+            for path in paths:
+                target = package_path(self.root, path)
+                if target.is_file() and target.stat().st_size <= limit:
+                    with target.open("rb") as stream:
+                        content = stream.read(min(limit, 16 * 1024 * 1024 - total) + 1)
+                    if len(content) > limit or total + len(content) > 16 * 1024 * 1024:
+                        raise PluginError("Catalog metadata exceeds its file or 16 MiB batch limit.")
+                    result[path] = content
+                    total += len(content)
+            return result
+        queries = "".join(f"{self.commit}:{path}\n" for path in paths).encode()
+        sizes = _git(self.root, "cat-file", "--batch-check", binary=True, input=queries).splitlines()
+        selected = [
+            (path, int(row.split()[2]))
+            for path, row in zip(paths, sizes)
+            if len(row.split()) == 3 and row.split()[1] == b"blob" and int(row.split()[2]) <= limit
+        ]
+        if sum(size for _, size in selected) > 16 * 1024 * 1024:
+            raise PluginError("Catalog metadata exceeds 16 MiB.")
+        if not selected:
+            return {}
+        payload = _git(
+            self.root,
+            "cat-file",
+            "--batch",
+            binary=True,
+            input="".join(f"{self.commit}:{path}\n" for path, _ in selected).encode(),
+        )
+        result, offset = {}, 0
+        for path, size in selected:
+            start = payload.index(b"\n", offset) + 1
+            result[path] = payload[start : start + size]
+            offset = start + size + 1
+        return result
+
+    def read_file(self, path: str, *, limit: int = 1024 * 1024) -> bytes:
+        """Read a bounded regular file at this exact revision without checking out code."""
+        path = relative_path(path)
+        if self.commit is None:
+            target = package_path(self.root, path)
+            size = target.stat().st_size
+        else:
+            target = f"{self.commit}:{path}"
+            size = int(_git(self.root, "cat-file", "-s", target))
+        if size > limit:
+            raise PluginError("Catalog metadata file exceeds its size limit.")
+        return target.read_bytes() if self.commit is None else _git(self.root, "show", target, binary=True)
 
     def files(self) -> list[str]:
         """List a bounded source tree for capability discovery without exporting or executing it."""

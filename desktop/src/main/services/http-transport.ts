@@ -52,6 +52,11 @@ export class HttpTransport implements BackendTransport {
 			headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
 			...(body === undefined ? {} : { body: JSON.stringify(body) }),
 			signal: AbortSignal.any([this.abort.signal, AbortSignal.timeout(body === undefined ? 25000 : 120000)]),
+		}).catch((error: unknown) => {
+			if (this.abort.signal.aborted) throw error;
+			if (error instanceof Error && error.name === "TimeoutError")
+				throw new Error("本机服务响应超时，请稍后重试。", { cause: error });
+			throw new Error("本机服务连接中断，请等待重新连接后重试。", { cause: error });
 		});
 		const value: unknown = await response.json();
 		if (!response.ok)

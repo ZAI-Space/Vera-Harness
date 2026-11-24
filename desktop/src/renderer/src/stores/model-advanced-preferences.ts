@@ -1,4 +1,4 @@
-/** 模型高级参数的本机前端偏好，不含密钥；尚未参与模型请求。 */
+/** 表单原文与旧版偏好的兼容格式；保存时转为后端数值配置。 */
 export interface ModelAdvancedOptions {
 	toolCallLimit: string;
 	reasoningParameter: string;
@@ -12,7 +12,7 @@ export const MODEL_ADVANCED_STORAGE_KEY = "vera.model-advanced.v1";
 export const DEFAULT_MODEL_ADVANCED: ModelAdvancedOptions = {
 	toolCallLimit: "500",
 	reasoningParameter: "reasoning_effort",
-	reasoningValues: ["default", "off"],
+	reasoningValues: ["default", "off", "low", "medium", "high"],
 	temperature: "",
 	topP: "",
 	topK: "",
@@ -29,7 +29,8 @@ export type ModelAdvancedError =
 export function validateModelAdvanced(value: ModelAdvancedOptions): ModelAdvancedError | null {
 	const number = (raw: string) => (raw.trim() === "" ? null : Number(raw));
 	const rounds = number(value.toolCallLimit);
-	if (rounds !== null && (!Number.isSafeInteger(rounds) || rounds < 1)) return "toolCallLimit";
+	if (rounds !== null && (!Number.isSafeInteger(rounds) || rounds < 1 || rounds > 10000))
+		return "toolCallLimit";
 	if (!/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(value.reasoningParameter.trim()))
 		return "reasoningParameter";
 	if (

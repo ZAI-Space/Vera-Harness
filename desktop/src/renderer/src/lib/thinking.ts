@@ -37,21 +37,22 @@ export function thinkingLevelPos(index: number, count: number): number {
  *   5. level 不在 THINKING_LEVELS 中（脏数据）时按步骤 3 取 supported 最高档。
  *
  * 注意：与 SDK clampThinkingLevel 的「反向就近降级」策略不同；这里是「就近向上 +
- * supported 末位回退」。supported 应保证按 THINKING_LEVELS 顺序传入（当前由后端
- * getSupportedThinkingLevels 通过 THINKING_LEVELS 过滤保证）。
+ * 最高已知档回退」。supported 可保留服务商声明顺序；没有已知档时保留末位自定义值回退。
  * 仅 renderer UI（模型选择器）使用；backend 不做收敛、也不 import 本函数（spec R4）。
  */
 export function clampThinkingLevel(level: string, supported: readonly string[]): string {
 	if (supported.length === 0) return level;
 	if (supported.includes(level)) return level;
 	const order = THINKING_LEVELS as readonly string[];
+	const highest =
+		order.findLast((candidate) => supported.includes(candidate)) ?? (supported.at(-1) as string);
 	const currentIdx = order.indexOf(level);
 	if (currentIdx === -1) {
-		return supported.at(-1) as string;
+		return highest;
 	}
 	for (let i = currentIdx + 1; i < order.length; i++) {
 		const candidate = order[i];
 		if (candidate && supported.includes(candidate)) return candidate;
 	}
-	return supported.at(-1) as string;
+	return highest;
 }

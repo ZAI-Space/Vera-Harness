@@ -1,9 +1,11 @@
 import { environmentEntityRef, LOCAL_ENVIRONMENT } from "@vera/contracts";
 import { useEffect, useMemo, useState } from "react";
 import { getExecutionApi } from "../../environment-api";
+import { useBackendReconnectRevision } from "../../hooks/use-backend-reconnect-revision";
 import { useT } from "../../i18n";
 import { selectActiveCwd } from "../../lib/active-cwd";
 import { getDailyDirCached, initDailyDir, isDailyCwd } from "../../lib/daily";
+import { errText } from "../../lib/error-text";
 import { pathLastSegment } from "../../lib/path-display";
 import { deriveProjects, useProjectsStore } from "../../stores/projects";
 import { useSessionCatalogStore } from "../../stores/session-catalog";
@@ -146,6 +148,7 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 	const [revision, setRevision] = useState(0);
 	const [changing, setChanging] = useState(false);
 	const online = !cwd || environmentEntityRef(cwd).environment.kind === "local";
+	const reconnectRevision = useBackendReconnectRevision(Boolean(cwd && online));
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: revision 是显式刷新，instance 是同址服务重启；两者均要求重新对账
 	useEffect(() => {
@@ -160,12 +163,12 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 				setError(null);
 			})
 			.catch((error) => {
-				if (!cancelled) setError(error instanceof Error ? error.message : String(error));
+				if (!cancelled) setError(errText(error) ?? String(error));
 			});
 		return () => {
 			cancelled = true;
 		};
-	}, [cwd, revision, online]);
+	}, [cwd, revision, reconnectRevision, online]);
 
 	if (error && !current)
 		return (
@@ -208,7 +211,7 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 										void getExecutionApi(cwd)
 											.checkoutBranch({ cwd, branch })
 											.then(() => setRevision((value) => value + 1))
-											.catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+											.catch((error: unknown) => setError(errText(error) ?? String(error)))
 											.finally(() => setChanging(false));
 									}
 									close();

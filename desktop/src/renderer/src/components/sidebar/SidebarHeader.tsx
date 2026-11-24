@@ -32,6 +32,7 @@ export function SidebarHeader() {
 			{(
 				[
 					{ id: "plugins", Icon: PuzzleIcon },
+					{ id: "taskboard", Icon: EditIcon },
 					{ id: "scheduled", Icon: ClockIcon },
 				] as const
 			).map(({ id, Icon }) => (
