@@ -9,11 +9,12 @@ interface PermissionPolicyStore {
 	byTarget: Record<string, PermissionPolicy>;
 	selectPolicy: (target: string, policy: PermissionPolicy) => void;
 	loadPolicy: (sessionId: string) => Promise<void>;
-	savePolicy: (sessionId: string, policy: PermissionPolicy) => Promise<void>;
+	savePolicy: (sessionId: string, policy: PermissionPolicy) => Promise<boolean>;
 }
 
 const revisions = new Map<string, number>();
-const pending = new Map<string, Promise<void>>();
+const pending = new Map<string, Promise<boolean>>();
+const confirmed = new Map<string, PermissionPolicy>();
 
 /** Serialize session writes and reject stale reads without sharing draft policies. */
 export const usePermissionPolicyStore = create<PermissionPolicyStore>((set, get) => ({
@@ -29,34 +30,47 @@ export const usePermissionPolicyStore = create<PermissionPolicyStore>((set, get)
 			const saved = await harness<{ permissionPolicy: PermissionPolicy }>("getSessionSelections", {
 				sessionId,
 			});
-			if (revision === revisions.get(sessionId) && !pending.has(sessionId))
+			if (revision === revisions.get(sessionId) && !pending.has(sessionId)) {
+				confirmed.set(sessionId, saved.permissionPolicy);
 				set((state) => ({ byTarget: { ...state.byTarget, [sessionId]: saved.permissionPolicy } }));
+			}
 		} catch (error) {
 			await reportHarnessFailure(error);
 		}
 	},
 	savePolicy: (sessionId, policy) => {
-		const previous = get().byTarget[sessionId] ?? "confirm";
 		get().selectPolicy(sessionId, policy);
 		const revision = revisions.get(sessionId);
 		const work = (pending.get(sessionId) ?? Promise.resolve()).then(async () => {
 			try {
 				await harness("setSessionSelections", { sessionId, permissionPolicy: policy });
+				confirmed.set(sessionId, policy);
 				if (revisions.get(sessionId) === revision)
 					set((state) => ({ byTarget: { ...state.byTarget, [sessionId]: policy } }));
+				return true;
 			} catch (error) {
 				if (revisions.get(sessionId) === revision) {
-					let restored = previous;
+					let restored = confirmed.get(sessionId);
 					try {
 						restored = (
 							await harness<{ permissionPolicy: PermissionPolicy }>("getSessionSelections", { sessionId })
 						).permissionPolicy;
+						confirmed.set(sessionId, restored);
 					} catch {
-						/* Preserve the last known choice when the service is unreachable. */
+						/* Only confirmed values can survive a failed write and read-back. */
 					}
-					if (revisions.get(sessionId) === revision) get().selectPolicy(sessionId, restored);
+					if (revisions.get(sessionId) === revision) {
+						if (restored) get().selectPolicy(sessionId, restored);
+						else
+							set((state) => {
+								const byTarget = { ...state.byTarget };
+								delete byTarget[sessionId];
+								return { byTarget };
+							});
+					}
 				}
 				await reportHarnessFailure(error);
+				return false;
 			}
 		});
 		pending.set(sessionId, work);

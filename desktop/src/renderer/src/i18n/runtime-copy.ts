@@ -17,9 +17,9 @@ export const runtimeCopy: Record<Language, Partial<Record<MessageKey, string>>> 
 		"workspace.preview": "配置与运行记录保存在本机。安装、启用和执行分别确认。",
 		"behavior.frontendNotice": "配置保存到本机后端，从下一次任务开始生效。",
 		"behavior.shellHint": "本地命令使用 Bash；Windows 使用 Git Bash，隔离环境使用自身的 Shell。",
-		"subagents.frontendNotice": "角色由本机 Runtime 执行，独立上下文和预算；模板中的读写工具已适配当前能力。",
+		"subagents.frontendNotice": "角色由本机 Runtime 执行，使用独立上下文；模板中的读写工具已适配当前能力。",
 		"modelAdvanced.frontendHint": "参数在下一次任务请求中生效；不支持的参数由服务商明确报错。",
-		"modelAdvanced.testPending": "保存后可在连接列表中测试。",
+		"modelAdvanced.testPending": "保存后可在配置列表中测试。",
 		"plugins.addPreview": "安装插件",
 		"plugins.addHint": "下载并安装“{name}”。安装后需单独启用，才会参与后续任务。",
 		"plugins.removeTitle": "卸载插件",
@@ -62,10 +62,10 @@ export const runtimeCopy: Record<Language, Partial<Record<MessageKey, string>>> 
 		"behavior.shellHint":
 			"Local commands use Bash, including Git Bash on Windows. Sandboxes use their own shell.",
 		"subagents.frontendNotice":
-			"Roles run in the shared Runtime with independent contexts and budgets. Template tools are adapted to available capabilities.",
+			"Roles run in the shared Runtime with independent contexts. Template tools are adapted to available capabilities.",
 		"modelAdvanced.frontendHint":
 			"Options apply to the next task. Providers report unsupported parameters explicitly.",
-		"modelAdvanced.testPending": "Save first, then test from the connection list.",
+		"modelAdvanced.testPending": "Save first, then test from the configuration list.",
 		"plugins.addPreview": "Install plugin",
 		"plugins.addHint": "Download and install “{name}”. Enable it separately before using it in future tasks.",
 		"plugins.removeTitle": "Uninstall plugin",

@@ -29,7 +29,7 @@ PowerShell/CMD 用 `.\start.cmd`，Git Bash/Linux 用 `bash scripts/start.sh`。
 示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```bash
-git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
+git clone --branch main https://github.com/ZAI-Space/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```

@@ -2,6 +2,19 @@
 
 # Subagents
 
+## Desktop selection
+
+Enable a role in **Settings → Subagent**. In the composer, type `/subagent` and
+select the role from the command list. Enter its task and send once; the main
+agent receives the selected role and task together. No separate setup message is
+required. Disabled roles do not appear in the list.
+
+Click **×** or press **Esc** to cancel the selected command while keeping the task
+text. **Backspace** at the start of the text also removes the command. With an
+empty input, **Backspace** or **Delete** clears the command directly.
+
+## Runtime configuration
+
 Define roles in a YAML overlay, then give the main agent a task. A role describes when to delegate, how the child should behave and which tools and skills it can access.
 
 ```yaml

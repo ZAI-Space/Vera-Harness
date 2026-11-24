@@ -1,0 +1,17 @@
+# A fixed, local response: no paid model call, network request or tool action.
+agent:
+  agent_class: default
+  system_template: You are VERA. Complete the supplied demonstration.
+  instance_template: "{{task}}"
+  step_limit: 2
+  cost_limit: 0
+model:
+  model_class: deterministic
+  model_name: offline-example
+  cost_per_call: 0
+  outputs:
+    - role: exit
+      content: VERA offline example completed.
+      extra:
+        exit_status: Submitted
+        submission: VERA offline example completed.

@@ -15,7 +15,14 @@ from pathlib import Path
 from uuid import uuid4
 
 from vera.evolution.config import BudgetError, EvaluationError, EvolutionConfig, EvolutionError, TaskSpec
-from vera.evolution.process import experiment_lock, read_json, recover_processes, run_process, write_json
+from vera.evolution.process import (
+    experiment_lock,
+    read_json,
+    read_optimizer_result,
+    recover_processes,
+    run_process,
+    write_json,
+)
 from vera.evolution.repository import checkout, commit_candidate, create_archive
 from vera.evolution.runtime import optimizer_command, select_runtime, stop_container
 
@@ -335,8 +342,16 @@ class Experiment:
         if result_path.is_symlink():
             raise EvolutionError("Optimizer results cannot be symbolic links.")
         if result_path.exists():
-            report = json.loads(result_path.read_text(encoding="utf-8"))
-            self._settle(self.config.optimizer_cost_limit, float(report["cost"]))
+            try:
+                report = read_optimizer_result(result_path)
+                cost = float(report["cost"])
+                if isinstance(report["cost"], bool) or not math.isfinite(cost) or cost < 0:
+                    raise ValueError("Invalid optimizer cost")
+                if not isinstance(report["status"], str):
+                    raise ValueError("Invalid optimizer status")
+            except (OSError, ValueError, TypeError, KeyError, OverflowError) as error:
+                raise EvolutionError("Optimizer result has invalid cost/status or cannot be read.") from error
+            self._settle(self.config.optimizer_cost_limit, cost)
             result["agent_status"] = report["status"]
         version["optimizer_result"] = result
         if result["returncode"] != 0 or result.get("agent_status") != "Submitted":

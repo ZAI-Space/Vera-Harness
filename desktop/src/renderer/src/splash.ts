@@ -27,7 +27,6 @@ export function onSplashExit(listener: () => void): void {
 export function setSplashMessage(message: string): void {
 	const status = document.querySelector(".sp-status");
 	if (status) status.textContent = message;
-	document.querySelector(".sp-line")?.setAttribute("aria-label", message);
 }
 
 function markPlayed(): void {

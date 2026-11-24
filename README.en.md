@@ -9,7 +9,7 @@
     <a href="LICENSE.md"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-6F42C1?style=flat-square" /></a>
   </p>
   <p><a href="README.md">简体中文</a> · <strong>English</strong></p>
-  <p><a href="docs/quickstart.md">Quick start</a> · <a href="docs/index.md">Documentation</a> · <a href="docs/repository-structure.md">Repository structure</a> · <a href="docs/frontend-integration.md">Frontend integration</a> · <a href="https://github.com/zml-mis/Vera-Harness/issues">Issues</a></p>
+  <p><a href="docs/quickstart.md">Quick start</a> · <a href="docs/index.md">Documentation</a> · <a href="docs/frontend-integration.md">Frontend integration</a> · <a href="https://github.com/ZAI-Space/Vera-Harness/issues">Issues</a></p>
 </div>
 
 ---
@@ -33,10 +33,19 @@ VERA is a modular agent harness. Terminal, channel and scheduled tasks share a P
 
 ## Get started
 
+The desktop launcher needs Node.js 24 LTS, Python 3.12 and Bash (Git for Windows on Windows):
+
+```bash
+npx vera-harness
+```
+
+First launch prepares a private runtime. Configure a model in desktop settings.
+This is an Alpha release. See [installation and releases](docs/releases.md).
+
 Python 3.10+ is required. Windows local execution uses Git Bash; Linux uses Bash. Install from this source repository:
 
 ```bash
-git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
+git clone --branch main https://github.com/ZAI-Space/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```
@@ -70,16 +79,14 @@ Tab selects candidates; Esc then Enter submits multiline input. Permissions, run
 
 - [English documentation](docs/index.md) / [中文文档](docs/zh/index.md), with paired page links.
 - [Frontend integration](docs/frontend-integration.md): sessions, state, selections, approval and storage boundaries. Includes the desktop service, streamed replies, approvals, startup instructions and validation boundaries.
+- [Repository structure](docs/repository-structure.md): source, tests, examples, documentation, generated output and third-party files.
 - [Naming migration](docs/advanced/v2_migration.md): preferred `vera`, `VERA_*` and `vera.yaml` names, with explicit historical settings compatibility.
 - [Documentation maintenance](docs/documentation.md): per-page review map and stale-content corrections.
-- [Repository structure](docs/repository-structure.md): ownership rules for source, tests, examples, docs and generated files.
-
-The repository root contains project entry points and governance files only. `src/` holds
-the package, `tests/` the deliverable verification suites, `examples/` safe demonstrations,
-and `docs/` the paired product documentation. Build output, virtual environments,
-dependencies and temporary acceptance reports stay out of version control.
+- [Website documentation](docs/website.md): build the website's three-column reader from the same source, preview it locally, and identify the publish directory.
 
 ## Develop and verify
+
+See the [desktop developer guide](desktop/README.en.md) for frontend setup, checks and source attribution. See also [contributing](CONTRIBUTING.md), [security](SECURITY.md) and the [test directory guide](tests/README.md).
 
 ```bash
 python -m pip install -e '.[full,channels]'
@@ -95,3 +102,5 @@ Daily branches start from `dev` and merge through PRs into `dev`; releases enter
 ## License and provenance
 
 Distributed under [MIT](LICENSE.md). [Third-party notices](THIRD_PARTY_NOTICES.md) retain source attribution and required copyright notices separately from product branding.
+
+Maintainers can start with [architecture](docs/architecture.md), [API boundaries](docs/desktop-api.md) and [testing](docs/testing.md). The [offline example](examples/README.md) needs no model credentials.

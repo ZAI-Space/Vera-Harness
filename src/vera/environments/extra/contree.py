@@ -1,3 +1,5 @@
+"""Adapt Contree sandbox execution to the VERA Environment protocol."""
+
 import logging
 import os
 import platform

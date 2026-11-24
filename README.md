@@ -9,7 +9,7 @@
     <a href="LICENSE.md"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-6F42C1?style=flat-square" /></a>
   </p>
   <p><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
-  <p><a href="docs/zh/quickstart.md">快速开始</a> · <a href="docs/zh/index.md">文档</a> · <a href="docs/zh/repository-structure.md">仓库结构</a> · <a href="docs/zh/frontend-integration.md">前端对接</a> · <a href="https://github.com/zml-mis/Vera-Harness/issues">反馈</a></p>
+  <p><a href="docs/zh/quickstart.md">快速开始</a> · <a href="docs/zh/index.md">文档</a> · <a href="docs/zh/frontend-integration.md">前端对接</a> · <a href="https://github.com/ZAI-Space/Vera-Harness/issues">反馈</a></p>
 </div>
 
 ---
@@ -33,10 +33,18 @@ VERA 是模块化的 Agent Harness。终端、渠道与定时任务复用同一�
 
 ## 开始使用
 
+桌面版需要 Node.js 24 LTS、Python 3.12 和 Bash（Windows 使用 Git for Windows）：
+
+```bash
+npx vera-harness
+```
+
+首次启动自动准备独立运行环境，随后在设置中配置模型。本次为 Alpha 版本，详见[安装与发布说明](docs/zh/releases.md)。
+
 需要 Python 3.10+；Windows 本地执行使用 Git Bash，Linux 使用 Bash。先从源码安装：
 
 ```bash
-git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
+git clone --branch main https://github.com/ZAI-Space/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```
@@ -70,15 +78,16 @@ Tab 选择候选，Esc 后 Enter 提交多行输入。权限、运行模式与�
 
 - [中文文档](docs/zh/index.md) / [English documentation](docs/index.md)：两版页面互相链接。
 - [前端对接](docs/zh/frontend-integration.md)：会话、状态、能力选择、审批与存储边界。已接入独立桌面服务、流式回复与审批，包含启动方法和已验证边界。
+- [仓库结构](docs/zh/repository-structure.md)：源码、测试、示例、文档、生成输出和第三方文件的归属。
 - [命名迁移](docs/zh/advanced/v2_migration.md)：正式命名为 `vera`、`VERA_*` 和 `vera.yaml`，说明历史配置的兼容读取范围。
 - [文档维护](docs/zh/documentation.md)：逐页检查清单与过期内容修订。
-- [仓库结构](docs/zh/repository-structure.md)：源码、测试、示例、文档和生成目录的归属规则。
+- [官网文档接入](docs/zh/website.md)：从同一份文档构建官网的三栏阅读界面，说明本地预览和发布目录。
 
-仓库根目录只保留项目入口和治理文件；`src/` 是源码，`tests/` 是交付测试，`examples/`
-是安全的演示配置，`docs/` 是双语产品文档。构建输出、虚拟环境、依赖目录和临时验收
-报告不属于版本库。
+维护者可从[系统架构](docs/zh/architecture.md)、[接口边界](docs/zh/desktop-api.md)和[测试与交付](docs/zh/testing.md)继续阅读；[离线示例](examples/README.md)无需模型凭据。
 
 ## 开发与验证
+
+桌面依赖安装、前端检查和来源说明见[桌面开发说明](desktop/README.md)。另见[贡献指南](CONTRIBUTING.md)、[安全政策](SECURITY.md)和[测试目录说明](tests/README.md)。
 
 ```bash
 python -m pip install -e '.[full,channels]'

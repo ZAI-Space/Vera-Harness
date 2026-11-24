@@ -55,15 +55,13 @@ export interface ProviderModelInfo {
 	imageInput?: boolean;
 }
 
-/** provider 的订阅登录（OAuth）能力标记（来自 SDK `provider.auth.oauth`） */
-export interface ProviderOAuthInfo {
-	/** SDK 提供的登录选项文案（如 "Sign in with SuperGrok or X Premium"） */
-	loginLabel?: string;
-	/** 是否订阅制访问 */
-	isSubscription?: boolean;
-}
-
 export interface ProviderInfo {
+	/** 创建连接时选用的服务商预设。 */
+	template?: string;
+	/** 用户输入的地址是否包含协议请求路径。 */
+	fullUrl?: boolean;
+	/** 用户原始请求地址；baseUrl 是供 SDK 使用的规范化地址。 */
+	requestUrl?: string;
 	id: string;
 	/** 显示名 */
 	name: string;
@@ -75,13 +73,8 @@ export interface ProviderInfo {
 	configured: boolean;
 	/** 凭证来源：stored / runtime / environment / models_json_key / models_json_command */
 	authSource?: string;
-	/** 当前有效凭证类型；只传非敏感元数据，不以 OAuth 能力推断已登录。 */
-	authType?: "api_key" | "oauth";
-	authLabel?: string;
-	/** 支持订阅登录（OAuth）时存在；UI 据此显示「订阅登录」入口 */
-	oauth?: ProviderOAuthInfo;
-	/** 有交互式 api_key 登录（如 Google Vertex 的 ADC/服务账号/API key 三选一）时存在；UI 据此显示「登录」入口 */
-	apiKeyLogin?: boolean;
+	/** 当前有效凭证类型；仅返回 API 凭证的非敏感元数据。 */
+	authType?: "api_key";
 	/** 自定义 provider 的 baseUrl（来自 models.json，编辑表单预填用；内置 provider 不填） */
 	baseUrl?: string;
 	/** 自定义 provider 的 api 协议（编辑表单预填用；内置 provider 不填） */
@@ -90,45 +83,6 @@ export interface ProviderInfo {
 	customModels?: CustomProviderModelInput[];
 	/** 全量模型（内置 + models.json 自定义 + 远程目录 overlay，展示用） */
 	models: ProviderModelInfo[];
-}
-
-/** 订阅登录过程中的输入/选择提示（pi AuthPrompt 的 IPC 镜像；signal 不可跨进程，已剥离为 prompt-cancel 事件） */
-export type LoginAuthPrompt =
-	| { type: "text"; message: string; placeholder?: string }
-	| { type: "secret"; message: string; placeholder?: string }
-	| { type: "manual_code"; message: string; placeholder?: string }
-	| {
-			type: "select";
-			message: string;
-			options: readonly { id: string; label: string; description?: string }[];
-	  };
-
-/** 订阅登录过程中的状态事件（pi AuthEvent 的 IPC 镜像） */
-export type LoginAuthEvent =
-	| { type: "info"; message: string; links?: readonly { url: string; label?: string }[] }
-	| { type: "auth_url"; url: string; instructions?: string }
-	| {
-			type: "device_code";
-			userCode: string;
-			verificationUri: string;
-			intervalSeconds?: number;
-			expiresInSeconds?: number;
-	  }
-	| { type: "progress"; message: string };
-
-/** main → renderer 登录事件载荷（按 loginId 归属一次登录流程；promptId 关联应答/取消） */
-export type LoginEventPayload = { loginId: string } & (
-	| { kind: "event"; event: LoginAuthEvent }
-	| { kind: "prompt"; promptId: string; prompt: LoginAuthPrompt }
-	| { kind: "prompt-cancel"; promptId: string }
-);
-
-/** 登录流程最终结果（settings:loginStart 的 invoke 返回值；取消不算错误） */
-export interface LoginResult {
-	ok: boolean;
-	/** 用户主动取消（或 SDK 侧流程中止） */
-	cancelled?: boolean;
-	error?: string;
 }
 
 /** 思考档位（与 SDK ModelThinkingLevel 一致） */
@@ -140,6 +94,7 @@ export type ModelThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" |
 export type ModelThinkingLevelMap = Partial<Record<ModelThinkingLevel, string | null>>;
 
 export interface CustomProviderModelInput {
+	advanced?: ModelRequestOptions;
 	id: string;
 	name?: string;
 	/** 支持思考/推理；缺省 SDK 按 false 处理（思考深度会被钳到 off） */
@@ -154,7 +109,19 @@ export interface CustomProviderModelInput {
 	imageInput?: boolean;
 }
 
+/** Validated request parameters persisted by the backend and used on every task. */
+export interface ModelRequestOptions {
+	toolCallLimit: number;
+	reasoningParameter: string;
+	reasoningValues: string[];
+	temperature?: number;
+	topP?: number;
+	topK?: number;
+}
+
 export interface CustomProviderInput {
+	template?: string;
+	fullUrl?: boolean;
 	id: string;
 	name?: string;
 	baseUrl: string;
@@ -170,6 +137,7 @@ export type CustomProviderUpdateInput = CustomProviderInput;
 
 /** 上游 `/models` 返回的一条模型；能力字段由 SDK 内置目录补全，缺省 = 未知，跟随 SDK 默认 */
 export interface UpstreamModelInfo {
+	reasoningValues?: string[];
 	id: string;
 	name?: string;
 	reasoning?: boolean;
@@ -182,6 +150,8 @@ export interface UpstreamModelInfo {
 
 /** 拉取上游模型清单的入参（providerId 只用于兜底已落盘的 baseUrl/api 与已存 key） */
 export interface UpstreamModelsInput {
+	template?: string;
+	fullUrl?: boolean;
 	providerId?: string;
 	baseUrl: string;
 	api: string;

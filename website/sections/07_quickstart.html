@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VERA Harness — 现在，快速开始</title>
+  <!-- Google Fonts: Quantico, Space Grotesk, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Quantico:wght@700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #FFFFFF;
+      font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0F172A;
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-quantico {
+      font-family: 'Quantico', 'Space Grotesk', sans-serif;
+    }
+
+    .font-space {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Subtle terminal elevation matching minimalist industrial tech aesthetic */
+    .terminal-card {
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .terminal-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.11), 0 4px 10px rgba(15, 23, 42, 0.05);
+    }
+
+    /* Dark Smoked-Glass Pill Button */
+    .btn-glass-dark {
+      background: rgba(17, 24, 39, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-top-color: rgba(255, 255, 255, 0.28);
+      box-shadow:
+        0 8px 24px rgba(17, 24, 39, 0.18),
+        0 2px 6px rgba(17, 24, 39, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .btn-glass-dark:hover {
+      background: rgba(17, 24, 39, 0.95);
+      border-color: rgba(0, 210, 255, 0.42);
+      box-shadow:
+        0 12px 28px rgba(17, 24, 39, 0.24),
+        0 0 18px rgba(0, 210, 255, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      transform: translateY(-1.5px);
+    }
+
+    /* Light Frosted-Glass Transparent Pill Button */
+    .btn-glass-light {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(17, 24, 39, 0.14);
+      box-shadow:
+        0 6px 20px rgba(15, 23, 42, 0.05),
+        0 1px 3px rgba(15, 23, 42, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .btn-glass-light:hover {
+      background: rgba(248, 250, 252, 0.88);
+      border-color: rgba(22, 119, 255, 0.35);
+      box-shadow:
+        0 10px 24px rgba(15, 23, 42, 0.08),
+        0 0 16px rgba(0, 210, 255, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+      transform: translateY(-1.5px);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="w-full max-w-[820px] px-5 sm:px-8 py-16 sm:py-24 flex flex-col items-center text-center">
+
+    <!-- 1. Main Centered Headline (Unified Quantico Geometric Tech Typography) -->
+    <h1 class="font-quantico text-[34px] sm:text-[42px] font-bold tracking-[0.04em] text-[#111827] leading-[1.2] mb-[36px]">
+      现在，快速开始
+    </h1>
+
+    <!-- 2. Dark macOS-Style Terminal Command Box -->
+    <div class="terminal-card w-full max-w-[580px] rounded-[14px] overflow-hidden text-left mb-[32px] select-none">
+      <!-- Top Window Bar -->
+      <div class="bg-[#262626] h-[34px] px-4 flex items-center gap-2 border-b border-white/[0.04]">
+        <span class="w-[10px] h-[10px] rounded-full bg-[#525252] inline-block"></span>
+        <span class="w-[10px] h-[10px] rounded-full bg-[#525252] inline-block"></span>
+        <span class="w-[10px] h-[10px] rounded-full bg-[#525252] inline-block"></span>
+      </div>
+
+      <!-- Command Body -->
+      <div class="bg-[#1A1A1A] px-[22px] py-[18px] flex items-center justify-between gap-4">
+        <div class="font-mono-code text-[15px] sm:text-[16px] leading-relaxed flex items-center gap-3 overflow-x-auto">
+          <span class="text-[#737373] font-medium">$</span>
+          <code id="install-command-text" class="text-[#F5F5F5] tracking-[0.01em] whitespace-nowrap">npx vera-harness</code>
+        </div>
+
+        <!-- Interactive Copy Button -->
+        <button
+          id="copy-command-btn"
+          type="button"
+          aria-label="复制安装命令"
+          title="复制命令"
+          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[#A3A3A3] hover:text-[#FFFFFF] hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+        >
+          <span id="copy-feedback-label" class="hidden text-xs font-medium text-[#38BDF8]">已复制</span>
+          <!-- Copy Icon -->
+          <svg
+            id="icon-copy"
+            class="w-[18px] h-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <!-- Checkmark Icon (Shown after click) -->
+          <svg
+            id="icon-check"
+            class="hidden w-[18px] h-[18px] text-[#38BDF8]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Centered Vision / Open-Source Community Description -->
+    <p class="max-w-[620px] text-[15px] sm:text-[15.5px] font-normal text-[#4B5563] leading-[1.8] tracking-[0.01em] mb-[36px]">
+      VERA将持续迭代，期待与用户和开发者一起，在开源、开放、可复用、可组合的基础上，完善记忆、协作与自我改进能力，让智能体在真实任务中不断成长。
+    </p>
+
+    <!-- 4. Dual Pill-Shaped Glassmorphic Action Buttons -->
+    <div class="flex flex-wrap items-center justify-center gap-[16px]">
+      <!-- Left Button: Smoked-Glass Pill with GitHub Icon -->
+      <a
+        href="https://github.com/ZAI-Space/Vera-Harness"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-glass-dark inline-flex items-center justify-center gap-2.5 px-7 py-3 rounded-full text-[#FFFFFF] text-[15px] font-medium tracking-[0.02em] active:scale-[0.98]"
+      >
+        <!-- Crisp GitHub Octocat SVG Icon -->
+        <svg class="w-[18px] h-[18px] fill-current" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+        </svg>
+        <span>查看 github</span>
+      </a>
+
+      <!-- Right Button: Frosted-Glass Transparent Pill -->
+      <a
+        href="#demo"
+        id="view-demo-btn"
+        class="btn-glass-light group inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full text-[#111827] text-[15px] font-medium tracking-[0.02em] active:scale-[0.98]"
+      >
+        <span>查看演示</span>
+        <svg
+          class="w-[16px] h-[16px] transition-transform duration-200 group-hover:translate-x-1"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    (function () {
+      const copyBtn = document.getElementById('copy-command-btn');
+      const commandTextEl = document.getElementById('install-command-text');
+      const iconCopy = document.getElementById('icon-copy');
+      const iconCheck = document.getElementById('icon-check');
+      const feedbackLabel = document.getElementById('copy-feedback-label');
+
+      let resetTimer = null;
+
+      function copyToClipboard(text) {
+        // Fallback textarea copy compatible with iFrame sandbox restrictions
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          // Silently handle copy restriction if any
+        }
+        document.body.removeChild(textarea);
+      }
+
+      if (copyBtn && commandTextEl) {
+        copyBtn.addEventListener('click', function () {
+          const command = commandTextEl.textContent.trim();
+          copyToClipboard(command);
+
+          if (iconCopy) iconCopy.classList.add('hidden');
+          if (iconCheck) iconCheck.classList.remove('hidden');
+          if (feedbackLabel) feedbackLabel.classList.remove('hidden');
+
+          if (resetTimer) clearTimeout(resetTimer);
+          resetTimer = setTimeout(function () {
+            if (iconCheck) iconCheck.classList.add('hidden');
+            if (feedbackLabel) feedbackLabel.classList.add('hidden');
+            if (iconCopy) iconCopy.classList.remove('hidden');
+          }, 1800);
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>

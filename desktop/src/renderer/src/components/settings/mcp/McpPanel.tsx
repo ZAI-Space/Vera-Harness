@@ -8,10 +8,11 @@ import { selectActiveCwd } from "../../../lib/active-cwd";
 import { useMcpStore } from "../../../stores/mcp";
 import { useSessionsStore } from "../../../stores/sessions";
 import { selectTranscript, useTranscriptStore } from "../../../stores/transcript";
-import { ChevronRightIcon, PlusIcon } from "../../icons";
+import { ChevronRightIcon } from "../../icons";
+import { Modal } from "../../ui/Modal";
 import { CapabilityMarket } from "../CapabilityMarket";
+import { McpJsonEditor } from "./McpJsonEditor";
 import { filterServers, showSearch, sortServers, toolsSummary } from "./pure";
-import { PasteJsonPage, ServerEditorPage } from "./ServerEditorPage";
 import { ServerRow } from "./ServerRow";
 
 /** 顶部一条常显提示（官方 notify 的全局信息 / 运行中重连）：bg-hover 圆角条 + 一枚 glyph */
@@ -93,13 +94,15 @@ export function McpPanel() {
 	const { config, loading, load, notice, lastReload, applyServersChanged } = useMcpStore();
 	const cwd = useProjectCwd();
 	const hasSession = useHasActiveSession();
-	/** 二级页面（不是浮层）：列表 ↔ 添加/编辑/粘贴 JSON —— 返回按钮在左上角 */
+	/** 添加与编辑共用完整 JSON 弹窗，底层列表始终保留。 */
 	const [view, setView] = useState<
-		{ mode: "add" } | { mode: "edit"; server: McpServerView } | { mode: "paste" } | null
+		{ mode: "edit"; server: McpServerView } | { mode: "paste"; config?: Record<string, unknown> } | null
 	>(null);
 	const [query, setQuery] = useState("");
 	const [runningDismissed, setRunningDismissed] = useState(false);
 	const [pathsOpen, setPathsOpen] = useState(false);
+
+	const [marketOpen, setMarketOpen] = useState(false);
 	const activeId = useSessionsStore((s) => s.activeSessionId);
 	const running = useTranscriptStore((s) =>
 		activeId ? selectTranscript(s, activeId).phase === "streaming" : false,
@@ -115,7 +118,6 @@ export function McpPanel() {
 	}, [applyServersChanged, environment]);
 
 	const servers = sortServers([...(config?.global ?? []), ...(config?.project ?? [])]);
-	const projectTrusted = config?.projectTrusted ?? false;
 	const toolCount = servers.reduce(
 		(sum, server) =>
 			sum + (toolsSummary(server.tools)?.count ?? toolsSummary(server.verification?.tools ?? [])?.count ?? 0),
@@ -130,26 +132,39 @@ export function McpPanel() {
 
 	const hasServers = (config?.global.length ?? 0) + (config?.project.length ?? 0) > 0;
 
-	if (view) {
-		return (
-			<div className="flex min-h-full flex-col pb-2">
-				{view.mode === "paste" ? (
-					<PasteJsonPage cwd={cwd} onBack={() => setView(null)} />
-				) : (
-					<ServerEditorPage
-						server={view.mode === "edit" ? view.server : undefined}
-						cwd={cwd}
-						projectTrusted={projectTrusted}
-						onBack={() => setView(null)}
-					/>
-				)}
-			</div>
-		);
-	}
-
 	return (
 		<div className="relative flex min-h-full flex-col pb-2">
-			<CapabilityMarket kind="mcp" onInstalled={() => load(cwd)} />
+			{view && (
+				<Modal
+					title={t(view.mode === "edit" ? "settings.mcp.editServer" : "settings.mcp.jsonAdd")}
+					onClose={() => setView(null)}
+				>
+					<McpJsonEditor
+						cwd={cwd}
+						initialConfig={view.mode === "paste" ? view.config : undefined}
+						server={view.mode === "edit" ? view.server : undefined}
+						onCancel={() => setView(null)}
+						onSaved={async () => {
+							await load(cwd);
+							setView(null);
+						}}
+					/>
+				</Modal>
+			)}
+			{marketOpen && (
+				<Modal title={t("settings.mcp.marketTitle")} onClose={() => setMarketOpen(false)}>
+					<CapabilityMarket
+						onConfigure={(config) => {
+							setMarketOpen(false);
+							setView({ mode: "paste", config });
+						}}
+						onInstalled={async () => {
+							await load(cwd);
+							setMarketOpen(false);
+						}}
+					/>
+				</Modal>
+			)}
 			{/* 面板头：只回答「连上几台 / 几个工具」 */}
 			<div className="flex items-start gap-3">
 				<div className="min-w-0 flex-1">
@@ -160,13 +175,22 @@ export function McpPanel() {
 							: t("settings.mcp.hint")}
 					</p>
 				</div>
-				<button
-					type="button"
-					className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-ui-11 text-ink-faint transition-colors hover:bg-hover hover:text-ink-2"
-					onClick={() => setView({ mode: "add" })}
-				>
-					<PlusIcon size={12} /> {t("settings.mcp.addServer")}
-				</button>
+				<div className="flex shrink-0 gap-2">
+					<button
+						type="button"
+						className="rounded-lg bg-hover px-3 py-2 text-ui-12 text-ink"
+						onClick={() => setView({ mode: "paste" })}
+					>
+						{t("settings.mcp.jsonAdd")}
+					</button>
+					<button
+						type="button"
+						className="rounded-lg bg-hover px-3 py-2 text-ui-12 text-ink"
+						onClick={() => setMarketOpen(true)}
+					>
+						{t("settings.mcp.marketAdd")}
+					</button>
+				</div>
 			</div>
 
 			{/* 官方 notify 的全局提示（工具不可达 / 配置错误） */}
@@ -219,22 +243,6 @@ export function McpPanel() {
 					<p className="max-w-[380px] text-ui-115 leading-relaxed text-ink-faint">
 						{t("settings.mcp.emptyDesc")}
 					</p>
-					<div className="mt-1.5 flex items-center gap-1.5">
-						<button
-							type="button"
-							className="rounded-full bg-ink px-3.5 py-1.5 text-ui-115 text-canvas"
-							onClick={() => setView({ mode: "add" })}
-						>
-							{t("settings.mcp.addServer")}
-						</button>
-						<button
-							type="button"
-							className="rounded-full px-2.5 py-1 text-ui-115 text-ink-faint transition-colors hover:bg-hover hover:text-ink-2"
-							onClick={() => setView({ mode: "paste" })}
-						>
-							{t("settings.mcp.pasteJson")}
-						</button>
-					</div>
 				</div>
 			)}
 

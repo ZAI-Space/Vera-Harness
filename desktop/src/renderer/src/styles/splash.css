@@ -154,46 +154,16 @@ html[data-theme="dark"] .sp-wave {
 	opacity: var(--sp-logo-opacity, 0);
 	animation: var(--sp-logo-animation, sp-fade-in 0.65s ease-out 0.15s forwards);
 }
-/* 未知进度持续扫动，不以动画播放时间冒充真实加载完成。 */
-.sp-line {
-	width: min(260px, calc(100vw - 80px));
-	height: 2px;
-	border-radius: 2px;
-	overflow: hidden;
-	background: rgba(24, 24, 27, 0.12);
-	opacity: 0;
-	transform: translateY(calc(var(--sp-art-size) / 2 + 25px));
-	animation: sp-fade-in 0.4s ease-out 0.8s forwards;
-}
-.sp-line::after {
-	content: "";
-	display: block;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, rgba(24, 24, 27, 0.55), transparent);
-	transform: translateX(-100%);
-	animation: sp-sweep 1.4s ease-in-out infinite;
-}
-html[data-theme="dark"] .sp-line {
-	background: rgba(255, 255, 255, 0.14);
-}
-html[data-theme="dark"] .sp-line::after {
-	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
-}
 .sp-status {
-	transform: translateY(calc(var(--sp-art-size) / 2 + 49px));
+	transform: translateY(calc(var(--sp-art-size) / 2 + 25px));
 	color: var(--color-ink-dim, #71717a);
 	line-height: 1.6;
 	opacity: 0;
 	animation: sp-fade-in 0.4s ease-out 0.8s forwards;
 }
-html[data-app-ready] .sp-line,
 html[data-app-ready] .sp-status {
 	opacity: 1;
 	animation: sp-quick-out 0.2s ease-in var(--sp-scatter-delay, 0ms) forwards;
-}
-html[data-app-ready] .sp-line::after {
-	animation: none;
 }
 html[data-startup-view="setup"] #splash {
 	visibility: hidden;
@@ -208,7 +178,6 @@ html[data-splash-static] #splash * {
 }
 html[data-splash-static] .sp-swarm-in,
 html[data-splash-static] .sp-word,
-html[data-splash-static] .sp-line,
 html[data-splash-static] .sp-status {
 	opacity: 1;
 }
@@ -280,11 +249,6 @@ html[data-splash-static][data-app-ready] #splash {
 		transform: translateY(-8px) scale(1.12);
 	}
 }
-@keyframes sp-sweep {
-	to {
-		transform: translateX(100%);
-	}
-}
 @keyframes sp-root-in {
 	from {
 		opacity: 0;
@@ -301,19 +265,14 @@ html[data-splash-static][data-app-ready] #splash {
 /* 减弱动态：静态三圈与 Logo，直接淡出，不内聚、不回弹。 */
 @media (prefers-reduced-motion: reduce) {
 	.sp-orbit,
-	.sp-line::after {
-		animation: none;
-	}
 	.sp-swarm-in,
 	.sp-word,
-	.sp-line,
 	.sp-status {
 		opacity: 1;
 		animation: none;
 	}
 	html[data-app-ready] .sp-swarm-in,
 	html[data-app-ready] .sp-word,
-	html[data-app-ready] .sp-line,
 	html[data-app-ready] .sp-status {
 		animation: sp-quick-out 0.2s ease-in forwards;
 	}

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harness — Long-Term Memory Layer Architecture</title>
+  <!-- Google Fonts: Quantico, Space Grotesk, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Quantico:wght@700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #FFFFFF;
+      font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #111827;
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    .font-quantico {
+      font-family: 'Quantico', 'Space Grotesk', sans-serif;
+    }
+
+    .font-space {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Animated flow pulses along horizontal main pipeline */
+    @keyframes flowRight {
+      0% {
+        stroke-dashoffset: 36;
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    /* Animated inward dashed conflict convergence */
+    @keyframes flowConflictDash {
+      0% {
+        stroke-dashoffset: 24;
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.16));
+      }
+      50% {
+        transform: scale(1.03);
+        filter: drop-shadow(0 6px 16px rgba(239, 68, 68, 0.24));
+      }
+    }
+
+    .main-flow-pulse {
+      stroke-dasharray: 10 26;
+      animation: flowRight 1.3s linear infinite;
+    }
+
+    .conflict-dash-flow {
+      stroke-dasharray: 6 6;
+      animation: flowConflictDash 0.85s linear infinite;
+    }
+
+    .conflict-badge-group {
+      transform-origin: 560px 510px;
+      animation: pulseBadge 2.6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="w-full max-w-[880px] px-4 py-3 flex flex-col items-center justify-center min-h-[70vh]">
+    <!-- Top Center Header (Pure English, no subtitles) -->
+    <header class="text-center mb-3">
+      <h1 class="font-quantico text-2xl sm:text-3xl md:text-[30px] font-bold tracking-[0.06em] text-[#111111] leading-tight uppercase">
+        LONG-TERM MEMORY LAYER
+      </h1>
+    </header>
+
+    <!-- Main Pure-White Vector Architecture Diagram (Enlarged by ~1.25x to max-w-[680px], perfectly fitted) -->
+    <div class="w-full flex justify-center items-center">
+      <svg
+        viewBox="0 0 1120 575"
+        class="w-full h-auto max-w-[680px] mx-auto block select-none"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="LONG-TERM MEMORY LAYER 架构流程图"
+      >
+        <defs>
+          <!-- Electric Cyan-Blue Brand Gradient -->
+          <linearGradient id="brand-flow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00D2FF" />
+            <stop offset="100%" stop-color="#1677FF" />
+          </linearGradient>
+
+          <!-- Conflict Amber-Coral Gradient -->
+          <linearGradient id="conflict-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#F59E0B" />
+            <stop offset="100%" stop-color="#EF4444" />
+          </linearGradient>
+
+          <!-- Arrow Markers -->
+          <marker id="arrow-dark" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="6.5" markerHeight="6.5" orient="auto">
+            <path d="M 1 2 L 10 6 L 1 10 z" fill="#1E293B" />
+          </marker>
+
+          <marker id="arrow-conflict-up" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="6.5" markerHeight="6.5" orient="auto">
+            <path d="M 1 2 L 10 6 L 1 10 z" fill="#F59E0B" />
+          </marker>
+
+          <!-- Soft Elevation for Cards/Bubbles -->
+          <filter id="soft-card-shadow" x="-8%" y="-8%" width="116%" height="120%">
+            <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.04" />
+          </filter>
+        </defs>
+
+        <!-- ALIGNED COLUMN HEADINGS (Center & Right Columns) -->
+        <!-- Center Column Heading -->
+        <g transform="translate(560, 58)">
+          <text id="mem-head-human" x="0" y="0" text-anchor="middle" font-size="20" font-weight="700" fill="#111827" letter-spacing="0.02em">
+            人工处理
+          </text>
+          <text x="0" y="23" text-anchor="middle" class="font-space" font-size="11.5" font-weight="600" fill="#94A3B8" letter-spacing="0.08em">
+            (HUMAN PROCESS)
+          </text>
+        </g>
+
+        <!-- Right Column Heading -->
+        <g transform="translate(895, 58)">
+          <text id="mem-head-mem" x="0" y="0" text-anchor="middle" font-size="20" font-weight="700" fill="#111827" letter-spacing="0.02em">
+            长期记忆层
+          </text>
+          <text x="0" y="23" text-anchor="middle" class="font-space" font-size="11.5" font-weight="600" fill="#94A3B8" letter-spacing="0.08em">
+            (LONG-TERM MEMORY LAYER)
+          </text>
+        </g>
+
+        <!-- LEFT COLUMN: CONTEXT WINDOW DASHED BOX + 2 SPEECH BUBBLES + '...' -->
+        <g id="left-context-group">
+          <!-- Outer Dashed Container -->
+          <rect
+            x="60" y="120" width="330" height="230" rx="18"
+            fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="5 4"
+          />
+
+          <!-- Speech Bubble 1 -->
+          <g transform="translate(82, 140)" filter="url(#soft-card-shadow)">
+            <path
+              d="M 14 0 H 272 A 14 14 0 0 1 286 14 V 50 A 14 14 0 0 1 272 64 H 34 L 22 73 L 24 64 H 14 A 14 14 0 0 1 0 50 V 14 A 14 14 0 0 1 14 0 Z"
+              fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"
+            />
+            <text id="mem-bubble-1" x="18" y="37" font-size="14" font-weight="500" fill="#334155">
+              项目前端用 <tspan class="font-mono-code" font-size="13.5" font-weight="600" fill="#0F172A">React 19 + Next.js</tspan>
+            </text>
+          </g>
+
+          <!-- Speech Bubble 2 -->
+          <g transform="translate(82, 224)" filter="url(#soft-card-shadow)">
+            <path
+              d="M 14 0 H 272 A 14 14 0 0 1 286 14 V 50 A 14 14 0 0 1 272 64 H 34 L 22 73 L 24 64 H 14 A 14 14 0 0 1 0 50 V 14 A 14 14 0 0 1 14 0 Z"
+              fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"
+            />
+            <text id="mem-bubble-2" x="18" y="37" font-size="14" font-weight="500" fill="#334155">
+              状态管理先配个 <tspan class="font-mono-code" font-size="13.5" font-weight="600" fill="#0F172A">Zustand</tspan>
+            </text>
+          </g>
+
+          <!-- Ellipsis Dots ('...') inside bottom of dashed container -->
+          <g transform="translate(225, 323)" fill="#334155">
+            <circle cx="-14" cy="0" r="3.2" />
+            <circle cx="0" cy="0" r="3.2" />
+            <circle cx="14" cy="0" r="3.2" />
+          </g>
+        </g>
+
+        <!-- STANDALONE 3RD SPEECH BUBBLE (~62px gap below Left Dashed Container) -->
+        <g id="conflict-bubble-3" transform="translate(60, 412)" filter="url(#soft-card-shadow)">
+          <path
+            d="M 14 0 H 316 A 14 14 0 0 1 330 14 V 48 A 14 14 0 0 1 316 62 H 36 L 23 72 L 25 62 H 14 A 14 14 0 0 1 0 48 V 14 A 14 14 0 0 1 14 0 Z"
+            fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.6"
+          />
+          <text id="mem-bubble-3" x="22" y="36" font-size="14.5" font-weight="600" fill="#1E293B">
+            算了，全部改成 <tspan class="font-mono-code" font-size="14" font-weight="600" fill="#1677FF">Vue 3</tspan> 吧
+          </text>
+        </g>
+
+        <!-- CENTER COLUMN: MINIMALIST LINE-ART '人工处理' ICON -->
+        <g id="human-process-icon" transform="translate(560, 235)" stroke="#111827" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="0" cy="-34" r="11.5" />
+          <path d="M -20 -6 C -20 -16, -11 -20, 0 -20 C 11 -20, 20 -16, 20 -6 Z" />
+          <path d="M -33 4 V -34 H -20" />
+          <polyline points="-25,-39 -20,-34 -25,-29" />
+          <path d="M 20 -34 H 33 V 0" />
+          <polyline points="28,-5 33,0 38,-5" />
+          <rect x="-46" y="10" width="32" height="38" rx="3" />
+          <line x1="-39" y1="20" x2="-21" y2="20" />
+          <line x1="-39" y1="29" x2="-21" y2="29" />
+          <line x1="-39" y1="38" x2="-27" y2="38" />
+          <circle cx="31" cy="29" r="7" />
+          <path d="
+            M 31 14 V 18
+            M 31 40 V 44
+            M 16 29 H 20
+            M 42 29 H 46
+            M 20.4 18.4 L 23.2 21.2
+            M 38.8 36.8 L 41.6 39.6
+            M 41.6 18.4 L 38.8 21.2
+            M 23.2 36.8 L 20.4 39.6
+          " />
+          <circle cx="31" cy="29" r="14" stroke-width="2" />
+          <line x1="11" y1="29" x2="-8" y2="29" />
+          <polyline points="-3,24 -8,29 -3,34" />
+        </g>
+
+        <!-- HORIZONTAL MAIN PIPELINE ARROWS (Y = 235) -->
+        <g>
+          <line x1="406" y1="235" x2="484" y2="235" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arrow-dark)" />
+          <line x1="406" y1="235" x2="478" y2="235" stroke="url(#brand-flow-grad)" stroke-width="2.6" stroke-linecap="round" class="main-flow-pulse" />
+        </g>
+
+        <g>
+          <line x1="628" y1="235" x2="712" y2="235" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arrow-dark)" />
+          <line x1="628" y1="235" x2="706" y2="235" stroke="url(#brand-flow-grad)" stroke-width="2.6" stroke-linecap="round" class="main-flow-pulse" />
+        </g>
+
+        <!-- RIGHT COLUMN: LONG-TERM MEMORY LAYER DASHED BOX + MEMORY CARDS -->
+        <g id="right-memory-group">
+          <!-- Outer Dashed Container -->
+          <rect
+            x="730" y="120" width="330" height="230" rx="18"
+            fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="5 4"
+          />
+
+          <!-- Memory Card 1: Fact -->
+          <g transform="translate(752, 142)" filter="url(#soft-card-shadow)">
+            <rect x="0" y="0" width="286" height="52" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.4" />
+            <text id="mem-card-1" x="16" y="31" font-size="14" font-weight="600" fill="#1E293B">
+              前端 <tspan class="font-mono-code" font-size="13">React 19 + Next.js</tspan>
+            </text>
+            <!-- Fact Badge -->
+            <rect x="224" y="14" width="46" height="24" rx="7" fill="#EFF6FF" />
+            <text x="247" y="30" text-anchor="middle" class="font-mono-code" font-size="11" font-weight="600" fill="#2563EB">
+              Fact
+            </text>
+          </g>
+
+          <!-- Memory Card 2: Update -->
+          <g transform="translate(752, 208)" filter="url(#soft-card-shadow)">
+            <rect x="0" y="0" width="286" height="52" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.4" />
+            <text id="mem-card-2" x="16" y="31" font-size="14" font-weight="600" fill="#1E293B">
+              状态管理 <tspan class="font-mono-code" font-size="13">Zustand</tspan>
+            </text>
+            <!-- Update Badge -->
+            <rect x="214" y="14" width="56" height="24" rx="7" fill="#ECFDF5" />
+            <text x="242" y="30" text-anchor="middle" class="font-mono-code" font-size="11" font-weight="600" fill="#059669">
+              Update
+            </text>
+          </g>
+
+          <!-- Memory Card 3: Placeholder ('...') -->
+          <g transform="translate(752, 274)">
+            <rect x="0" y="0" width="286" height="48" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.2" />
+            <g transform="translate(143, 24)" fill="#94A3B8">
+              <circle cx="-10" cy="0" r="2.3" />
+              <circle cx="0" cy="0" r="2.3" />
+              <circle cx="10" cy="0" r="2.3" />
+            </g>
+          </g>
+        </g>
+
+        <!-- BOTTOM CONVERGING DOUBLE-RAIL + CENTRAL DASHED CONFLICT LOOP -->
+        <g id="bottom-conflict-loop" fill="none" stroke-linecap="round">
+          <path d="M 218 474 C 218 514, 305 516, 504 516" stroke="#CBD5E1" stroke-width="1.4" />
+          <path d="M 232 474 C 232 502, 310 504, 504 504" stroke="#CBD5E1" stroke-width="1.4" />
+          <path d="M 225 474 C 225 508, 308 510, 504 510" stroke="#F59E0B" stroke-width="2" class="conflict-dash-flow" />
+
+          <path d="M 902 350 C 902 514, 815 516, 616 516" stroke="#CBD5E1" stroke-width="1.4" />
+          <path d="M 888 350 C 888 502, 810 504, 616 504" stroke="#CBD5E1" stroke-width="1.4" />
+          <path d="M 895 350 C 895 508, 812 510, 616 510" stroke="#F59E0B" stroke-width="2" class="conflict-dash-flow" />
+
+          <line
+            x1="560" y1="490" x2="560" y2="306"
+            stroke="#F59E0B" stroke-width="2.2"
+            class="conflict-dash-flow"
+            marker-end="url(#arrow-conflict-up)"
+          />
+        </g>
+
+        <!-- CENTER BOTTOM CONFLICT CAPSULE BADGE: [ ✕ 冲突 ] -->
+        <g class="conflict-badge-group">
+          <rect
+            x="504" y="491" width="112" height="38" rx="19"
+            fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.8"
+          />
+          <circle cx="527" cy="510" r="10.5" fill="#EF4444" />
+          <g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round">
+            <line x1="523.2" y1="506.2" x2="530.8" y2="513.8" />
+            <line x1="530.8" y1="506.2" x2="523.2" y2="513.8" />
+          </g>
+          <text id="mem-conflict-label" x="568" y="515.5" text-anchor="middle" font-size="14.5" font-weight="700" fill="#B45309" letter-spacing="0.04em">
+            冲突
+          </text>
+        </g>
+
+      </svg>
+    </div>
+  </main>
+
+</body>
+</html>

@@ -5,13 +5,88 @@ import { useSettingsStore } from "../../../stores/settings";
 import { ChevronRightIcon, EditIcon, PlusIcon, TestIcon, TrashIcon } from "../../icons";
 import { Button } from "../../ui/Button";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Modal } from "../../ui/Modal";
 import { Switch } from "../../ui/Switch";
 import { BuiltinProviderEditForm } from "./BuiltinProviderEditForm";
 import { CustomProviderEditForm, CustomProviderForm } from "./CustomProviderForm";
+import { EMPTY_MODEL_ROW, type ModelRow } from "./model-rows";
+
+const PROVIDER_PRESETS: Array<{
+	id: string;
+	template?: string;
+	name: string;
+	baseUrl: string;
+	api: string;
+	models: ModelRow[];
+}> = [
+	{
+		id: "deepseek",
+		name: "DeepSeek",
+		baseUrl: "https://api.deepseek.com",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "zai",
+		name: "Z.AI",
+		baseUrl: "https://api.z.ai/api/paas/v4",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "kimi",
+		name: "Kimi",
+		baseUrl: "https://api.moonshot.cn/v1",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "minimax",
+		name: "MiniMax",
+		baseUrl: "https://api.minimax.cn/v1",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "mimo",
+		name: "Mimo",
+		baseUrl: "https://api.xiaomimimo.com/v1",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "gemini",
+		name: "Gemini",
+		baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "claude",
+		name: "Claude",
+		baseUrl: "https://api.anthropic.com",
+		api: "anthropic-messages",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "chatgpt",
+		name: "ChatGPT",
+		baseUrl: "https://api.openai.com/v1",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+	{
+		id: "grok",
+		name: "Grok",
+		baseUrl: "https://api.x.ai/v1",
+		api: "openai-completions",
+		models: [{ ...EMPTY_MODEL_ROW }],
+	},
+];
 
 const EMPTY_PREFS: ModelPrefs = { hiddenModels: {}, subagentModels: {} };
 
-/** API 配置页只展示已有连接中的模型，完整服务商目录留给账号订阅页。 */
+/** API 配置页展示已保存的服务商及模型，支持预设厂商和自定义接口。 */
 export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) {
 	const t = useT();
 	const prefs = useSettingsStore((s) => s.modelPrefs) ?? EMPTY_PREFS;
@@ -22,13 +97,10 @@ export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) 
 	const testResults = useSettingsStore((s) => s.testResults);
 	const [editor, setEditor] = useState<string | null>(null);
 	const [adding, setAdding] = useState(false);
+	const [preset, setPreset] = useState<(typeof PROVIDER_PRESETS)[number] | null>(null);
 	const [deleting, setDeleting] = useState<ProviderInfo | null>(null);
 	const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-	const connections = providers.filter(
-		(provider) =>
-			provider.authType !== "oauth" &&
-			(provider.custom || (provider.configured && (provider.authType === "api_key" || !provider.oauth))),
-	);
+	const connections = providers.filter((provider) => provider.custom || provider.configured);
 	return (
 		<div className="flex flex-col gap-4">
 			<header className="flex items-start justify-between gap-3">
@@ -41,6 +113,7 @@ export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) 
 					className="flex shrink-0 items-center gap-1.5"
 					onClick={() => {
 						setAdding(true);
+						setPreset(null);
 						setEditor(null);
 					}}
 				>
@@ -48,10 +121,55 @@ export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) 
 					{t("modelAccess.addConnection")}
 				</Button>
 			</header>
-			{adding && (
+			{adding && !preset && (
+				<Modal title={t("modelAccess.addConnection")} onClose={() => setAdding(false)}>
+					<div className="grid grid-cols-2 gap-2">
+						<Button
+							className="col-span-2 justify-start"
+							onClick={() =>
+								setPreset({
+									id: `connection-${crypto.randomUUID()}`,
+									name: "",
+									template: "custom",
+									baseUrl: "",
+									api: "openai-completions",
+									models: [{ ...EMPTY_MODEL_ROW }],
+								})
+							}
+						>
+							{t("modelAccess.customProvider")}
+						</Button>
+						{PROVIDER_PRESETS.map((item) => (
+							<Button
+								key={item.id}
+								className="justify-start"
+								onClick={() =>
+									setPreset({
+										...item,
+										template: item.id,
+										id: `connection-${item.id}-${crypto.randomUUID().slice(0, 8)}`,
+									})
+								}
+							>
+								{item.name}
+							</Button>
+						))}
+					</div>
+				</Modal>
+			)}
+			{adding && preset && (
 				<div>
-					<p className="text-ui-12 text-ink-dim">{t("modelAccess.connectionHint")}</p>
-					<CustomProviderForm initiallyOpen onDone={() => setAdding(false)} />
+					<Modal title={preset.name || t("modelAccess.addConnection")} onClose={() => setAdding(false)}>
+						<p className="mb-3 text-ui-12 text-ink-dim">{t("modelAccess.connectionHint")}</p>
+						<CustomProviderForm
+							initiallyOpen
+							preset={preset}
+							onDone={() => {
+								setAdding(false);
+								setPreset(null);
+							}}
+						/>
+					</Modal>
 				</div>
 			)}
 			{connections.length === 0 && !adding && (
@@ -92,7 +210,7 @@ export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) 
 									</span>
 								</span>
 								<span className="mt-1 block truncate text-ui-11 text-ink-faint">
-									{provider.baseUrl ?? provider.authLabel ?? provider.id}
+									{provider.baseUrl ?? provider.id}
 								</span>
 								{!provider.configured && (
 									<span className="mt-1 block text-ui-11 text-ink-faint">
@@ -150,9 +268,16 @@ export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) 
 						)}
 						{editor === provider.id ? (
 							fullEdit ? (
-								<CustomProviderEditForm provider={provider} onDone={() => setEditor(null)} embedded />
+								<CustomProviderEditForm
+									provider={provider}
+									onDone={() => setEditor((current) => (current === provider.id ? null : current))}
+									embedded
+								/>
 							) : (
-								<BuiltinProviderEditForm provider={provider} onDone={() => setEditor(null)} />
+								<BuiltinProviderEditForm
+									provider={provider}
+									onDone={() => setEditor((current) => (current === provider.id ? null : current))}
+								/>
 							)
 						) : isExpanded && models.length ? (
 							<div>
@@ -164,10 +289,7 @@ export function ApiKeyModelsPanel({ providers }: { providers: ProviderInfo[] }) 
 											data-configured-model={model.id}
 										>
 											<div className="min-w-0">
-												<p className="truncate text-ui-12 text-ink-dim">{model.name ?? model.id}</p>
-												{model.name && model.name !== model.id && (
-													<p className="mt-0.5 truncate text-ui-11 text-ink-faint">{model.id}</p>
-												)}
+												<p className="truncate text-ui-12 text-ink-dim">{model.id}</p>
 											</div>
 											<Button
 												size="sm"

@@ -52,7 +52,7 @@ def test_archive_preserves_binary_assets_in_deep_workspaces(source_repo, tmp_pat
     baseline = create_archive(source_repo, root)
     workspace = checkout(root, "generation-0001-improvement", baseline)
     asset = Path("desktop/src/renderer/src/assets/splash/vera-logo.png")
-    source_file = Path("desktop/src/renderer/src/components/settings/providers/upstream-models-loader.test.ts")
+    source_file = Path("desktop/tests/renderer/src/components/settings/providers/upstream-models-loader.test.ts")
     assert len(str(workspace / source_file)) > 260
     assert filesystem_path(workspace / source_file).read_bytes() == (source_repo / source_file).read_bytes()
     assert (workspace / asset).read_bytes() == (source_repo / asset).read_bytes()
@@ -310,6 +310,22 @@ def test_state_reader_handles_real_windows_sharing_errors(tmp_path, is_transient
         read_json(path)
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows console visibility")
+def test_background_process_has_no_console_window(tmp_path):
+    """Scheduler and optimizer workers must not create visible console windows."""
+    log = tmp_path / "worker.log"
+    outcome = run_process(
+        [sys.executable, "-c", "import ctypes;print(ctypes.windll.kernel32.GetConsoleWindow())"],
+        cwd=tmp_path,
+        env=os.environ.copy(),
+        log=log,
+        timeout=10,
+        cancel=tmp_path / "cancel.request",
+    )
+    assert outcome["returncode"] == 0
+    assert log.read_text().strip() == "0"
+
+
 def test_process_lease_failure_reaps_started_child(tmp_path):
     """An unpublishable process lease must not leave the worker running."""
     marker = tmp_path / "unexpected-completion"
@@ -346,7 +362,9 @@ def test_controller_crash_reaps_previous_process_without_replaying(source_repo, 
             stderr=subprocess.STDOUT,
         )
         try:
-            deadline = time.monotonic() + 40
+            # Windows hosted runners can spend over 40 seconds importing the
+            # full runtime before the child publishes its first lease.
+            deadline = time.monotonic() + 90
             while True:
                 current = Experiment(experiment.root).state
                 if (
