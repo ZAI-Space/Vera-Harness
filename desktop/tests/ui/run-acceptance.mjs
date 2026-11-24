@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 for (const name of [
+	"ui-startup-burst-smoke.mjs",
 	"ui-settings-smoke.mjs",
 	"ui-global-settings-smoke.mjs",
 	"ui-market-smoke.mjs",

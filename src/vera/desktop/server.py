@@ -19,6 +19,9 @@ class DesktopServer(ThreadingHTTPServer):
     """Never listen on a public interface; deny cross-origin browser requests."""
 
     daemon_threads = True
+    # Startup opens parallel catalog/settings requests; the default backlog of
+    # five rejects valid loopback connections on Windows before we accept them.
+    request_queue_size = 128
 
     def __init__(self, address, service: DesktopService, token: str):
         if address[0] != "127.0.0.1" or len(token) < 32:

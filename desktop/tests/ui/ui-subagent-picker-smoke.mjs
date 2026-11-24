@@ -116,6 +116,11 @@ try {
 		assert.equal(await page.getByRole("button").filter({ hasText: "/subagent:disabled-reader" }).count(), 0);
 		await option.click();
 		await cancel.waitFor();
+		// Selection schedules focus at frame end; drain it before typing or moving the caret.
+		await editor.focus();
+		await page.evaluate(
+			() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+		);
 	}
 	await check("slash menu selects the enabled role without creating a session", async () => {
 		await chooseRole();
@@ -139,7 +144,7 @@ try {
 			if (action === "click") await cancel.click();
 			else {
 				if (action === "Backspace") {
-					await page.keyboard.press("Home");
+					await editor.press("ControlOrMeta+Home");
 					// Native cursor movement dispatches selectionchange asynchronously.
 					await until(async () =>
 						assert.equal(
