@@ -42,7 +42,7 @@ jobs:
           cp dist/npm/python/*.whl dist/
           cd dist
           sha256sum ./*.tgz ./*.whl > SHA256SUMS.txt
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: release-packages
           path: |

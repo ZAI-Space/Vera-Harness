@@ -44,7 +44,7 @@ jobs:
           /tmp/vera-wheel/bin/vera-extra mcp --help
           /tmp/vera-wheel/bin/vera-extra skills --help
       - name: Preserve installable packages
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: python-packages
           path: dist/*
