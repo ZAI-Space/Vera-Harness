@@ -19,6 +19,20 @@ const command = (name: string, source: SlashCommandInfo["source"] = "extension")
 });
 
 describe("桌面斜杠菜单资源", () => {
+	it("已配置角色直接出现在 /subagent 列表，保留同次任务调用映射", () => {
+		const commands = withDesktopSlashCommands(
+			[
+				{
+					...command("subagent:reader", "builtin"),
+					invocationName: "subagent reader",
+					description: "提炼内容",
+				},
+			],
+			true,
+		);
+		expect(filterCommands(commands, "subagent").map((item) => item.name)).toEqual(["subagent:reader"]);
+		expect(slashInvocationName(commands, "subagent:reader")).toBe("subagent reader");
+	});
 	it("内置区只保留 new/settings，未注册分类保留禁用入口", () => {
 		const commands = withDesktopSlashCommands([
 			command("compact", "builtin"),

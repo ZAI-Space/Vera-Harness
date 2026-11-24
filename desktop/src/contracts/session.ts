@@ -284,6 +284,8 @@ export interface SlashCommandInfo {
 	name: string;
 	description: string;
 	argumentHint?: string;
+	/** Display aliases may include a selected resource; preserve the backend invocation. */
+	invocationName?: string;
 	source: SlashCommandSource;
 	/** 内置命令是否已在桌面端实现（模板/skill/扩展命令恒为 true，SDK 原生处理） */
 	supported: boolean;

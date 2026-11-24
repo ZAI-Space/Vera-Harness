@@ -223,6 +223,8 @@ export const en: Messages = {
 		noMatch: "No matching commands",
 		notConfigured: "No available configuration detected",
 		argPlaceholder: "Type arguments…",
+		cancelCommand: "Cancel selected command",
+		subagentTaskPlaceholder: "Enter a task for the selected subagent…",
 		builtin: {
 			new: { label: "New chat", description: "Create a new conversation" },
 			compact: { label: "compact", description: "Compress session context", argumentHint: "[focus]" },
@@ -249,6 +251,7 @@ export const en: Messages = {
 			exported: "Exported: {path}",
 			exportCancelled: "Export cancelled",
 			noSession: "Pick a project directory and create a session first",
+			noSubagentTask: "Enter a task for the selected subagent first",
 		},
 	},
 	at: {

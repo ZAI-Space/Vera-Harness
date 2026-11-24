@@ -8,6 +8,7 @@ for (const name of [
 	"ui-market-smoke.mjs",
 	"ui-model-config-smoke.mjs",
 	"ui-general-assistant-smoke.mjs",
+	"ui-subagent-picker-smoke.mjs",
 ]) {
 	const result = spawnSync(process.execPath, [fileURLToPath(new URL(name, import.meta.url))], {
 		stdio: "inherit",

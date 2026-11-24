@@ -377,7 +377,10 @@ class Capabilities:
                 selections = self.service.sessions.get(args["sessionId"])["selections"]
                 if "plugins" in selections:
                     plugin_config["names"] = selections["plugins"]
-            plugin_skills = load_plugins({"plugins": plugin_config}).skills
+            plugins = load_plugins(
+                {"plugins": plugin_config, "subagents": {"roles": self.store.get("settings", "roles", {})}}
+            )
+            plugin_skills = plugins.skills
             skills.update(plugin_skills)
             if method == "getLoadedResources":
                 return {
@@ -408,7 +411,7 @@ class Capabilities:
                         "supported": name != "/sandbox" or availability["enabled"],
                     }
                     for name, description in COMMANDS.items()
-                    if name not in {"/model", "/permissions"}
+                    if name not in {"/model", "/permissions", "/subagent"}
                 ]
                 + [
                     {
@@ -419,6 +422,17 @@ class Capabilities:
                         "supported": row["available"],
                     }
                     for row in availability["choices"]
+                ]
+                + [
+                    {
+                        "name": "subagent:" + name,
+                        "invocationName": "subagent " + name,
+                        "description": role["description"],
+                        "argumentHint": "<task>",
+                        "source": "builtin",
+                        "supported": True,
+                    }
+                    for name, role in sorted(plugins.config.get("subagents", {}).get("roles", {}).items())
                 ]
                 + [
                     {

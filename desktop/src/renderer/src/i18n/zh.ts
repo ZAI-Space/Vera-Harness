@@ -218,6 +218,8 @@ export const zh = {
 		noMatch: "没有匹配的命令",
 		notConfigured: "未检测到可用配置",
 		argPlaceholder: "输入参数…",
+		cancelCommand: "取消所选命令",
+		subagentTaskPlaceholder: "输入要交给子代理的任务…",
 		builtin: {
 			new: { label: "新对话", description: "创建新对话" },
 			compact: { label: "压缩", description: "压缩会话上下文", argumentHint: "[关注重点]" },
@@ -244,6 +246,7 @@ export const zh = {
 			exported: "已导出：{path}",
 			exportCancelled: "已取消导出",
 			noSession: "请先选择项目目录并创建会话",
+			noSubagentTask: "请先输入要交给子代理的任务",
 		},
 	},
 	at: {

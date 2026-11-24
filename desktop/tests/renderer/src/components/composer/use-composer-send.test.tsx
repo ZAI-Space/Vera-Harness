@@ -91,6 +91,55 @@ function composer(
 }
 
 describe("本地命令与插件别名", () => {
+	it.each([false, true])("选中子代理和任务一次发送，附件引用=%s 时仍还原为实际调用", async (withFile) => {
+		useDraftStore.getState().updateDraft("fixture", () => ({
+			...EMPTY_DRAFT,
+			slashCommand: "subagent:reader",
+			document: withFile
+				? {
+						version: 1,
+						parts: [
+							{ type: "text", text: "Summarize " },
+							{ type: "file", path: "article.md", label: "article.md" },
+						],
+					}
+				: composerDocumentFromText("Summarize article.md"),
+		}));
+		await composer("fixture", (name) => (name === "subagent:reader" ? "subagent reader" : name)).handleSend();
+		expect(prompt).toHaveBeenCalledOnce();
+		expect(prompt).toHaveBeenCalledWith(
+			expect.objectContaining({ text: expect.stringMatching(/^\/subagent reader Summarize /) }),
+		);
+		if (withFile) {
+			expect(prompt.mock.calls[0]?.[0].document.parts).toContainEqual({
+				type: "file",
+				path: "article.md",
+				label: "article.md",
+			});
+		}
+	});
+	it("只有子代理标签没有任务时保留草稿，不创建会话或调用模型", async () => {
+		useDraftStore
+			.getState()
+			.updateDraft("fixture", () => ({ ...EMPTY_DRAFT, slashCommand: "subagent:reader" }));
+		await composer(null).handleSend();
+		expect(prompt).not.toHaveBeenCalled();
+		expect(createSession).not.toHaveBeenCalled();
+		expect(useDraftStore.getState().bySession.fixture?.slashCommand).toBe("subagent:reader");
+	});
+	it("子代理命令位于引用之前，确保引用内容与任务在同一轮委派", async () => {
+		useDraftStore.getState().updateDraft("fixture", () => ({
+			...EMPTY_DRAFT,
+			slashCommand: "subagent:reader",
+			quotes: ["原文引用"],
+			document: composerDocumentFromText("提炼核心观点"),
+		}));
+		await composer("fixture", () => "subagent reader").handleSend();
+		const text = prompt.mock.calls[0]?.[0].text;
+		expect(text).toMatch(/^\/subagent reader /);
+		expect(text).toContain("原文引用");
+		expect(text).toContain("提炼核心观点");
+	});
 	it.each(["fixture", null])("/new 从 %s 打开新草稿，不创建空会话也不调用模型", async (sessionId) => {
 		useDraftStore.getState().updateDraft("fixture", () => ({
 			...EMPTY_DRAFT,

@@ -252,11 +252,22 @@ export function useComposerSend(options: UseComposerSendOptions) {
 		// 选区引用置于正文前；文件和 skill 保留在正文原位置。
 		const quoteBlock = buildQuoteBlock(quotes);
 		const body = text.trim();
-		let content = [quoteBlock, slashCommand ? `/${slashCommand}${body ? ` ${body}` : ""}` : body]
-			.filter(Boolean)
-			.join("\n\n");
+		if (slashCommand?.startsWith("subagent:") && !body) {
+			showFeedback(t("slash.feedback.noSubagentTask"), "warn");
+			return;
+		}
+		const invocation = slashCommand ? (options.resolveSlashCommand?.(slashCommand) ?? slashCommand) : null;
+		const isSubagent = slashCommand?.startsWith("subagent:");
+		// 委派命令必须在正文首部；引用也是本次任务的输入，不能把命令挤成普通文本。
+		let content = isSubagent
+			? `/${invocation} ${[quoteBlock, body].filter(Boolean).join("\n\n")}`
+			: [quoteBlock, invocation ? `/${invocation}${body ? ` ${body}` : ""}` : body]
+					.filter(Boolean)
+					.join("\n\n");
 		const hasReferences = currentDraft.document.parts.some((p) => p.type !== "text");
-		const prefix = [quoteBlock ? `${quoteBlock}\n\n` : "", slashCommand ? `/${slashCommand} ` : ""].join("");
+		const prefix = isSubagent
+			? `/${invocation} ${quoteBlock ? `${quoteBlock}\n\n` : ""}`
+			: [quoteBlock ? `${quoteBlock}\n\n` : "", invocation ? `/${invocation} ` : ""].join("");
 		const document = hasReferences
 			? normalizeComposerDocument({
 					version: 1,

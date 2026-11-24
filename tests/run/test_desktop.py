@@ -66,6 +66,37 @@ def wait_until(predicate):
     pytest.fail("Desktop worker did not reach the expected state.")
 
 
+def test_slash_subagent_catalog_exposes_enabled_roles_for_same_turn_task(desktop, tmp_path):
+    """Pick real enabled roles without selecting a model or sending a setup-only task."""
+    service, invoke, _, _ = desktop
+    role = {
+        "id": "reader",
+        "name": "content-reader",
+        "description": "提炼文章内容",
+        "instructions": "Read carefully.",
+        "tools": [],
+        "skills": [],
+        "step_limit": 10,
+        "cost_limit": 1,
+        "wall_time_limit_seconds": 60,
+        "enabled": True,
+    }
+    invoke("saveSubagentRoles", roles=[role, role | {"id": "disabled", "name": "disabled-reader", "enabled": False}])
+    session = invoke("createSession", options={"cwd": str(tmp_path)})
+    for method, arguments in (
+        ("listSlashCommandsForCwd", {"cwd": str(tmp_path)}),
+        ("listSlashCommands", {"sessionId": session["sessionId"]}),
+    ):
+        commands = {row["name"]: row for row in invoke(method, **arguments)}
+        assert "subagent" not in commands and "subagent:disabled-reader" not in commands
+        entry = commands["subagent:content-reader"]
+        assert entry["description"] == "提炼文章内容" and entry["supported"]
+        terminal = service.sessions.terminal(service.sessions.get(session["sessionId"]))
+        result = terminal.process("/" + entry["invocationName"] + " Summarize this article")
+        assert result.kind == "task" and 'subagent_run with role "content-reader"' in result.task
+        assert "Summarize this article" in result.task
+
+
 def test_server_expands_home_before_selecting_shared_context(tmp_path):
     """A quoted tilde path must use the same store and context as its absolute path."""
     home = tmp_path / "home"

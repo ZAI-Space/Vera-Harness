@@ -47,7 +47,7 @@ vi.mock("../../../../../src/renderer/src/components/composer/use-slash-menu", ()
 		slashOpen: false,
 		setSlashDismissed: () => {},
 		updateToken: () => {},
-		restoreSlashPill: () => {},
+		cancelSlashCommand: () => {},
 		handleKeyDown: () => false,
 	}),
 }));
