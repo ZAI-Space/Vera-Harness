@@ -54,3 +54,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Feishu integration imports the official `lark-oapi` Python SDK as an optional
 dependency. The SDK's own distribution includes its MIT license.
 Source: https://github.com/larksuite/oapi-sdk-python
+
+## Docker MCP catalog metadata
+
+The bundled discovery snapshot is derived from the [Docker MCP Registry](https://github.com/docker/mcp-registry), copyright (c) 2025 Docker, under the MIT License. The full license is in `src/vera/config/markets/docker.LICENSE`. Publisher logos identify their respective projects and remain their trademarks.
