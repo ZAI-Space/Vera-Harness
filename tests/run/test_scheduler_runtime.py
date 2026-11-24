@@ -21,6 +21,8 @@ def test_due_task_executes_in_fresh_process_with_durable_result_and_skill_contex
     project_package = tmp_path / "vera"
     project_package.mkdir()
     (project_package / "__init__.py").write_text("raise RuntimeError('Project package imported')\n", encoding="utf-8")
+    # Execution uses the saved job configuration, not a later project-local file.
+    (tmp_path / "vera.yaml").write_text("untrusted-project-config: [\n", encoding="utf-8")
     store = JobStore(tmp_path / "scheduler")
     write_skill(tmp_path / ".agents/skills", "review", "PRIVATE SCHEDULED SKILL")
     definition = job_definition(tmp_path, schedule="1s", skills=["review"])

@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from vera.config import get_config_from_spec
+from vera.config import builtin_config_dir, get_config_from_spec
 from vera.evolution.process import write_json
 from vera.exceptions import Submitted
 from vera.runtime import open_agent_runtime
@@ -30,7 +30,8 @@ def execute(directory: Path, key: str) -> None:
     output = directory / "artifacts" / key
     try:
         spec = JobSpec.model_validate_json(row["snapshot"])
-        config = recursive_merge(get_config_from_spec("vera.yaml"), spec.config)
+        # A writable project must not add capabilities to the host-owned snapshot.
+        config = recursive_merge(get_config_from_spec(builtin_config_dir / "vera.yaml"), spec.config)
         provider_ref = config.pop("desktop_provider_ref", None)
         state_dir = config.pop("desktop_state_dir", None)
         if provider_ref and state_dir:
