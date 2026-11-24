@@ -61,10 +61,10 @@ def package_path(root: Path, value: str) -> Path:
 
 
 def normalize_source(source: str, host: PluginSource = PluginSource.github) -> str:
-    """Resolve owner/repo on GitHub/Gitee, or an explicit local/HTTPS package source."""
+    """Resolve owner/repo or local paths; URL-form sources always remain remote."""
     if not isinstance(source, str):
         raise PluginError("Plugin sources must be strings.")
-    if Path(source).expanduser().is_dir():
+    if "://" not in source and Path(source).expanduser().is_dir():
         return str(Path(source).expanduser().resolve())
     if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", source):
         source = f"https://{PluginSource(host).value}.com/{source.removesuffix('.git')}.git"
