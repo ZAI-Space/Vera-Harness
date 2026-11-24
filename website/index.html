@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VERA Harness — 做你所想，如你所愿</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Quantico:wght@700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS & Global Clean Styles -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="./js/main.js"></script>
+
+  <style>
+    /* Clean Seamless Section Frames */
+    .section-frame {
+      width: 100%;
+      border: none;
+      display: block;
+      overflow: hidden;
+      background: transparent;
+      transition: opacity 0.25s ease;
+    }
+
+    /* Dynamic Floating Island Pill Navbar */
+    #navbar-pill {
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pill-scrolled {
+      max-width: 860px !important;
+      height: 52px !important;
+      background-color: rgba(255, 255, 255, 0.82) !important;
+      backdrop-filter: blur(18px) saturate(180%);
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      border-radius: 9999px !important;
+      border: 1px solid rgba(229, 231, 235, 0.85) !important;
+      box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08) !important;
+      padding-left: 1.25rem !important;
+      padding-right: 1.25rem !important;
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased selection:bg-blue-500 selection:text-white">
+
+  <!-- =========================================================================
+       1. DYNAMIC FLOATING PILL NAVBAR (Transparent at Hero -> Frosted Pill upon Scrolling)
+       ========================================================================= -->
+  <header class="fixed top-0 left-0 w-full z-50 pointer-events-none transition-all duration-300">
+    <div class="w-full flex justify-center px-4 sm:px-6 pt-3 sm:pt-4">
+      <nav id="navbar-pill" class="pointer-events-auto w-full max-w-7xl h-16 sm:h-20 px-6 flex items-center justify-between select-none">
+
+        <!-- Left: Brand Logo -->
+        <a href="#sec-01" class="flex items-center gap-2.5 group">
+          <img src="./assets/Vera-logo.png" alt="VERA Logo" class="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform group-hover:scale-105" />
+          <span class="font-quantico font-bold text-lg sm:text-xl tracking-wider text-gray-900 group-hover:text-blue-600 transition-colors">VERA</span>
+        </a>
+
+        <!-- Center Menu: 首页 · 文档 · 演示 -->
+        <div class="flex items-center gap-8 sm:gap-10 text-[14.5px] sm:text-[15px] font-medium text-gray-700 font-space">
+          <a id="nav-home" href="#sec-01" class="hover:text-blue-600 transition-colors">首页</a>
+          <a id="nav-docs" href="./docs/zh/" class="hover:text-blue-600 transition-colors">文档</a>
+          <a id="nav-demo" href="#sec-02" class="hover:text-blue-600 transition-colors">演示</a>
+        </div>
+
+        <!-- Right: Frosted GitHub Pill Button (Moved to right side replacing ZH|EN) -->
+        <div class="flex items-center">
+          <a
+            href="https://github.com/ZAI-Space/Vera-Harness"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-100/70 hover:bg-gray-200/80 border border-gray-200/70 backdrop-blur-md text-xs font-semibold text-gray-700 hover:text-gray-900 shadow-sm transition-all group"
+            title="访问 GitHub 开源项目"
+          >
+            <svg class="w-4 h-4 fill-gray-700 group-hover:fill-black transition-colors" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span class="font-space">GitHub</span>
+          </a>
+        </div>
+
+      </nav>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. RIGHT FLOATING DOT NAVIGATION
+       ========================================================================= -->
+  <aside class="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-3.5 bg-white/70 backdrop-blur-md px-2.5 py-4 rounded-full border border-gray-200/80 shadow-lg shadow-gray-200/40">
+    <a href="#sec-01" data-section="sec-01" title="01 首页 (Hero)" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block active"></a>
+    <a href="#sec-02" data-section="sec-02" title="02 VERA 桌面端" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block"></a>
+    <a href="#sec-03" data-section="sec-03" title="03 端到端流程" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block"></a>
+    <a href="#sec-04" data-section="sec-04" title="04 撑起记忆" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block"></a>
+    <a href="#sec-05" data-section="sec-05" title="05 自我进化循环" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block"></a>
+    <a href="#sec-06" data-section="sec-06" title="06 互联协同" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block"></a>
+    <a href="#sec-07" data-section="sec-07" title="07 快速开始" class="nav-dot w-2.5 h-2.5 rounded-full bg-gray-300 hover:bg-blue-400 block"></a>
+  </aside>
+
+  <!-- =========================================================================
+       3. MODULAR SECTIONS CONTAINER (Unified Canvas, Seamless Zero-Gap Transition)
+       ========================================================================= -->
+  <main class="w-full flex flex-col bg-white pt-20 sm:pt-24">
+    <!-- 01 首页 (Hero) -->
+    <section id="sec-01" class="w-full bg-white scroll-mt-20">
+      <iframe src="./sections/01_hero.html?v=9" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+
+    <!-- 02 VERA 桌面端 (1:1 纯代码绘制，矢量高清绝不模糊) -->
+    <section id="sec-02" class="w-full py-4 bg-white flex justify-center scroll-mt-24">
+      <iframe src="./sections/02_desktop.html?v=9" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+
+    <!-- 03 端到端流程 -->
+    <section id="sec-03" class="w-full py-4 bg-white flex justify-center scroll-mt-24">
+      <iframe src="./sections/03_workflow.html?v=9" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+
+    <!-- 04 撑起记忆 (LONG-TERM MEMORY LAYER - Dedicated Single-Screen Slide) -->
+    <section id="sec-04" class="w-full min-h-[85vh] sm:min-h-screen py-10 bg-white flex flex-col justify-center items-center scroll-mt-24">
+      <iframe src="./sections/04_memory.html?v=9" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+
+    <!-- 05 自动评估循环 (AUTONOMOUS EVALUATION LOOP - Dedicated Single-Screen Slide) -->
+    <section id="sec-05" class="w-full min-h-[85vh] sm:min-h-screen py-10 bg-white flex flex-col justify-center items-center scroll-mt-24">
+      <iframe src="./sections/05_evolution.html?v=9" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+
+    <!-- 06 互联协同 -->
+    <section id="sec-06" class="w-full py-4 bg-white flex justify-center scroll-mt-24">
+      <iframe src="./sections/06_interconnect.html?v=10" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+
+    <!-- 07 快速开始安装界面 -->
+    <section id="sec-07" class="w-full py-4 bg-white flex justify-center scroll-mt-24">
+      <iframe src="./sections/07_quickstart.html?v=9" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+    </section>
+  </main>
+
+</body>
+</html>

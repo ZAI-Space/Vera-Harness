@@ -73,6 +73,7 @@ Tab 选择候选，Esc 后 Enter 提交多行输入。权限、运行模式与�
 - [仓库结构](docs/zh/repository-structure.md)：源码、测试、示例、文档、生成输出和第三方文件的归属。
 - [命名迁移](docs/zh/advanced/v2_migration.md)：正式命名为 `vera`、`VERA_*` 和 `vera.yaml`，说明历史配置的兼容读取范围。
 - [文档维护](docs/zh/documentation.md)：逐页检查清单与过期内容修订。
+- [官网文档接入](docs/zh/website.md)：从同一份文档构建官网的三栏阅读界面，说明本地预览和发布目录。
 
 维护者可从[系统架构](docs/zh/architecture.md)、[接口边界](docs/zh/desktop-api.md)和[测试与交付](docs/zh/testing.md)继续阅读；[离线示例](examples/README.md)无需模型凭据。
 

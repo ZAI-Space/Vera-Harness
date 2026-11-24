@@ -111,6 +111,7 @@ nav:
         - "Frontend integration": frontend-integration.md
         - "Desktop streaming": desktop-streaming.md
         - "Documentation maintenance": documentation.md
+        - "Website documentation": website.md
         - "Security": SECURITY.md
       - API Reference:
         - "reference/index.md"
@@ -195,6 +196,7 @@ nav:
         - "前端对接": zh/frontend-integration.md
         - "桌面流式呈现": zh/desktop-streaming.md
         - "文档维护": zh/documentation.md
+        - "官网文档接入": zh/website.md
         - "安全": zh/SECURITY.md
       - API 参考:
         - "zh/reference/index.md"
@@ -264,8 +266,8 @@ plugins:
               - "!^_"
               - "!^model_config"
               - "!^model_post_init"
-repo_url: https://github.com/zml-mis/Vera-Harness
-repo_name: zml-mis/Vera-Harness
+repo_url: https://github.com/ZAI-Space/Vera-Harness
+repo_name: ZAI-Space/Vera-Harness
 edit_uri: edit/dev/docs/
 extra_javascript:
   - assets/js/sh-annotation.js

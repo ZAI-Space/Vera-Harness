@@ -73,6 +73,7 @@ Tab selects candidates; Esc then Enter submits multiline input. Permissions, run
 - [Repository structure](docs/repository-structure.md): source, tests, examples, documentation, generated output and third-party files.
 - [Naming migration](docs/advanced/v2_migration.md): preferred `vera`, `VERA_*` and `vera.yaml` names, with explicit historical settings compatibility.
 - [Documentation maintenance](docs/documentation.md): per-page review map and stale-content corrections.
+- [Website documentation](docs/website.md): build the website's three-column reader from the same source, preview it locally, and identify the publish directory.
 
 ## Develop and verify
 

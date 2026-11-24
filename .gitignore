@@ -195,6 +195,9 @@ desktop/*.log
 .gstack/
 desktop/.local/
 
+# Generated documentation beside the maintained landing-page source.
+/website/docs/
+
 # LSP config files
 pyrightconfig.json
 

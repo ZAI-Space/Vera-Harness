@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block announce %}
+<a class="website-home" href="{{ '../' | url }}">
+  {% if page and page.file.src_uri.startswith('zh/') %}← 返回官网{% else %}← VERA home{% endif %}
+</a>
+{% endblock %}

@@ -1,0 +1,166 @@
+/* =========================================================
+   VERA HARNESS LANDING PAGE - MODULAR DESIGN SYSTEM
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #FFFFFF;
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #111827;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-quantico {
+  font-family: 'Quantico', 'Space Grotesk', sans-serif;
+}
+
+.font-space {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Background Unified Pure White */
+.bg-tech-grid {
+  background-color: #FFFFFF;
+}
+
+/* =========================================================
+   Animations: Section 04 Memory Layer
+   ========================================================= */
+@keyframes flowRight {
+  0% { stroke-dashoffset: 36; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes flowConflictDash {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.16)); }
+  50% { transform: scale(1.03); filter: drop-shadow(0 6px 16px rgba(239, 68, 68, 0.24)); }
+}
+.main-flow-pulse {
+  stroke-dasharray: 10 26;
+  animation: flowRight 1.3s linear infinite;
+}
+.conflict-dash-flow {
+  stroke-dasharray: 6 6;
+  animation: flowConflictDash 0.85s linear infinite;
+}
+.conflict-badge-group {
+  transform-origin: 560px 510px;
+  animation: pulseBadge 2.6s ease-in-out infinite;
+}
+
+/* =========================================================
+   Animations: Section 05 Evolution Loop
+   ========================================================= */
+.node-card {
+  transition: stroke 0.35s ease, fill 0.35s ease, filter 0.35s ease;
+}
+.node-blue {
+  stroke: #1677FF !important;
+  stroke-width: 2.2px !important;
+  filter: drop-shadow(0 6px 18px rgba(22, 119, 255, 0.22));
+}
+.node-green {
+  stroke: #10B981 !important;
+  stroke-width: 2.4px !important;
+  filter: drop-shadow(0 6px 20px rgba(16, 185, 129, 0.25));
+}
+.node-orange {
+  stroke: #F59E0B !important;
+  stroke-width: 2.4px !important;
+  filter: drop-shadow(0 6px 20px rgba(245, 158, 11, 0.25));
+}
+@keyframes dashFlowForward {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.line-flow-active {
+  stroke-dasharray: 6 6;
+  animation: dashFlowForward 0.7s linear infinite;
+}
+.dashed-flow-active {
+  stroke-dasharray: 6 5;
+  animation: dashFlowForward 0.7s linear infinite;
+}
+.path-transition {
+  transition: opacity 0.3s ease, stroke 0.3s ease;
+}
+
+/* =========================================================
+   Animations: Section 06 Interconnect
+   ========================================================= */
+@keyframes pulseOutbound {
+  0% { stroke-dashoffset: 56; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes pulseInbound {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 56; }
+}
+.s-curve-pulse-out {
+  stroke-dasharray: 14 42;
+  animation: pulseOutbound 1.8s linear infinite;
+}
+.s-curve-pulse-in {
+  stroke-dasharray: 12 44;
+  animation: pulseInbound 2.2s linear infinite;
+}
+
+/* =========================================================
+   UI Components (Buttons & Cards)
+   ========================================================= */
+.terminal-card {
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.09), 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.terminal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.13), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+.btn-glass-dark {
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-glass-dark:hover {
+  background: rgba(17, 24, 39, 0.98);
+  border-color: rgba(0, 210, 255, 0.45);
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.24), 0 0 18px rgba(0, 210, 255, 0.22);
+  transform: translateY(-1.5px);
+}
+.btn-glass-light {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-glass-light:hover {
+  background: #FFFFFF;
+  border-color: rgba(22, 119, 255, 0.4);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 0 16px rgba(0, 210, 255, 0.14);
+  transform: translateY(-1.5px);
+}
+
+.nav-dot {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-dot.active {
+  background-color: #1677FF;
+  transform: scale(1.35);
+  box-shadow: 0 0 10px rgba(22, 119, 255, 0.5);
+}

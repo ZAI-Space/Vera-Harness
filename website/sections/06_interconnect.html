@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEVICE INTERCONNECT</title>
+  <!-- Google Fonts: Quantico, Space Grotesk, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Quantico:wght@700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #FFFFFF;
+      font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #111827;
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    .font-quantico {
+      font-family: 'Quantico', 'Space Grotesk', sans-serif;
+    }
+
+    .font-space {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+    }
+
+    /* Subtle bi-directional electric cyan-blue flow pulses */
+    @keyframes pulseOutbound {
+      0% { stroke-dashoffset: 56; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    @keyframes pulseInbound {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: 56; }
+    }
+
+    .s-curve-pulse-out {
+      stroke-dasharray: 14 42;
+      animation: pulseOutbound 1.8s linear infinite;
+    }
+
+    .s-curve-pulse-in {
+      stroke-dasharray: 12 44;
+      animation: pulseInbound 2.2s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="w-full max-w-[1120px] px-4 sm:px-8 py-8 sm:py-12 flex flex-col items-center">
+    <!-- Top Centered Title -->
+    <header class="text-center mb-4 sm:mb-6">
+      <h1 class="font-quantico text-[32px] sm:text-[38px] font-bold tracking-[0.06em] text-[#111827] leading-tight uppercase">
+        DEVICE INTERCONNECT
+      </h1>
+    </header>
+
+    <!-- Pure #FFFFFF Vector Architecture Canvas -->
+    <div class="w-full overflow-x-auto">
+      <svg
+        viewBox="0 0 1040 540"
+        overflow="visible"
+        class="w-full h-auto min-w-[760px] max-w-[1040px] mx-auto block select-none"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="DEVICE INTERCONNECT 架构图"
+      >
+        <defs>
+          <!-- Fluorescent Electric Cyan-Blue Connector Gradient -->
+          <linearGradient id="flow-cyan-blue" x1="100%" y1="0%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#00D2FF" />
+            <stop offset="55%" stop-color="#00A8FF" />
+            <stop offset="100%" stop-color="#1677FF" />
+          </linearGradient>
+
+          <!-- Bright Fluorescent Cyan-Blue Glow Filter for Connectors -->
+          <filter id="cyan-line-glow" x="-15%" y="-25%" width="130%" height="150%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#00D2FF" flood-opacity="0.32" />
+          </filter>
+
+          <!-- Non-Touching Fluorescent Cyan-Blue Bi-Directional Arrowhead Markers -->
+          <marker id="bi-arrow-end" viewBox="0 0 12 12" refX="9.5" refY="6" markerWidth="6.4" markerHeight="6.4" orient="auto">
+            <path d="M 1.5 2 L 10.5 6 L 1.5 10 z" fill="#1677FF" />
+          </marker>
+          <marker id="bi-arrow-start" viewBox="0 0 12 12" refX="2.5" refY="6" markerWidth="6.4" markerHeight="6.4" orient="auto">
+            <path d="M 10.5 2 L 1.5 6 L 10.5 10 z" fill="#00D2FF" />
+          </marker>
+
+          <!-- Subtle Minimalist Drop Shadow -->
+          <filter id="card-soft-shadow" x="-12%" y="-12%" width="124%" height="128%">
+            <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.045" />
+          </filter>
+
+          <!-- Official VERA Folded-Ribbon Logo Gradients (1:1 Replica) -->
+          <!-- 1. Left Diagonal Ribbon Gradient (Bright Cyan Top-Left -> Royal Cobalt Bottom) -->
+          <linearGradient id="vera-ribbon-left" x1="12%" y1="0%" x2="72%" y2="100%">
+            <stop offset="0%" stop-color="#00EEFF" />
+            <stop offset="45%" stop-color="#00A6FF" />
+            <stop offset="100%" stop-color="#0A34EB" />
+          </linearGradient>
+
+          <!-- 2. Inner Crease Wing Gradient (Deep Navy Shadow -> Vibrant Cobalt) -->
+          <linearGradient id="vera-ribbon-inner" x1="0%" y1="50%" x2="100%" y2="25%">
+            <stop offset="0%" stop-color="#041878" />
+            <stop offset="42%" stop-color="#0835B8" />
+            <stop offset="100%" stop-color="#0066E6" />
+          </linearGradient>
+
+          <!-- 3. Right Arch Ribbon Gradient (Cyan Peak -> Electric Blue -> Indigo Tip) -->
+          <linearGradient id="vera-ribbon-right" x1="25%" y1="0%" x2="90%" y2="100%">
+            <stop offset="0%" stop-color="#00EAFF" />
+            <stop offset="42%" stop-color="#0D8BFF" />
+            <stop offset="78%" stop-color="#1E3CE6" />
+            <stop offset="100%" stop-color="#3519D4" />
+          </linearGradient>
+        </defs>
+
+        <!-- ===================================================================
+             1. LEFT COMPACT APP CARDS: FEISHU (飞书) & WECHAT (微信)
+             - Top-Left Feishu Card: x=175, y=118, width=140, height=96, rx=16
+             - Bottom-Left WeChat Card: x=175, y=276, width=140, height=96, rx=16
+             =================================================================== -->
+
+        <!-- Top-Left Card: 飞书 (Feishu — 3-Part Origami Bird-Wing Emblem) -->
+        <g transform="translate(175, 118)" filter="url(#card-soft-shadow)">
+          <rect
+            x="0" y="0" width="140" height="96" rx="16"
+            fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.4"
+          />
+
+          <!-- Soaring Origami Bird-Wing Emblem -->
+          <g transform="translate(70, 38) scale(0.95)">
+            <!-- 1. Top-Left Sail (#00D6B9) -->
+            <path
+              d="M -25 -22 L 4 -22 C 10 -22 14 -18 17 -12 L 24 2 L 6 8 C -4 -4 -14 -14 -25 -22 Z"
+              fill="#00D6B9"
+            />
+            <!-- 2. Dark Navy Right Wingtip (#133C9A) -->
+            <path
+              d="M 2 6 C 10 -2 19 -5 28 -2 L 22 8 C 15 16 4 20 -8 18 L 2 6 Z"
+              fill="#133C9A"
+            />
+            <!-- 3. Sweeping Lower Blue Ribbon (#2B6DE5) -->
+            <path
+              d="M -27 -6 C -14 6 2 10 18 6 C 12 18 -2 24 -16 20 C -24 17 -28 8 -27 -6 Z"
+              fill="#2B6DE5"
+            />
+          </g>
+
+          <!-- Label '飞书' -->
+          <text
+            x="70" y="80"
+            text-anchor="middle"
+            font-size="13.5"
+            font-weight="600"
+            fill="#111827"
+            letter-spacing="0.04em"
+          >
+            飞书
+          </text>
+        </g>
+
+        <!-- Bottom-Left Card: 微信 (WeChat — Deep Carbon & Electric Cyan-Blue) -->
+        <g transform="translate(175, 276)" filter="url(#card-soft-shadow)">
+          <rect
+            x="0" y="0" width="140" height="96" rx="16"
+            fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.4"
+          />
+
+          <!-- Overlapping Twin Chat-Bubbles Emblem -->
+          <g transform="translate(49, 19) scale(0.96)">
+            <!-- Primary Back Speech Bubble (#1E242B Deep Carbon) -->
+            <path
+              d="M 16.5 2 C 8.5 2 2 7.5 2 14.3 C 2 18.2 4.1 21.6 7.5 23.8 L 6.1 28.2 L 11.1 25.8 C 12.8 26.3 14.6 26.6 16.5 26.6 C 17.3 26.6 18 26.5 18.8 26.4 C 18.2 25 17.9 23.5 17.9 21.9 C 17.9 15.1 24.1 9.6 31.8 9.6 C 32.4 9.6 33 9.6 33.5 9.7 C 31.5 5.2 24.7 2 16.5 2 Z"
+              fill="#1E242B"
+            />
+            <circle cx="11.6" cy="11.8" r="1.65" fill="#00D2FF" />
+            <circle cx="21.2" cy="11.8" r="1.65" fill="#00D2FF" />
+
+            <!-- Secondary Overlapping Front Speech Bubble (#1677FF Electric Blue) -->
+            <path
+              d="M 31.5 12 C 25.1 12 19.9 16.4 19.9 21.9 C 19.9 27.4 25.1 31.8 31.5 31.8 C 33 31.8 34.5 31.5 35.8 31.1 L 39.7 33.1 L 38.6 29.5 C 41.4 27.7 43.2 25 43.2 21.9 C 43.2 16.4 37.9 12 31.5 12 Z"
+              fill="#1677FF"
+            />
+            <circle cx="27.6" cy="20.1" r="1.4" fill="#FFFFFF" />
+            <circle cx="35.4" cy="20.1" r="1.4" fill="#FFFFFF" />
+          </g>
+
+          <!-- Label '微信' -->
+          <text
+            x="70" y="80"
+            text-anchor="middle"
+            font-size="13.5"
+            font-weight="600"
+            fill="#111827"
+            letter-spacing="0.04em"
+          >
+            微信
+          </text>
+        </g>
+
+        <!-- ===================================================================
+             2. BOTTOM-LEFT TERMINAL ICONS: COMPACT LABEL-FREE SMARTPHONE / TABLET
+             - Centered directly underneath the two channel cards (x=245, y=426)
+             - No outer dashed box, no text labels, no connecting lines
+             =================================================================== -->
+        <g id="bottom-terminal-icons" transform="translate(198, 424)">
+          <!-- Left Icon: Smartphone -->
+          <g transform="translate(0, 2)">
+            <rect
+              x="0" y="0" width="22" height="36" rx="4"
+              fill="#FFFFFF" stroke="#1E242B" stroke-width="1.9"
+            />
+            <line x1="8" y1="4.5" x2="14" y2="4.5" stroke="#1E242B" stroke-width="1.4" stroke-linecap="round" />
+            <circle cx="11" cy="31" r="1.3" fill="#1677FF" />
+          </g>
+
+          <!-- Center Diagonal '/' Slash -->
+          <line
+            x1="41" y1="37" x2="53" y2="4"
+            stroke="#94A3B8" stroke-width="1.9" stroke-linecap="round"
+          />
+
+          <!-- Right Icon: Tablet -->
+          <g transform="translate(66, 3)">
+            <rect
+              x="0" y="0" width="30" height="34" rx="4"
+              fill="#FFFFFF" stroke="#1E242B" stroke-width="1.9"
+            />
+            <circle cx="15" cy="4" r="1.1" fill="#1E242B" />
+            <line x1="11" y1="29.5" x2="19" y2="29.5" stroke="#1677FF" stroke-width="1.5" stroke-linecap="round" />
+          </g>
+        </g>
+
+        <!-- ===================================================================
+             3. FLUORESCENT CYAN-BLUE DIVERGING BI-DIRECTIONAL S-CURVED CONNECTORS
+             - Monitor left edge at x=540 -> curves start at x=524 (16px gap)
+             - App cards right edge at x=315 -> curves end at x=329 (~14px gap)
+             =================================================================== -->
+        <g id="diverging-s-curves" fill="none" stroke-linecap="round" filter="url(#cyan-line-glow)">
+          <!-- Upper Bi-Directional S-Curve: Monitor <-> 飞书 -->
+          <path
+            d="M 524 218 C 445 218, 415 166, 329 166"
+            stroke="url(#flow-cyan-blue)" stroke-width="2.3"
+            marker-start="url(#bi-arrow-start)"
+            marker-end="url(#bi-arrow-end)"
+          />
+          <path
+            d="M 524 218 C 445 218, 415 166, 329 166"
+            stroke="#7CEEFF" stroke-width="2.6"
+            class="s-curve-pulse-out"
+          />
+          <path
+            d="M 524 218 C 445 218, 415 166, 329 166"
+            stroke="#00D2FF" stroke-width="2.2"
+            class="s-curve-pulse-in"
+          />
+
+          <!-- Lower Bi-Directional S-Curve: Monitor <-> 微信 -->
+          <path
+            d="M 524 282 C 445 282, 415 324, 329 324"
+            stroke="url(#flow-cyan-blue)" stroke-width="2.3"
+            marker-start="url(#bi-arrow-start)"
+            marker-end="url(#bi-arrow-end)"
+          />
+          <path
+            d="M 524 282 C 445 282, 415 324, 329 324"
+            stroke="#7CEEFF" stroke-width="2.6"
+            class="s-curve-pulse-out"
+          />
+          <path
+            d="M 524 282 C 445 282, 415 324, 329 324"
+            stroke="#00D2FF" stroke-width="2.2"
+            class="s-curve-pulse-in"
+          />
+        </g>
+
+        <!-- ===================================================================
+             4. RIGHT MINIMALIST LINE-ART DESKTOP MONITOR WITH PURE WHITE SCREEN
+             - Pure #FFFFFF interior screen with NO hand-drawn logo paths
+             - Clean centered <image href="Vera-logo.png" ... /> slot above 'VERA'
+             =================================================================== -->
+        <g id="right-desktop-monitor">
+          <!-- Line-Art Monitor Outer Frame -->
+          <rect
+            x="540" y="122" width="400" height="256" rx="18"
+            fill="#FFFFFF" stroke="#1E242B" stroke-width="2.4"
+            filter="url(#card-soft-shadow)"
+          />
+
+          <!-- Crisp Minimalist Inner Pure White Screen Border -->
+          <rect
+            x="552" y="134" width="376" height="222" rx="11"
+            fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.3"
+          />
+
+          <!-- Subtle Minimalist Chin Accent Line -->
+          <line
+            x1="726" y1="367" x2="754" y2="367"
+            stroke="#94A3B8" stroke-width="2" stroke-linecap="round"
+          />
+
+          <!-- High-Precision 1:1 Vector Replica of Official VERA Folded-Ribbon Logo -->
+          <!-- Centered at X=740 inside the pure #FFFFFF screen (376x222), unclipped -->
+          <g id="vera-official-vector-logo" transform="translate(652, 166) scale(0.42)">
+            <!-- Part A: Inner Upward-Right Folded Wing (Rendered behind left front ribbon) -->
+            <path
+              d="M 168 134
+                 C 178 112 192 104 216 104
+                 L 292 104
+                 L 234 166
+                 C 218 182 202 180 188 158
+                 Z"
+              fill="url(#vera-ribbon-inner)"
+            />
+
+            <!-- Part B: Left Cyan-to-Cobalt Ribbon with Smooth Rounded U-Turn & Flush Straight Diagonal Edge -->
+            <path
+              d="M 10 8
+                 L 106 8
+                 C 128 8 140 18 152 38
+                 L 216 144
+                 C 223 156 232 162 241 159
+                 L 204 198
+                 C 192 210 180 214 164 214
+                 L 152 214
+                 C 130 214 116 204 102 180
+                 Z"
+              fill="url(#vera-ribbon-left)"
+            />
+
+            <!-- Part C: Separate Right Cyan-to-Indigo Arch Ribbon with Horizontal Gap & Pointed Tip -->
+            <path
+              d="M 202 82
+                 L 244 28
+                 C 256 13 270 8 292 8
+                 L 318 8
+                 C 340 8 354 18 368 40
+                 L 426 134
+                 C 434 147 432 158 422 168
+                 L 382 212
+                 L 314 102
+                 C 304 86 294 82 276 82
+                 Z"
+              fill="url(#vera-ribbon-right)"
+            />
+          </g>
+
+          <!-- Crisp Bold Quantico 'VERA' Wordmark Centered Below Logo -->
+          <text
+            x="740" y="314"
+            text-anchor="middle"
+            class="font-quantico"
+            font-size="34"
+            font-weight="700"
+            letter-spacing="0.14em"
+            fill="#111827"
+          >
+            VERA
+          </text>
+
+          <!-- Minimalist Line-Art Monitor Stand Neck -->
+          <path
+            d="M 714 378 L 702 440 H 778 L 766 378"
+            fill="#FFFFFF" stroke="#1E242B" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"
+          />
+
+          <!-- Minimalist Line-Art Monitor Stand Base -->
+          <rect
+            x="664" y="440" width="152" height="9" rx="4.5"
+            fill="#FFFFFF" stroke="#1E242B" stroke-width="2.2"
+          />
+        </g>
+
+      </svg>
+    </div>
+  </main>
+
+</body>
+</html>

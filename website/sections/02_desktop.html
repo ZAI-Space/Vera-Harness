@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>02 - VERA 桌面端工作台</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Quantico:wght@700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* Native Clean Tabs Styling */
+    .tab-active {
+      background-color: #F4F4F6;
+      border: 1px solid #E4E4E7;
+      color: #18181B;
+    }
+    .tab-inactive {
+      background-color: transparent;
+      border: 1px solid transparent;
+      color: #71717A;
+    }
+    .tab-inactive:hover {
+      background-color: #F4F4F5;
+      color: #18181B;
+    }
+    .btn-clean {
+      background: transparent;
+      transition: color 0.15s ease;
+    }
+    .btn-clean:hover {
+      color: #111827;
+    }
+  </style>
+</head>
+<body class="bg-white m-0 p-0 flex justify-center">
+
+  <!-- 02 DESKTOP SECTION (Direct Window Showcase) -->
+  <section id="desktop" class="w-full max-w-[1140px] flex flex-col items-center bg-white py-2">
+
+    <!-- Vector Desktop Window (1:1 with confirmed desktop home, No bottom border line on top bar) -->
+    <div class="w-full rounded-[18px] bg-white border border-gray-200/90 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.1)] overflow-hidden">
+
+      <!-- Top Window Bar (No dividing border line, 1:1 Clean Titlebar) -->
+      <div class="h-11 bg-white px-4 flex items-center justify-between select-none">
+
+        <!-- Top Left Controls: Left Sidebar toggle + Search + Native Tabs -->
+        <div class="flex items-center gap-3 text-gray-500">
+          <button id="toggle-sidebar-btn" class="btn-clean p-1" title="切换左侧边栏">
+            <!-- Left Sidebar Icon: divider on left side -->
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="2" />
+              <line x1="5.5" y1="2" x2="5.5" y2="14" />
+            </svg>
+          </button>
+          <button class="btn-clean p-1" title="搜索">
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="7" cy="7" r="4.5" />
+              <line x1="10.5" y1="10.5" x2="14" y2="14" />
+            </svg>
+          </button>
+
+          <!-- Dynamic Native Tabs Container (Click + to create tab, click ✕ to delete conversation) -->
+          <div class="flex items-center gap-1.5 ml-2">
+            <div id="tabs-container" class="flex items-center gap-1.5">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Tab Bar Plus Button -->
+            <button id="tab-new-btn" class="w-6 h-6 rounded-md hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-900 cursor-pointer transition-colors" title="创建新对话">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <line x1="7" y1="2" x2="7" y2="12" />
+                <line x1="2" y1="7" x2="12" y2="7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Top Right Window Control Icons (1:1 with confirmed original step 300) -->
+        <div class="flex items-center gap-4 text-gray-500">
+          <button id="top-new-btn" class="btn-clean p-0.5" title="新建对话">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <line x1="7" y1="2" x2="7" y2="12" />
+              <line x1="2" y1="7" x2="12" y2="7" />
+            </svg>
+          </button>
+
+          <!-- Right Sidebar Icon: divider on RIGHT side (1:1 with user screenshot) -->
+          <button class="btn-clean p-0.5" title="切换右侧边栏">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="12" rx="2.5" />
+              <line x1="10.5" y1="2" x2="10.5" y2="14" />
+            </svg>
+          </button>
+
+          <!-- Window standard 3 buttons: - □ ✕ (Pure clean line-art, no gray fill) -->
+          <div class="flex items-center gap-3 ml-1 text-gray-600">
+            <button class="btn-clean p-0.5" title="最小化">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <line x1="2" y1="7" x2="12" y2="7" />
+              </svg>
+            </button>
+            <button class="btn-clean p-0.5" title="最大化">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <rect x="2.5" y="2.5" width="9" height="9" rx="1.5" />
+              </svg>
+            </button>
+            <button class="btn-clean p-0.5 hover:text-red-500" title="关闭">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <line x1="3" y1="3" x2="11" y2="11" />
+                <line x1="11" y1="3" x2="3" y2="11" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Main Window Frame: Sidebar + Center Stage -->
+      <div class="flex min-h-[580px] bg-white">
+
+        <!-- Left Sidebar (1:1 with confirmed layout & user screenshots) -->
+        <aside id="desktop-sidebar" class="w-56 shrink-0 border-r border-gray-100 p-4 flex flex-col justify-between select-none transition-all duration-200">
+          <div>
+            <!-- Top Action Group: 新任务 · 插件 · 定时任务 -->
+            <div class="space-y-3 pt-1">
+
+              <!-- 1. 新任务 (Square pad with angled pen) -->
+              <div class="flex items-center gap-2.5 px-2 py-0.5 text-[13.5px] font-medium text-gray-800 hover:text-blue-600 cursor-pointer transition-colors">
+                <svg class="w-4 h-4 text-gray-700" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M 9 2.5 H 3.5 A 1.5 1.5 0 0 0 2 4 V 12.5 A 1.5 1.5 0 0 0 3.5 14 H 12 A 1.5 1.5 0 0 0 13.5 12.5 V 7" />
+                  <path d="M 11.5 1.8 L 14.2 4.5 L 8.5 10.2 L 6 10.5 L 6.3 8 L 11.5 1.8 Z" />
+                </svg>
+                <span id="sb-new-task">新任务</span>
+              </div>
+
+              <!-- 2. 插件 (1:1 Puzzle piece with 3 knobs and 1 notch) -->
+              <div class="flex items-center gap-2.5 px-2 py-0.5 text-[13.5px] font-medium text-gray-800 hover:text-blue-600 cursor-pointer transition-colors">
+                <svg class="w-4 h-4 text-gray-700" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M 4 13.5 H 6 C 6 12.2 6.9 11.2 8 11.2 C 9.1 11.2 10 12.2 10 13.5 H 12 A 1.5 1.5 0 0 0 13.5 12 V 9.5 C 14.6 9.5 15.5 8.7 15.5 7.5 C 15.5 6.3 14.6 5.5 13.5 5.5 V 4 A 1.5 1.5 0 0 0 12 2.5 H 9.5 C 9.5 1.4 8.7 0.5 7.5 0.5 C 6.3 0.5 5.5 1.4 5.5 2.5 H 4 A 1.5 1.5 0 0 0 2.5 4 V 5.5 C 1.4 5.5 0.5 6.3 0.5 7.5 C 0.5 8.7 1.4 9.5 2.5 9.5 V 12 A 1.5 1.5 0 0 0 4 13.5 Z" />
+                </svg>
+                <span id="sb-plugins">插件</span>
+              </div>
+
+              <!-- 3. 定时任务 (Clock circle) -->
+              <div class="flex items-center gap-2.5 px-2 py-0.5 text-[13.5px] font-medium text-gray-800 hover:text-blue-600 cursor-pointer transition-colors">
+                <svg class="w-4 h-4 text-gray-700" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="8" cy="8" r="6" />
+                  <polyline points="8 4.5 8 8 10.5 9.5" />
+                </svg>
+                <span id="sb-cron">定时任务</span>
+              </div>
+            </div>
+
+            <!-- Lower Work Group: 日常 & 项目 (Distinct vertical gap matching media_1795272011973_a031e58d.png) -->
+            <div class="mt-8 space-y-3">
+              <!-- 4. 日常 (1:1 Coffee cup icon, gap aligning with upper icons) -->
+              <div class="flex items-center gap-2 px-0 py-0.5 text-[13.5px] font-medium text-gray-800 hover:text-blue-600 cursor-pointer transition-colors">
+                <svg class="w-4 h-4 text-gray-700 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5.5" y1="1.5" x2="5.5" y2="3.5" />
+                  <line x1="8.5" y1="1.5" x2="8.5" y2="3.5" />
+                  <path d="M 2.5 5.5 H 11.5 V 9.2 C 11.5 11 10.2 12.5 8.2 12.5 H 5.8 C 3.8 12.5 2.5 11 2.5 9.2 Z" />
+                  <path d="M 11.5 6.8 H 13 A 1.4 1.4 0 0 1 14.4 8.2 A 1.4 1.4 0 0 1 13 9.6 H 11.5" />
+                </svg>
+                <span id="sb-daily">日常</span>
+              </div>
+
+              <!-- 5. 项目 (Aligned with 日常, + on right side) -->
+              <div class="px-0 pt-0.5 flex items-center justify-between text-xs font-semibold text-gray-400">
+                <span id="sb-projects">项目</span>
+                <button class="hover:text-gray-700 p-0.5" title="添加项目">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.6"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Area: 后端已连接 & 设置 (1:1 Rounded 6-Teeth Gear from user screenshot media_1795272033791_080b9383.png) -->
+          <div class="space-y-3 pb-2 select-none">
+            <!-- 1:1 '后端已连接' Clean gray text -->
+            <div id="sb-backend" class="px-0 text-xs text-gray-400 font-normal">
+              后端已连接
+            </div>
+            <!-- 1:1 Rounded 6-Teeth Precision Gear Icon + '设置' (RESTORED) -->
+            <div class="flex items-center gap-2.5 px-0 text-[13.5px] font-medium text-gray-800 hover:text-blue-600 cursor-pointer transition-colors">
+              <svg class="w-4 h-4 text-gray-700" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="8" r="2.3" />
+                <path d="M 7.2 2.2 H 8.8 L 9.1 3.8 L 10.4 4.5 L 11.8 3.7 L 12.9 4.8 L 12.1 6.2 L 12.8 7.5 L 14.4 7.8 V 9.4 L 12.8 9.7 L 12.1 11 L 12.9 12.4 L 11.8 13.5 L 10.4 12.7 L 9.1 13.4 L 8.8 15 H 7.2 L 6.9 13.4 L 5.6 12.7 L 4.2 13.5 L 3.1 12.4 L 3.9 11 L 3.2 9.7 L 1.6 9.4 V 7.8 L 3.2 7.5 L 3.9 6.2 L 3.1 4.8 L 4.2 3.7 L 5.6 4.5 L 6.9 3.8 Z" />
+              </svg>
+              <span id="sb-settings">设置</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center Workspace: 2 Mutually Exclusive Views (Welcome View vs Chat View) -->
+
+        <!-- =========================================================================
+             VIEW 1: Confirmed Working Page Display Interface (VERTICALLY CENTERED 1:1)
+             ========================================================================= -->
+        <main id="welcome-view" class="flex-1 flex flex-col justify-center items-center px-8 py-14 bg-white relative">
+
+          <!-- Center Headline: Build With VERA -->
+          <h2 class="text-3xl sm:text-4xl md:text-[44px] font-bold text-gray-900 tracking-tight mb-12 select-none flex items-center gap-3">
+            <span>Build With</span>
+            <span class="text-[#1677FF] font-extrabold tracking-wider">VERA</span>
+          </h2>
+
+          <!-- Interactive Input Box Container (Confirmed Position: Directly beneath Headline) -->
+          <div class="w-full max-w-[620px] rounded-2xl border border-gray-200 bg-white p-4 shadow-sm focus-within:border-blue-500 focus-within:shadow-md transition-all">
+            <!-- Text Input -->
+            <input
+              id="welcome-input"
+              type="text"
+              placeholder="随便问点什么, / 命令, @ 上下文"
+              class="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent outline-none pb-8 pt-1 px-1"
+              autocomplete="off"
+            />
+
+            <!-- Prompt Box Bottom Toolbar -->
+            <div class="flex items-center justify-between pt-2 border-t border-gray-50 select-none">
+              <!-- Left Toolbar Controls -->
+              <div class="flex items-center gap-2">
+                <!-- Plus Button -->
+                <button class="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors" title="添加文件">
+                  <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <line x1="8" y1="3" x2="8" y2="13" />
+                    <line x1="3" y1="8" x2="13" y2="8" />
+                  </svg>
+                </button>
+
+                <!-- Strategy Button: Confirm (Terminal prompt >_ icon matching user screenshot) -->
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 bg-gray-50/70">
+                  <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="8" r="6.8" />
+                    <path d="M 5.8 5.6 L 8.4 8 L 5.8 10.4" />
+                    <line x1="9.2" y1="10.4" x2="11.2" y2="10.4" />
+                  </svg>
+                  <span>Confirm</span>
+                </div>
+              </div>
+
+              <!-- Right Toolbar Controls: Model Selector + Send Arrow Button -->
+              <div class="flex items-center gap-2.5">
+                <div class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 px-2 py-1">
+                  <span id="welcome-model-text">选择模型 · 高</span>
+                  <svg class="w-3 h-3 text-gray-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <polyline points="4 6 8 10 12 6" />
+                  </svg>
+                </div>
+
+                <!-- Send Circle Button (Initially Gray Disabled -> Blue Active when typed) -->
+                <button
+                  id="welcome-send-btn"
+                  disabled
+                  class="w-8 h-8 rounded-full bg-gray-100 text-gray-300 flex items-center justify-center transition-all cursor-not-allowed select-none"
+                  title="发送"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="13" x2="8" y2="3" />
+                    <polyline points="4 7 8 3 12 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Project Selector & Dual-Branch Git Icon (Confirmed Position: Directly beneath Input Box) -->
+          <div class="mt-4 flex items-center gap-3 text-xs text-gray-400 select-none">
+            <div class="inline-flex items-center gap-1">
+              <span id="welcome-project-text">选择项目</span>
+              <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polyline points="4 6 8 10 12 6" />
+              </svg>
+            </div>
+            <span class="text-gray-300">/</span>
+            <!-- Dual-branch Git fork icon (Confirmed 1:1) -->
+            <div class="inline-flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-gray-400 inline-block" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="2" y1="12" x2="13" y2="12" />
+                <polyline points="10 9.5 13 12 10 14.5" />
+                <path d="M 3.8 12 C 4.5 7.5, 7 5, 13 5" />
+                <polyline points="10 2.5 13 5 10 7.5" />
+              </svg>
+              <span id="welcome-git-text">无 Git</span>
+            </div>
+          </div>
+
+        </main>
+
+        <!-- =========================================================================
+             VIEW 2: Active Chat Flow Interface (1:1 Replica with user screenshot media_1795276097077_7d6a3ae9.png)
+             ========================================================================= -->
+        <main id="chat-view" class="hidden flex-1 flex flex-col justify-between px-8 py-8 bg-white relative max-w-[700px] w-full mx-auto">
+
+          <!-- Upper Chat Flow Area -->
+          <div class="flex-1 flex flex-col justify-start space-y-6 pt-2 pb-6 overflow-y-auto">
+
+            <!-- User Message Bubble (Right-aligned, gray capsule, with copy & redo icons) -->
+            <div class="flex flex-col items-end">
+              <div class="bg-[#F4F4F6] text-[#18181B] text-[14.5px] font-normal px-4 py-2.5 rounded-2xl max-w-[85%] leading-relaxed shadow-sm">
+                <span id="user-bubble-text">你好，请你做一个自我介绍！</span>
+              </div>
+              <!-- Action Icons below User Bubble (Copy, Undo/Redo) -->
+              <div class="flex items-center gap-2 mt-1.5 text-gray-400 pr-1 select-none">
+                <button class="p-0.5 hover:text-gray-600 cursor-pointer transition-colors" title="复制">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                    <path d="M 3 11 H 2.5 A 1.5 1.5 0 0 1 1 9.5 V 2.5 A 1.5 1.5 0 0 1 2.5 1 H 9.5 A 1.5 1.5 0 0 1 11 2.5 V 3" />
+                  </svg>
+                </button>
+                <button class="p-0.5 hover:text-gray-600 cursor-pointer transition-colors" title="重新发送">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M 2 6 H 10 A 3 3 0 0 1 13 9 V 9 A 3 3 0 0 1 10 12 H 5" />
+                    <polyline points="4 4 2 6 4 8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- AI Message Response (Left-aligned, clean paragraph, with copy & branch icons) -->
+            <div class="flex flex-col items-start pt-2">
+              <div id="ai-response-text" class="text-[#18181B] text-[14.5px] leading-relaxed max-w-full font-normal">
+                你好，我是 VERA，一个可扩展的 AI 助手。我可以协助你处理日常任务、编写代码，也能成复杂工作。你可以直接告诉我想做什么，我们从这里开始。
+              </div>
+              <!-- Action Icons below AI Response (Copy, Fork/Branch) -->
+              <div class="flex items-center gap-2 mt-2 text-gray-400 pl-0.5 select-none">
+                <button class="p-0.5 hover:text-gray-600 cursor-pointer transition-colors" title="复制">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                    <path d="M 3 11 H 2.5 A 1.5 1.5 0 0 1 1 9.5 V 2.5 A 1.5 1.5 0 0 1 2.5 1 H 9.5 A 1.5 1.5 0 0 1 11 2.5 V 3" />
+                  </svg>
+                </button>
+                <button class="p-0.5 hover:text-gray-600 cursor-pointer transition-colors" title="创建分支">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="4" cy="4" r="2" />
+                    <circle cx="4" cy="12" r="2" />
+                    <circle cx="12" cy="7" r="2" />
+                    <line x1="4" y1="6" x2="4" y2="10" />
+                    <path d="M 4 8 C 6 8 8 7 10 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Docked Bottom Input Area for Chat View -->
+          <div class="w-full flex flex-col items-center pt-2">
+
+            <div class="w-full rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm focus-within:border-blue-500 focus-within:shadow-md transition-all">
+              <input
+                id="chat-input"
+                type="text"
+                placeholder="随便问点什么, / 命令, @ 上下文"
+                class="w-full text-sm text-gray-800 placeholder-gray-400 bg-transparent outline-none pb-7 pt-1 px-1"
+                autocomplete="off"
+              />
+
+              <div class="flex items-center justify-between pt-2 border-t border-gray-50 select-none">
+                <div class="flex items-center gap-2">
+                  <button class="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700">
+                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <line x1="8" y1="3" x2="8" y2="13" />
+                      <line x1="3" y1="8" x2="13" y2="8" />
+                    </svg>
+                  </button>
+
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-gray-600 bg-gray-50/70">
+                    <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="8" cy="8" r="6.8" />
+                      <path d="M 5.8 5.6 L 8.4 8 L 5.8 10.4" />
+                      <line x1="9.2" y1="10.4" x2="11.2" y2="10.4" />
+                    </svg>
+                    <span>Confirm</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                  <div class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 px-2 py-1">
+                    <span id="chat-model-text">选择模型 · 高</span>
+                    <svg class="w-3 h-3 text-gray-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <polyline points="4 6 8 10 12 6" />
+                    </svg>
+                  </div>
+
+                  <button
+                    id="chat-send-btn"
+                    disabled
+                    class="w-8 h-8 rounded-full bg-gray-100 text-gray-300 flex items-center justify-center transition-all cursor-not-allowed select-none"
+                    title="发送"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="8" y1="13" x2="8" y2="3" />
+                      <polyline points="4 7 8 3 12 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Project Selector & Dual-Branch Git Icon -->
+            <div class="mt-3 flex items-center gap-3 text-xs text-gray-400 select-none">
+              <div class="inline-flex items-center gap-1">
+                <span id="chat-project-text">选择项目</span>
+                <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <polyline points="4 6 8 10 12 6" />
+                </svg>
+              </div>
+              <span class="text-gray-300">/</span>
+              <div class="inline-flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-gray-400 inline-block" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="2" y1="12" x2="13" y2="12" />
+                  <polyline points="10 9.5 13 12 10 14.5" />
+                  <path d="M 3.8 12 C 4.5 7.5, 7 5, 13 5" />
+                  <polyline points="10 2.5 13 5 10 7.5" />
+                </svg>
+                <span id="chat-git-text">无 Git</span>
+              </div>
+            </div>
+
+          </div>
+
+        </main>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Demo Script (Dynamic Multi-Tabs + Confirmed Home Screen + Chat Flow) -->
+  <script>
+    const welcomeView = document.getElementById('welcome-view');
+    const chatView = document.getElementById('chat-view');
+    const welcomeInput = document.getElementById('welcome-input');
+    const welcomeSendBtn = document.getElementById('welcome-send-btn');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const userBubbleText = document.getElementById('user-bubble-text');
+    const tabsContainer = document.getElementById('tabs-container');
+    const tabNewBtn = document.getElementById('tab-new-btn');
+    const topNewBtn = document.getElementById('top-new-btn');
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+    const desktopSidebar = document.getElementById('desktop-sidebar');
+
+    // Sidebar Toggle
+    if (toggleSidebarBtn && desktopSidebar) {
+      toggleSidebarBtn.addEventListener('click', () => {
+        desktopSidebar.classList.toggle('hidden');
+      });
+    }
+
+    // Dynamic Multi-Tab State
+    let tabs = [
+      { id: 1, title: '新会话', userMsg: null, isChat: false }
+    ];
+    let activeTabId = 1;
+    let tabSeq = 1;
+
+    // Render Tab Bar
+    function renderTabs() {
+      tabsContainer.innerHTML = '';
+      tabs.forEach(tab => {
+        const isActive = tab.id === activeTabId;
+        const tabEl = document.createElement('div');
+        tabEl.className = `${isActive ? 'tab-active' : 'tab-inactive'} inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium cursor-pointer transition-all select-none`;
+
+        // Tab Title
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = tab.title;
+        titleSpan.className = 'max-w-[100px] truncate';
+        tabEl.appendChild(titleSpan);
+
+        // Close Tab Button (✕)
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'w-3.5 h-3.5 rounded-full hover:bg-gray-200/80 flex items-center justify-center text-gray-400 hover:text-gray-700 cursor-pointer transition-colors';
+        closeBtn.title = '删除对话';
+        closeBtn.innerHTML = `
+          <svg class="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <line x1="2" y1="2" x2="8" y2="8" />
+            <line x1="8" y1="2" x2="2" y2="8" />
+          </svg>
+        `;
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteTab(tab.id);
+        });
+        tabEl.appendChild(closeBtn);
+
+        // Switch to this tab on click
+        tabEl.addEventListener('click', () => {
+          switchTab(tab.id);
+        });
+
+        tabsContainer.appendChild(tabEl);
+      });
+
+      // Update View based on active tab
+      const currentTab = tabs.find(t => t.id === activeTabId);
+      if (currentTab && currentTab.isChat) {
+        welcomeView.classList.add('hidden');
+        chatView.classList.remove('hidden');
+        userBubbleText.textContent = currentTab.userMsg;
+      } else {
+        welcomeView.classList.remove('hidden');
+        chatView.classList.add('hidden');
+      }
+
+      // Notify parent frame to sync height if needed
+      try {
+        window.parent.postMessage({ type: 'RESIZE' }, '*');
+      } catch (err) {}
+    }
+
+    // Switch Active Tab
+    function switchTab(id) {
+      activeTabId = id;
+      welcomeInput.value = '';
+      chatInput.value = '';
+      updateButtonState(welcomeInput, welcomeSendBtn);
+      updateButtonState(chatInput, chatSendBtn);
+      renderTabs();
+      const currentTab = tabs.find(t => t.id === activeTabId);
+      if (currentTab && currentTab.isChat) {
+        chatInput.focus();
+      } else {
+        welcomeInput.focus();
+      }
+    }
+
+    // Create New Tab
+    function createNewTab() {
+      tabSeq++;
+      const newTab = { id: tabSeq, title: '新会话', userMsg: null, isChat: false };
+      tabs.push(newTab);
+      switchTab(newTab.id);
+    }
+
+    // Delete Tab (Click ✕)
+    function deleteTab(id) {
+      const idx = tabs.findIndex(t => t.id === id);
+      if (idx !== -1) {
+        tabs.splice(idx, 1);
+      }
+      // If all tabs deleted, automatically create a fresh one
+      if (tabs.length === 0) {
+        tabSeq++;
+        tabs = [{ id: tabSeq, title: '新会话', userMsg: null, isChat: false }];
+        activeTabId = tabSeq;
+      } else if (activeTabId === id) {
+        // Activate adjacent tab
+        const nextIdx = Math.max(0, idx - 1);
+        activeTabId = tabs[nextIdx].id;
+      }
+      welcomeInput.value = '';
+      chatInput.value = '';
+      updateButtonState(welcomeInput, welcomeSendBtn);
+      updateButtonState(chatInput, chatSendBtn);
+      renderTabs();
+    }
+
+    // Helper: Update Button Appearance based on input text
+    function updateButtonState(inputEl, btnEl) {
+      const val = inputEl.value.trim();
+      if (val.length > 0) {
+        btnEl.disabled = false;
+        btnEl.className = 'w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm cursor-pointer select-none';
+      } else {
+        btnEl.disabled = true;
+        btnEl.className = 'w-8 h-8 rounded-full bg-gray-100 text-gray-300 flex items-center justify-center transition-all cursor-not-allowed select-none';
+      }
+    }
+
+    welcomeInput.addEventListener('input', () => updateButtonState(welcomeInput, welcomeSendBtn));
+    chatInput.addEventListener('input', () => updateButtonState(chatInput, chatSendBtn));
+
+    // Handle Message Send
+    function doSend(text) {
+      const val = text.trim();
+      if (!val) return; // Strict block empty sending
+
+      const currentTab = tabs.find(t => t.id === activeTabId);
+      if (currentTab) {
+        currentTab.isChat = true;
+        currentTab.userMsg = val;
+        currentTab.title = val.length > 8 ? val.substring(0, 8) + '...' : val;
+      }
+
+      welcomeInput.value = '';
+      chatInput.value = '';
+      updateButtonState(welcomeInput, welcomeSendBtn);
+      updateButtonState(chatInput, chatSendBtn);
+      renderTabs();
+      chatInput.focus();
+    }
+
+    // Event Bindings
+    welcomeSendBtn.addEventListener('click', () => doSend(welcomeInput.value));
+    welcomeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doSend(welcomeInput.value);
+      }
+    });
+
+    chatSendBtn.addEventListener('click', () => doSend(chatInput.value));
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doSend(chatInput.value);
+      }
+    });
+
+    if (tabNewBtn) tabNewBtn.addEventListener('click', createNewTab);
+    if (topNewBtn) topNewBtn.addEventListener('click', createNewTab);
+
+    // Initial Render
+    renderTabs();
+  </script>
+</body>
+</html>

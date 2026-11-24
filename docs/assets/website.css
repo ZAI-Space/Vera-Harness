@@ -1,0 +1,96 @@
+/* Keep documentation on the landing page's white canvas and blue accent. */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: #111827;
+  --md-default-fg-color--light: #4b5563;
+  --md-primary-fg-color: #ffffff;
+  --md-primary-fg-color-dark: #111827;
+  --md-primary-bg-color: #111827;
+  --md-primary-bg-color--light: #4b5563;
+  --md-typeset-a-color: #2563eb;
+  --md-accent-fg-color: #2563eb;
+  --md-code-bg-color: #f3f4f6;
+  --md-text-font: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.md-header {
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.md-tabs {
+  color: #4b5563;
+  border-top: 1px solid #f3f4f6;
+}
+
+.md-tabs__link--active,
+.md-nav__link--active {
+  color: #2563eb;
+}
+
+.md-banner {
+  color: #4b5563;
+  background: #f9fafb;
+}
+
+.md-banner__inner {
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.65rem;
+}
+
+.website-home {
+  color: #4b5563;
+}
+
+.website-home:hover {
+  color: #2563eb;
+}
+
+.md-search__form {
+  background-color: #f3f4f6;
+  border-radius: 0.6rem;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: #111827;
+  font-weight: 600;
+}
+
+.md-typeset h1 {
+  font-size: 1.75rem;
+}
+
+.md-typeset {
+  line-height: 1.8;
+}
+
+.md-nav--secondary {
+  border-left: 1px solid #e5e7eb;
+}
+
+.md-footer {
+  color: #4b5563;
+  background-color: #f9fafb;
+}
+
+.md-footer-meta {
+  background-color: #f3f4f6;
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-grid,
+  .md-main__inner.md-grid {
+    max-width: 78rem;
+  }
+
+  .md-sidebar--primary {
+    width: 13rem;
+  }
+
+  .md-sidebar--secondary {
+    width: 11rem;
+  }
+}

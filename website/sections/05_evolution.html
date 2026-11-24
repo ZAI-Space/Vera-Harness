@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VERA — Autonomous Evolution Loop</title>
+  <!-- Google Fonts: Quantico, Space Grotesk, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Quantico:wght@700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #FFFFFF;
+      font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #111827;
+      min-height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    .font-quantico {
+      font-family: 'Quantico', 'Space Grotesk', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Smooth border & glow transitions for nodes */
+    .node-card {
+      transition: stroke 0.35s ease, fill 0.35s ease, filter 0.35s ease;
+    }
+
+    .node-blue {
+      stroke: #1677FF !important;
+      stroke-width: 2.2px !important;
+      filter: drop-shadow(0 6px 18px rgba(22, 119, 255, 0.16));
+    }
+
+    .node-green {
+      stroke: #10B981 !important;
+      stroke-width: 2.4px !important;
+      filter: drop-shadow(0 6px 20px rgba(16, 185, 129, 0.2));
+    }
+
+    .node-orange {
+      stroke: #F59E0B !important;
+      stroke-width: 2.4px !important;
+      filter: drop-shadow(0 6px 20px rgba(245, 158, 11, 0.2));
+    }
+
+    /* Directional stroke dash animations */
+    @keyframes dashFlowForward {
+      from { stroke-dashoffset: 24; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .line-flow-active {
+      stroke-dasharray: 6 6;
+      animation: dashFlowForward 0.7s linear infinite;
+    }
+
+    .dashed-flow-active {
+      stroke-dasharray: 6 5;
+      animation: dashFlowForward 0.7s linear infinite;
+    }
+
+    .path-transition {
+      transition: opacity 0.3s ease, stroke 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="w-full max-w-[860px] px-3 sm:px-6 py-2 flex flex-col items-center justify-center min-h-[72vh] relative">
+    <!-- Top Header Only: AUTONOMOUS EVALUATION LOOP (Pure English, no subtitles) -->
+    <header class="text-center mb-3 relative w-full">
+      <h1 class="font-quantico text-2xl sm:text-3xl md:text-[32px] font-bold tracking-[0.05em] text-[#111827] leading-tight uppercase">
+        AUTONOMOUS EVALUATION LOOP
+      </h1>
+    </header>
+
+    <!-- Main Vector Architecture Canvas (Enlarged by ~1.25x to max-w-[620px], perfectly fitted for full-screen) -->
+    <div class="w-full flex justify-center items-center">
+      <svg
+        id="vera-architecture-svg"
+        viewBox="0 0 1120 720"
+        class="w-full h-auto max-w-[620px] mx-auto block select-none"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="AUTONOMOUS EVALUATION LOOP 自动评估循环架构图"
+      >
+        <defs>
+          <!-- Arrow Markers -->
+          <marker id="arrow-gray" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="6.5" markerHeight="6.5" orient="auto">
+            <path d="M 1 2 L 10 6 L 1 10 z" fill="#CBD5E1" />
+          </marker>
+          <marker id="arrow-blue" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 1 2 L 10 6 L 1 10 z" fill="#1677FF" />
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 1 2 L 10 6 L 1 10 z" fill="#10B981" />
+          </marker>
+          <marker id="arrow-orange" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 1 2 L 10 6 L 1 10 z" fill="#F59E0B" />
+          </marker>
+
+          <!-- Clean Subtle Card Shadow -->
+          <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="125%">
+            <feDropShadow dx="0" dy="5" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.05" />
+          </filter>
+        </defs>
+
+        <!-- ===================================================================
+             EQUAL-GAP 4-NODE CIRCULAR ORBIT SYSTEM
+             ViewBox = (0, 0, 1120, 720) | Orbit Center = (560, 360) | R = 246 (dx = dy = 174)
+             Card Size = 196 x 132 -> Horizontal clear gap = 152px, Vertical clear gap = 216px,
+             Arc edge-to-edge chord & visual separation balanced around true circle R = 246
+             - Center Node (VERA):          cx = 560, cy = 360, r = 92
+             - 01 开启实验 (315° Top-Left):   center (386, 186) -> box (288, 120, w=196, h=132)
+             - 02 调研分析 (45° Top-Right):   center (734, 186) -> box (636, 120, w=196, h=132)
+             - 03 修改源码 (135° Bottom-Right):center (734, 534) -> box (636, 468, w=196, h=132)
+             - 04 比较候选 (225° Bottom-Left): center (386, 534) -> box (288, 468, w=196, h=132)
+             - Top-Right External:          日常评测问题积累 -> box (876, 18, w=224, h=76)
+             - Bottom-Left External:        失败候选 -> box (20, 586, w=224, h=114)
+             =================================================================== -->
+
+        <!-- Subtle Full Circular Ring Guide -->
+        <circle cx="560" cy="360" r="246" fill="none" stroke="#EFF6FF" stroke-width="2" />
+
+        <!-- ===================================================================
+             1. SYMMETRICAL CIRCULAR ARC CONNECTORS (01 -> 02 -> 03 -> 04 -> 01)
+             True circular arcs along R = 246 centered at (560, 360)
+             =================================================================== -->
+        <!-- Base Neutral Gray Circular Arcs -->
+        <g fill="none" stroke="#CBD5E1" stroke-width="2.5" stroke-linecap="round">
+          <!-- 01 (Top-Left) -> 02 (Top-Right) -->
+          <path d="M 490 124.2 A 246 246 0 0 1 630 124.2" marker-end="url(#arrow-gray)" />
+          <!-- 02 (Top-Right) -> 03 (Bottom-Right) -->
+          <path d="M 786.5 262 A 246 246 0 0 1 786.5 458" marker-end="url(#arrow-gray)" />
+          <!-- 03 (Bottom-Right) -> 04 (Bottom-Left) -->
+          <path d="M 630 595.8 A 246 246 0 0 1 490 595.8" marker-end="url(#arrow-gray)" />
+          <!-- 04 (Bottom-Left) -> 01 (Top-Left) -->
+          <path d="M 333.5 458 A 246 246 0 0 1 333.5 262" marker-end="url(#arrow-gray)" />
+        </g>
+
+        <!-- Active Electric Blue Circular Arc Overlays -->
+        <g fill="none" stroke="#1677FF" stroke-width="3.2" stroke-linecap="round">
+          <path id="flow-1-2" d="M 490 124.2 A 246 246 0 0 1 630 124.2" class="path-transition" opacity="0" marker-end="url(#arrow-blue)" />
+          <path id="flow-2-3" d="M 786.5 262 A 246 246 0 0 1 786.5 458" class="path-transition" opacity="0" marker-end="url(#arrow-blue)" />
+          <path id="flow-3-4" d="M 630 595.8 A 246 246 0 0 1 490 595.8" class="path-transition" opacity="0" marker-end="url(#arrow-blue)" />
+          <path id="flow-4-1" d="M 333.5 458 A 246 246 0 0 1 333.5 262" class="path-transition" opacity="0" marker-end="url(#arrow-blue)" />
+        </g>
+
+        <!-- ===================================================================
+             2. TOP-RIGHT S-CURVED DASHED ARROW: 日常评测问题积累 (988, 94) -> 02 调研分析 (832, 186)
+             =================================================================== -->
+        <g id="connector-issues" fill="none" stroke-linecap="round">
+          <!-- Base Gray S-Curved Dashed Line -->
+          <path
+            d="M 988 94 C 988 158, 915 186, 838 186"
+            stroke="#CBD5E1" stroke-width="2.2" stroke-dasharray="6 5"
+            marker-end="url(#arrow-gray)"
+          />
+          <!-- Active Blue Flowing S-Curved Dashed Line -->
+          <path
+            id="flow-issues-2"
+            d="M 988 94 C 988 158, 915 186, 838 186"
+            stroke="#1677FF" stroke-width="2.8" stroke-dasharray="6 5"
+            class="path-transition" opacity="0"
+            marker-end="url(#arrow-blue)"
+          />
+        </g>
+
+        <!-- ===================================================================
+             3. DUAL S-CURVED DASHED BRANCHING LINES FROM BOTTOM-LEFT 04 比较候选
+             =================================================================== -->
+        <!-- Branch A: 04 比较候选 (448, 468) -> Center VERA (492, 424) [Graceful S-Curved Dashed] -->
+        <g id="branch-pass" fill="none" stroke-linecap="round">
+          <!-- Default Gray Curved Dashed Line -->
+          <path
+            d="M 448 468 C 454 440, 470 428, 489 422"
+            stroke="#CBD5E1" stroke-width="2.2" stroke-dasharray="5 4"
+            marker-end="url(#arrow-gray)"
+          />
+          <!-- Active Green Flowing Curved Dashed Line -->
+          <path
+            id="flow-4-core"
+            d="M 448 468 C 454 440, 470 428, 489 422"
+            stroke="#10B981" stroke-width="2.8" stroke-dasharray="5 4"
+            class="path-transition" opacity="0"
+            marker-end="url(#arrow-green)"
+          />
+        </g>
+
+        <!-- Branch B: 04 比较候选 (288, 534) -> Bottom-Left 失败候选 (132, 586) [Graceful S-Curved Dashed] -->
+        <g id="branch-fail" fill="none" stroke-linecap="round">
+          <!-- Default Gray S-Curved Dashed Line -->
+          <path
+            d="M 288 534 C 208 534, 132 544, 132 580"
+            stroke="#CBD5E1" stroke-width="2.2" stroke-dasharray="6 5"
+            marker-end="url(#arrow-gray)"
+          />
+          <!-- Active Orange Flowing S-Curved Dashed Line -->
+          <path
+            id="flow-4-discard"
+            d="M 288 534 C 208 534, 132 544, 132 580"
+            stroke="#F59E0B" stroke-width="2.8" stroke-dasharray="6 5"
+            class="path-transition" opacity="0"
+            marker-end="url(#arrow-orange)"
+          />
+        </g>
+
+        <!-- ===================================================================
+             4. CENTRAL CIRCULAR NODE: VERA 实验最佳版本 第 1 代 (cx=560, cy=360, r=92)
+             =================================================================== -->
+        <g id="node-center" transform="translate(560, 360)">
+          <circle
+            id="card-center"
+            cx="0" cy="0" r="92"
+            fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2.4"
+            filter="url(#card-shadow)" class="node-card"
+          />
+          <circle cx="0" cy="0" r="82" fill="none" stroke="#F8FAFC" stroke-width="1.4" />
+
+          <!-- VERA -->
+          <text x="0" y="-16" text-anchor="middle" class="font-quantico" font-size="32" font-weight="700" fill="#111827" letter-spacing="0.06em">
+            VERA
+          </text>
+          <!-- 实验最佳版本 -->
+          <text x="0" y="9" text-anchor="middle" font-size="13.5" font-weight="600" fill="#64748B">
+            实验最佳版本
+          </text>
+          <!-- 第 1 代 / 第 2 代 -->
+          <rect id="gen-badge-bg" x="-46" y="21" width="92" height="26" rx="13" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.2" />
+          <text id="gen-badge-text" x="0" y="38.5" text-anchor="middle" font-size="12.5" font-weight="700" fill="#334155">
+            第 1 代
+          </text>
+        </g>
+
+        <!-- ===================================================================
+             5. FOUR SQUARE-PROPORTIONED LOOP NODES (w=196, h=132, LEFT-ALIGNED TEXT)
+             =================================================================== -->
+
+        <!-- 01 开启实验 (Top-Left: center 386, 186 -> box 288, 120) -->
+        <g id="node-1" transform="translate(288, 120)" filter="url(#card-shadow)">
+          <rect id="card-1" x="0" y="0" width="196" height="132" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" class="node-card" />
+          <text x="22" y="42" text-anchor="start" font-size="17" font-weight="700" fill="#111827">
+            <tspan class="font-mono-code" font-size="14" font-weight="700" fill="#1677FF">01 </tspan>开启实验
+          </text>
+          <text x="22" y="75" text-anchor="start" class="font-mono-code" font-size="13" font-weight="500" fill="#64748B">
+            /RSI
+          </text>
+          <text x="22" y="98" text-anchor="start" font-size="13" font-weight="500" fill="#64748B">
+            设置预算
+          </text>
+        </g>
+
+        <!-- 02 调研分析 (Top-Right: center 734, 186 -> box 636, 120) -->
+        <g id="node-2" transform="translate(636, 120)" filter="url(#card-shadow)">
+          <rect id="card-2" x="0" y="0" width="196" height="132" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" class="node-card" />
+          <text x="20" y="42" text-anchor="start" font-size="17" font-weight="700" fill="#111827">
+            <tspan class="font-mono-code" font-size="14" font-weight="700" fill="#1677FF">02 </tspan>调研分析
+          </text>
+          <text x="20" y="75" text-anchor="start" font-size="12" font-weight="500" fill="#64748B">
+            寻找问题根源、搜索成熟方案
+          </text>
+          <text x="20" y="98" text-anchor="start" font-size="12.5" font-weight="500" fill="#64748B">
+            综合结果
+          </text>
+        </g>
+
+        <!-- 03 修改源码 (Bottom-Right: center 734, 534 -> box 636, 468) -->
+        <g id="node-3" transform="translate(636, 468)" filter="url(#card-shadow)">
+          <rect id="card-3" x="0" y="0" width="196" height="132" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" class="node-card" />
+          <text x="22" y="42" text-anchor="start" font-size="17" font-weight="700" fill="#111827">
+            <tspan class="font-mono-code" font-size="14" font-weight="700" fill="#1677FF">03 </tspan>修改源码
+          </text>
+          <text x="22" y="75" text-anchor="start" class="font-mono-code" font-size="13" font-weight="500" fill="#64748B">
+            源码、prompt...
+          </text>
+          <text x="22" y="98" text-anchor="start" font-size="13" font-weight="500" fill="#64748B">
+            生成候选
+          </text>
+        </g>
+
+        <!-- 04 比较候选 (Bottom-Left: center 386, 534 -> box 288, 468) -->
+        <g id="node-4" transform="translate(288, 468)" filter="url(#card-shadow)">
+          <rect id="card-4" x="0" y="0" width="196" height="132" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" class="node-card" />
+          <text x="22" y="42" text-anchor="start" font-size="17" font-weight="700" fill="#111827">
+            <tspan class="font-mono-code" font-size="14" font-weight="700" fill="#1677FF">04 </tspan>比较候选
+          </text>
+          <text x="22" y="75" text-anchor="start" font-size="13" font-weight="500" fill="#64748B">
+            回归测试
+          </text>
+          <text x="22" y="98" text-anchor="start" font-size="13" font-weight="500" fill="#64748B">
+            增益比较
+          </text>
+        </g>
+
+        <!-- ===================================================================
+             6. TOP-RIGHT EXTERNAL NODE: 日常评测问题积累 (box 876, 18, w=224, h=76)
+             =================================================================== -->
+        <g id="node-issues" transform="translate(876, 18)" filter="url(#card-shadow)">
+          <rect
+            id="card-issues"
+            x="0" y="0" width="224" height="76" rx="16"
+            fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.8" stroke-dasharray="5 4"
+            class="node-card"
+          />
+          <text x="112" y="34" text-anchor="middle" font-size="15.5" font-weight="700" fill="#111827">
+            日常评测问题积累
+          </text>
+          <text x="112" y="56" text-anchor="middle" font-size="12" font-weight="500" fill="#64748B">
+            线上 Badcase 与日志沉淀
+          </text>
+        </g>
+
+        <!-- ===================================================================
+             7. BOTTOM-LEFT EXTERNAL NODE: 失败候选 (box 20, 586, w=224, h=114)
+             =================================================================== -->
+        <g id="node-discard" transform="translate(20, 586)" filter="url(#card-shadow)">
+          <rect
+            id="card-discard"
+            x="0" y="0" width="224" height="114" rx="16"
+            fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"
+            class="node-card"
+          />
+
+          <!-- Initial Centered Title ("失败候选") -->
+          <text
+            id="discard-title"
+            x="112" y="63"
+            text-anchor="middle" font-size="17" font-weight="700" fill="#111827"
+            style="transition: all 0.35s ease;"
+          >
+            失败候选
+          </text>
+
+          <!-- Populated Rejected Candidates Group (Hidden initially) -->
+          <g id="discard-items" opacity="0" style="transition: opacity 0.4s ease;">
+            <!-- 候选 01 -->
+            <g transform="translate(16, 39)">
+              <rect x="0" y="0" width="192" height="28" rx="8" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1" />
+              <text x="12" y="18.5" class="font-mono-code" font-size="12" font-weight="600" fill="#B45309">
+                候选 01
+              </text>
+              <text x="180" y="18.5" text-anchor="end" font-size="11" font-weight="600" fill="#D97706">
+                未通过
+              </text>
+            </g>
+
+            <!-- 候选 03 -->
+            <g transform="translate(16, 74)">
+              <rect x="0" y="0" width="192" height="28" rx="8" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1" />
+              <text x="12" y="18.5" class="font-mono-code" font-size="12" font-weight="600" fill="#B45309">
+                候选 03
+              </text>
+              <text x="180" y="18.5" text-anchor="end" font-size="11" font-weight="600" fill="#D97706">
+                未通过
+              </text>
+            </g>
+          </g>
+        </g>
+
+      </svg>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      // Node border elements
+      const card1 = document.getElementById('card-1');
+      const card2 = document.getElementById('card-2');
+      const card3 = document.getElementById('card-3');
+      const card4 = document.getElementById('card-4');
+      const cardCenter = document.getElementById('card-center');
+      const cardIssues = document.getElementById('card-issues');
+      const cardDiscard = document.getElementById('card-discard');
+
+      // Generation & Discard record elements
+      const genBadgeBg = document.getElementById('gen-badge-bg');
+      const genBadgeText = document.getElementById('gen-badge-text');
+      const discardTitle = document.getElementById('discard-title');
+      const discardItems = document.getElementById('discard-items');
+
+      // Flow line elements
+      const flow12 = document.getElementById('flow-1-2');
+      const flow23 = document.getElementById('flow-2-3');
+      const flow34 = document.getElementById('flow-3-4');
+      const flow41 = document.getElementById('flow-4-1');
+      const flowIssues2 = document.getElementById('flow-issues-2');
+      const flow4Core = document.getElementById('flow-4-core');
+      const flow4Discard = document.getElementById('flow-4-discard');
+
+      let runToken = 0;
+
+      function sleep(ms, token) {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            if (token !== runToken) {
+              reject(new Error('cancelled'));
+            } else {
+              resolve();
+            }
+          }, ms);
+        });
+      }
+
+      function setLineFlow(el, active, isDashed = false) {
+        if (active) {
+          el.setAttribute('opacity', '1');
+          el.classList.add(isDashed ? 'dashed-flow-active' : 'line-flow-active');
+        } else {
+          el.setAttribute('opacity', '0');
+          el.classList.remove('line-flow-active', 'dashed-flow-active');
+        }
+      }
+
+      function clearAllHighlights() {
+        [card1, card2, card3, card4, cardCenter, cardIssues, cardDiscard].forEach(el => {
+          el.classList.remove('node-blue', 'node-green', 'node-orange');
+        });
+        setLineFlow(flow12, false);
+        setLineFlow(flow23, false);
+        setLineFlow(flow34, false);
+        setLineFlow(flow41, false);
+        setLineFlow(flowIssues2, false, true);
+        setLineFlow(flow4Core, false, true);
+        setLineFlow(flow4Discard, false, true);
+      }
+
+      function resetToInitialState() {
+        clearAllHighlights();
+
+        // Reset center version to 第 1 代
+        genBadgeText.textContent = '第 1 代';
+        genBadgeText.setAttribute('fill', '#334155');
+        genBadgeBg.setAttribute('fill', '#F8FAFC');
+        genBadgeBg.setAttribute('stroke', '#E2E8F0');
+
+        // Reset bottom-left "失败候选" to empty centered state
+        discardTitle.setAttribute('x', '112');
+        discardTitle.setAttribute('y', '63');
+        discardTitle.setAttribute('text-anchor', 'middle');
+        discardItems.setAttribute('opacity', '0');
+      }
+
+      /**
+       * Single-pass evolution flow:
+       * 01 -> 02 (with external issues dashed flow) -> 03 -> 04
+       * At 04:
+       *   - Two rejected candidates (候选 01, 候选 03) flow via orange dashed line into 失败候选
+       *   - One winning candidate flows via green dashed line into center VERA (becomes 第 2 代)
+       * Then blue arc flows from 04 back to 01, and all glowing lights extinguish cleanly.
+       */
+      async function playSingleCycleDemo() {
+        const token = ++runToken;
+        resetToInitialState();
+
+        try {
+          await sleep(500, token);
+
+          // Step 1: 01 开启实验 border turns blue -> blue arc flows to 02
+          card1.classList.add('node-blue');
+          await sleep(700, token);
+
+          setLineFlow(flow12, true);
+          await sleep(750, token);
+
+          // Step 2: 02 调研分析 border turns blue + 日常评测问题积累 dashed line flows blue -> blue arc flows to 03
+          card1.classList.remove('node-blue');
+          setLineFlow(flow12, false);
+          card2.classList.add('node-blue');
+          cardIssues.classList.add('node-blue');
+          setLineFlow(flowIssues2, true, true);
+          await sleep(950, token);
+
+          card2.classList.remove('node-blue');
+          cardIssues.classList.remove('node-blue');
+          setLineFlow(flowIssues2, false, true);
+          setLineFlow(flow23, true);
+          await sleep(750, token);
+
+          // Step 3: 03 修改源码 border turns blue -> blue arc flows to 04
+          setLineFlow(flow23, false);
+          card3.classList.add('node-blue');
+          await sleep(750, token);
+
+          card3.classList.remove('node-blue');
+          setLineFlow(flow34, true);
+          await sleep(750, token);
+
+          // Step 4: 04 比较候选 evaluates candidates
+          setLineFlow(flow34, false);
+          card4.classList.add('node-blue');
+          await sleep(550, token);
+
+          // 4a. Two rejected candidates (候选 01, 候选 03) flow along orange dashed line into 失败候选
+          setLineFlow(flow4Discard, true, true);
+          await sleep(450, token);
+          cardDiscard.classList.add('node-orange');
+          discardTitle.setAttribute('x', '18');
+          discardTitle.setAttribute('y', '27');
+          discardTitle.setAttribute('text-anchor', 'start');
+          discardItems.setAttribute('opacity', '1');
+          await sleep(800, token);
+
+          // 4b. One winning candidate flows along green dashed line into central VERA node -> 第 2 代
+          setLineFlow(flow4Core, true, true);
+          await sleep(450, token);
+          cardCenter.classList.add('node-green');
+          genBadgeText.textContent = '第 2 代';
+          genBadgeText.setAttribute('fill', '#059669');
+          genBadgeBg.setAttribute('fill', '#ECFDF5');
+          genBadgeBg.setAttribute('stroke', '#6EE7B7');
+          await sleep(950, token);
+
+          // Step 5: Blue arc flows back from 04 to 01, then all lights extinguish
+          card4.classList.remove('node-blue');
+          setLineFlow(flow4Discard, false, true);
+          setLineFlow(flow4Core, false, true);
+          cardDiscard.classList.remove('node-orange');
+          cardCenter.classList.remove('node-green');
+
+          setLineFlow(flow41, true);
+          await sleep(750, token);
+
+          setLineFlow(flow41, false);
+          card1.classList.add('node-blue');
+          await sleep(550, token);
+
+          // Extinguish all glows cleanly at the end of the single pass
+          clearAllHighlights();
+        } catch (err) {
+          // Animation interrupted
+        }
+      }
+
+      // Expose globally so parent page or local observer can trigger when scrolled into view
+      window.playEvolutionAnimation = playSingleCycleDemo;
+
+      // Listen for parent page message when section scrolls into viewport
+      window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'START_EVOLUTION_ANIM') {
+          playSingleCycleDemo();
+        }
+      });
+
+      // Self-contained IntersectionObserver if loaded standalone
+      if ('IntersectionObserver' in window) {
+        const localObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
+              playSingleCycleDemo();
+            }
+          });
+        }, { threshold: 0.3 });
+        const svgEl = document.getElementById('vera-architecture-svg');
+        if (svgEl) localObserver.observe(svgEl);
+      }
+    })();
+  </script>
+</body>
+</html>
