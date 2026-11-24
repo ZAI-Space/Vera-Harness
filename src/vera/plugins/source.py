@@ -154,12 +154,16 @@ class Source:
             return {}
         if self.commit is None:
             result = {}
+            total = 0
             for path in paths:
                 target = package_path(self.root, path)
                 if target.is_file() and target.stat().st_size <= limit:
-                    result[path] = target.read_bytes()
-            if sum(map(len, result.values())) > 16 * 1024 * 1024:
-                raise PluginError("Catalog metadata exceeds 16 MiB.")
+                    with target.open("rb") as stream:
+                        content = stream.read(min(limit, 16 * 1024 * 1024 - total) + 1)
+                    if len(content) > limit or total + len(content) > 16 * 1024 * 1024:
+                        raise PluginError("Catalog metadata exceeds its file or 16 MiB batch limit.")
+                    result[path] = content
+                    total += len(content)
             return result
         queries = "".join(f"{self.commit}:{path}\n" for path in paths).encode()
         sizes = _git(self.root, "cat-file", "--batch-check", binary=True, input=queries).splitlines()

@@ -53,8 +53,12 @@ export function TaskboardPage() {
 				</div>
 				<div className="flex gap-2">
 					<Button
+						disabled={!status?.repository}
 						onClick={() =>
-							void getDesktopApi().openExternal({ url: "https://github.com/chuspeeism/dashi-taskboard" })
+							status &&
+							void getDesktopApi()
+								.openExternal({ url: status.repository })
+								.catch((failure) => setError(errText(failure) ?? String(failure)))
 						}
 					>
 						{zh ? "项目说明" : "Documentation"}

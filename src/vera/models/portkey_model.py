@@ -21,6 +21,7 @@ from vera.models.utils.cache_control import set_cache_control
 from vera.models.utils.openai_multimodal import expand_multimodal_content
 from vera.models.utils.retry import retry
 from vera.models.utils.tool_registry import ToolCallingModel
+from vera.models.utils.usage import token_usage
 
 logger = logging.getLogger("portkey_model")
 
@@ -51,8 +52,8 @@ class PortkeyModelConfig(BaseModel):
     """
     set_cache_control: Literal["default_end"] | None = None
     """Set explicit cache control markers, for example for Anthropic models"""
-    cost_tracking: Literal["default", "ignore_errors"] = os.getenv("VERA_COST_TRACKING", "default")
-    """Cost tracking mode for this model. Can be "default" or "ignore_errors" (ignore errors/missing cost info)"""
+    cost_tracking: Literal["default", "ignore_errors", "tokens"] = os.getenv("VERA_COST_TRACKING", "default")
+    """Use strict cost accounting, tolerate missing prices, or record only reported tokens."""
     format_error_template: str = "{{ error }}"
     """Template used when the LM's output is not in the expected format."""
     observation_template: str = (
@@ -176,7 +177,13 @@ class PortkeyModel(ToolCallingModel):
             }
         }
 
-    def _calculate_cost(self, response) -> dict[str, float]:
+    def _calculate_cost(self, response) -> dict:
+        if self.config.cost_tracking == "tokens":
+            usage = getattr(response, "usage", None)
+            raw = usage.model_dump() if hasattr(usage, "model_dump") else usage or {}
+            if not isinstance(raw, dict):
+                raw = {}
+            return {"cost": 0.0, "cost_known": False, "usage": token_usage(raw), "usage_reported": bool(raw)}
         response_for_cost_calc = response.model_copy()
         if self.config.litellm_model_name_override:
             if response_for_cost_calc.model:

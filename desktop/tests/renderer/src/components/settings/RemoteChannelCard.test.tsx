@@ -40,6 +40,25 @@ function button(label: string): HTMLButtonElement {
 	return control;
 }
 
+it("uses English for unavailable models and the empty chat placeholder", async () => {
+	useI18nStore.setState({ language: "en" });
+	await act(() =>
+		root.render(
+			<RemoteChannelCard
+				channel="weixin"
+				status={undefined}
+				sessions={[session]}
+				models={[]}
+				onStatus={() => {}}
+			/>,
+		),
+	);
+	expect(host.textContent).toContain("Choose a chat to continue");
+	await act(() => (host.querySelector('[role="combobox"]') as HTMLButtonElement).click());
+	expect(document.body.textContent).toContain("Linked chat · Model unavailable");
+	expect(document.body.textContent).not.toContain("模型已失效");
+});
+
 it.each(["weixin", "feishu"] as const)(
 	"%s keeps start/stop separate from unbinding through the connection lifecycle",
 	async (channel) => {

@@ -17,12 +17,20 @@ describe("thinking 档位（shared 白名单 + renderer 收敛）", () => {
 		expect(isThinkingLevel(3)).toBe(false);
 	});
 
-	it("clampThinkingLevel 就近向上 + supported 末位回退（仅 renderer UI 用；backend 交 SDK clamp）", () => {
+	it("clampThinkingLevel 就近向上 + 最高已知档回退（仅 renderer UI 用；backend 交 SDK clamp）", () => {
 		expect(clampThinkingLevel("medium", ["low", "medium", "high"])).toBe("medium");
 		expect(clampThinkingLevel("high", ["low", "xhigh"])).toBe("xhigh");
 		expect(clampThinkingLevel("max", ["off", "low"])).toBe("low");
 		expect(clampThinkingLevel("ultra", ["low", "high"])).toBe("high");
 		expect(clampThinkingLevel("high", [])).toBe("high");
+	});
+
+	it("服务商声明顺序不改变最高已知档回退，自定义档仍按声明显示", () => {
+		expect(clampThinkingLevel("max", ["high", "low"])).toBe("high");
+		expect(clampThinkingLevel("invalid", ["high", "low", "default"])).toBe("high");
+		expect(clampThinkingLevel("medium", ["max", "high", "low"])).toBe("high");
+		expect(clampThinkingLevel("enabled", ["default", "enabled"])).toBe("enabled");
+		expect(clampThinkingLevel("invalid", ["default", "enabled"])).toBe("enabled");
 	});
 
 	it("thinkingLevelPos：刻度/填充/滑块共用的归一化位置（0..1，端点对齐）", () => {

@@ -7,6 +7,7 @@ the completed response uses the configured accounting and completion policy.
 
 import json
 import time
+from contextlib import suppress
 from uuid import uuid4
 
 import litellm
@@ -14,6 +15,12 @@ import litellm
 from vera.desktop.protocol import send
 from vera.models.litellm_model import LitellmModel
 from vera.models.litellm_response_model import LitellmResponseModel
+
+
+def _report_model_failure(error: Exception) -> None:
+    """Report provider failures without replacing them if the worker output closes."""
+    with suppress(OSError):
+        send("model_failure", category=type(error).__name__)
 
 
 class StreamBlocks:
@@ -75,13 +82,33 @@ class DesktopUsage:
         send("model_request", id=self._desktop_request_id)
         return StreamBlocks()
 
+    def _provider_call(self, query, messages, **kwargs):
+        """Classify request/iteration errors at the provider boundary only."""
+        try:
+            return query(messages, **kwargs)
+        except Exception as error:
+            _report_model_failure(error)
+            raise
+
+    def _provider_chunks(self, stream):
+        iterator = iter(stream)
+        while True:
+            try:
+                chunk = next(iterator)
+            except StopIteration:
+                return
+            except Exception as error:
+                _report_model_failure(error)
+                raise
+            yield chunk
+
     def _calculate_cost(self, response):
         counters = super()._calculate_cost(response)
         if counters.get("usage_reported"):
             identifier = uuid4().hex
             counters["usage_id"] = identifier
             provider, _, model = self.config.model_name.partition("/")
-            identity = self.config.usage_identity or {"provider": provider, "modelId": model}
+            identity = self.config.usage_identity or {}
             send(
                 "usage",
                 id=identifier,
@@ -89,8 +116,8 @@ class DesktopUsage:
                     "timestamp": int(time.time() * 1000),
                     "usageReported": True,
                     "usage": counters["usage"],
-                    "provider": identity["provider"],
-                    "model": identity["modelId"],
+                    "provider": identity.get("provider", provider),
+                    "model": identity.get("modelId", model),
                     "requestId": self._desktop_request_id,
                 },
             )
@@ -105,8 +132,10 @@ class StreamingChatModel(DesktopUsage, LitellmModel):
         chunks = []
         stream = None
         try:
-            stream = super()._query(messages, **(kwargs | {"stream": True, "stream_options": {"include_usage": True}}))
-            for chunk in stream:
+            stream = self._provider_call(
+                super()._query, messages, **(kwargs | {"stream": True, "stream_options": {"include_usage": True}})
+            )
+            for chunk in self._provider_chunks(stream):
                 chunks.append(chunk)
                 if not chunk.choices:
                     continue
@@ -126,13 +155,12 @@ class StreamingChatModel(DesktopUsage, LitellmModel):
                         name=function.name or "",
                     )
             if not chunks:
-                raise ValueError("Provider returned an empty stream.")
+                error = ValueError("Provider returned an empty stream.")
+                _report_model_failure(error)
+                raise error
             response = litellm.stream_chunk_builder(chunks, messages=messages)
             blocks.finish()
             return response
-        except Exception as error:
-            send("model_failure", category=type(error).__name__)
-            raise
         finally:
             close = getattr(stream, "close", None)
             if close:
@@ -147,8 +175,8 @@ class StreamingResponsesModel(DesktopUsage, LitellmResponseModel):
         response = None
         stream = None
         try:
-            stream = super()._query(messages, **(kwargs | {"stream": True}))
-            for event in stream:
+            stream = self._provider_call(super()._query, messages, **(kwargs | {"stream": True}))
+            for event in self._provider_chunks(stream):
                 value = event.model_dump() if hasattr(event, "model_dump") else dict(event)
                 kind = value.get("type")
                 if kind == "response.output_text.delta":
@@ -171,14 +199,15 @@ class StreamingResponsesModel(DesktopUsage, LitellmResponseModel):
 
                     response = ResponsesAPIResponse(**value["response"])
                 elif kind in {"response.failed", "error"}:
-                    raise ValueError("Provider reported a failed response stream.")
+                    error = ValueError("Provider reported a failed response stream.")
+                    _report_model_failure(error)
+                    raise error
             if response is None:
-                raise ValueError("Provider stream ended without a final response.")
+                error = ValueError("Provider stream ended without a final response.")
+                _report_model_failure(error)
+                raise error
             blocks.finish()
             return response
-        except Exception as error:
-            send("model_failure", category=type(error).__name__)
-            raise
         finally:
             close = getattr(stream, "close", None)
             if close:

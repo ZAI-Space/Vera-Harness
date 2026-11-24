@@ -10,6 +10,20 @@ import { useTranscriptStore } from "../../../../../src/renderer/src/stores/trans
 import { useUiStore } from "../../../../../src/renderer/src/stores/ui";
 
 vi.mock("../../../../../src/renderer/src/i18n", () => ({ useT: () => (key: string) => key }));
+const backend = vi.hoisted(() => ({
+	listGitBranches: vi.fn(),
+	listener: undefined as ((status: { connected: boolean }) => void) | undefined,
+	unsubscribe: vi.fn(),
+}));
+vi.mock("../../../../../src/renderer/src/environment-api", () => ({ getExecutionApi: () => backend }));
+vi.mock("../../../../../src/renderer/src/api", () => ({
+	getDesktopApi: () => ({
+		onBackendStatusChanged: (listener: typeof backend.listener) => {
+			backend.listener = listener;
+			return backend.unsubscribe;
+		},
+	}),
+}));
 const messages = (id: string, text = "initial"): UIMessage[] => [
 	{ kind: "user", id, text: "synthetic", images: [], timestamp: 0 },
 	{
@@ -40,7 +54,7 @@ beforeEach(() => {
 		transitionDuration: "0.28s",
 		transitionDelay: "0s",
 	}));
-	useSessionsStore.setState({ activeSessionId: "one", sessions: [], newSessionDraft: null });
+	useSessionsStore.setState({ activeSessionId: "one", sessions: [], newSessionDraft: null, cwd: null });
 	useSessionViewStore.setState({ bySession: {} });
 	useTranscriptStore.setState({ bySession: {} });
 	useTranscriptStore.getState().loadHistory("one", messages("u1"));
@@ -65,6 +79,18 @@ async function open(value: boolean) {
 async function settle() {
 	await act(() => vi.advanceTimersByTime(500));
 }
+
+it("refreshes branch status after backend reconnect without reopening the sidebar", async () => {
+	backend.listGitBranches.mockRejectedValueOnce(new Error("Backend unavailable"));
+	useSessionsStore.setState({ cwd: "/workspace" });
+	await render();
+	await open(true);
+	expect(container.textContent).toContain("Backend unavailable");
+	backend.listGitBranches.mockResolvedValue({ current: "reconnected", branches: ["reconnected"] });
+	await act(() => backend.listener?.({ connected: true }));
+	expect(container.textContent).toContain("reconnected");
+	expect(container.textContent).not.toContain("Backend unavailable");
+});
 
 it("空白对话页保留空态和关闭入口，不创建虚构会话状态", async () => {
 	useSessionsStore.setState({ activeSessionId: null });

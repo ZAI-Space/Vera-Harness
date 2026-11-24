@@ -26,7 +26,6 @@ export const en: Messages = {
 		targetUnavailable: "The notification's session or connection is no longer available.",
 	},
 	emptyState: {
-		slogan: "Build With VERA",
 		sloganLead: "Build With",
 		sloganBrand: "VERA",
 	},
@@ -836,7 +835,6 @@ export const en: Messages = {
 			runningNotice:
 				"This session is running: reconnecting would interrupt it. Saved changes take effect when idle — or reconnect after the turn ends.",
 			gotIt: "Got it",
-			create: "Create",
 			addServer: "Add server",
 			editServer: "Edit server",
 			name: "Name",

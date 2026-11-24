@@ -15,6 +15,10 @@ _SECRET_KEY_NAMES = {
     "secret",
     "authorization",
     "headers",
+    "private_key",
+    "secret_key",
+    "passwd",
+    "credentials",
 }
 
 
@@ -22,7 +26,9 @@ def _is_secret_key(key: object) -> bool:
     if not isinstance(key, str):
         return False
     normalized = key.casefold().replace("-", "_")
-    return normalized in _SECRET_KEY_NAMES or normalized.endswith(("_api_key", "_token", "_password", "_secret"))
+    return normalized in _SECRET_KEY_NAMES or normalized.endswith(
+        ("_api_key", "_token", "_password", "_secret", "_private_key", "_secret_key", "_passwd")
+    )
 
 
 def strip_sensitive(value: Any) -> Any:

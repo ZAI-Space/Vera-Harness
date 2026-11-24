@@ -1,5 +1,5 @@
 import type { SessionMeta } from "@vera/contracts";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { harness } from "../../harness-api";
 import { useI18nStore } from "../../i18n";
 import { errText } from "../../lib/error-text";
@@ -13,26 +13,37 @@ export function RemoteConnectionsPanel() {
 	const [sessions, setSessions] = useState<SessionMeta[]>([]);
 	const [models, setModels] = useState<ModelRef[]>([]);
 	const [error, setError] = useState<string | null>(null);
-	const refresh = useCallback(async () => {
-		try {
-			const [status, rows, catalog] = await Promise.all([
-				harness<{ channels: Record<string, ChannelStatus> }>("remoteGetStatus"),
-				harness<SessionMeta[]>("listAllSessions"),
-				harness<ModelRef[]>("listModels"),
-			]);
-			setChannels(status.channels);
-			setSessions(rows);
-			setModels(catalog);
-			setError(null);
-		} catch (failure) {
-			setError(errText(failure) ?? String(failure));
-		}
-	}, []);
 	useEffect(() => {
+		let cancelled = false;
+		let refreshing = false;
+		// Keep the selectable catalog current while avoiding overlapping polling requests.
+		const refresh = async () => {
+			if (refreshing) return;
+			refreshing = true;
+			try {
+				const [status, rows, catalog] = await Promise.all([
+					harness<{ channels: Record<string, ChannelStatus> }>("remoteGetStatus"),
+					harness<SessionMeta[]>("listAllSessions"),
+					harness<ModelRef[]>("listModels"),
+				]);
+				if (cancelled) return;
+				setChannels(status.channels);
+				setSessions(rows);
+				setModels(catalog);
+				setError(null);
+			} catch (failure) {
+				if (!cancelled) setError(errText(failure) ?? String(failure));
+			} finally {
+				refreshing = false;
+			}
+		};
 		void refresh();
 		const timer = setInterval(() => void refresh(), 2000);
-		return () => clearInterval(timer);
-	}, [refresh]);
+		return () => {
+			cancelled = true;
+			clearInterval(timer);
+		};
+	}, []);
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="text-ui-12 leading-relaxed text-ink-dim">

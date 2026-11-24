@@ -48,6 +48,7 @@ class LocalEnvironment:
                 timeout or self.config.timeout,
                 self.bash_path,
                 self.config.shell_command,
+                self.config.env,
             )
             output = {"output": result.stdout, "returncode": result.returncode, "exception_info": ""}
         except Exception as e:
@@ -98,13 +99,23 @@ def _run(
     timeout: int,
     bash_path: str = "",
     shell_command: list[str] | None = None,
+    configured_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Execute a command with process-tree termination and bounded output draining on timeout."""
     if os.name == "nt":
         env = {"PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"} | env
     prefix = list(shell_command or ([bash_path] if bash_path else []))
     if prefix and Path(prefix[0]).name.lower() in {"wsl", "wsl.exe"}:
-        prefix[1:1] = ["--cd", cwd]
+        prefix[1:1] = ["--cd", str(Path(cwd).resolve())]
+        # WSL imports only listed variables. Forward explicit overrides, preserving
+        # existing user-selected path/direction flags and the distro's default PATH.
+        shared = env.get("WSLENV", "").split(":")
+        names = {item.partition("/")[0] for item in shared}
+        configured_names = set(configured_env or {}) - {"WSLENV"}
+        if os.name == "nt":
+            configured_names.update({"PYTHONIOENCODING", "PYTHONUTF8"})
+        shared.extend(sorted(configured_names - names))
+        env = env | {"WSLENV": ":".join(item for item in shared if item)}
     process = subprocess.Popen(
         [*prefix, "--noprofile", "--norc", "-c", command] if prefix else command,
         shell=not bool(prefix),

@@ -94,6 +94,8 @@ class ChannelStore:
                 )
                 if (
                     status in {"queued", "received"}
+                    and command
+                    and not command.startswith("/")
                     and db.execute("SELECT COUNT(*) FROM messages WHERE status IN ('queued','received')").fetchone()[0]
                     >= 100
                 ):

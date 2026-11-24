@@ -1,7 +1,13 @@
 """Scoped project removal previews; project source files are never deleted."""
 
+import sqlite3
 import time
 from uuid import uuid4
+
+
+def _catalog_identity(rows: list[dict]) -> list[dict]:
+    """Keep deletion fences strict for content while ignoring view activation."""
+    return [{key: value for key, value in row.items() if key != "active"} for row in rows]
 
 
 class ProjectDeletion:
@@ -33,14 +39,23 @@ class ProjectDeletion:
                     "archivedCount": sum(bool(row.get("archivedAt")) for row in rows),
                 }
             preview = self.previews.pop(args["token"], None)
-            if not preview or preview[0] <= time.monotonic() or preview[1:] != (args["cwd"], rows):
+            if (
+                not preview
+                or preview[0] <= time.monotonic()
+                or preview[1] != args["cwd"]
+                or _catalog_identity(preview[2]) != _catalog_identity(rows)
+            ):
                 raise ValueError("项目会话已变化或确认已过期，请重新确认移除。")
-            deleted = []
+            deleted, failed = [], []
             for row in rows:
                 key = row["sessionId"]
-                (self.service.store.directory / "sessions" / (key + ".json")).unlink(missing_ok=True)
-                self.service.store.delete("session", key)
-                self.service.store.delete("delegated-session", key)
-                deleted.append(key)
+                try:
+                    (self.service.store.directory / "sessions" / (key + ".json")).unlink(missing_ok=True)
+                    self.service.store.delete("session", key)
+                    self.service.store.delete("delegated-session", key)
+                except (OSError, sqlite3.Error) as error:
+                    failed.append({"sessionId": key, "error": str(error)})
+                else:
+                    deleted.append(key)
             self.service.events.emit("onSessionCatalogChanged", {"revision": uuid4().hex, "complete": True})
-            return {"deleted": deleted, "failed": []}
+            return {"deleted": deleted, "failed": failed}

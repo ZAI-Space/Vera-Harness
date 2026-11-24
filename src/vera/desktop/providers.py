@@ -276,7 +276,9 @@ class Providers:
 
     def reasoning_kwargs(self, reference: dict, level: str, options: dict) -> dict:
         """Reject unavailable choices and preserve the distinction between default and disabled."""
-        provider = next(item for item in self.list() if item["id"] == reference["provider"])
+        provider = next((item for item in self.list() if item["id"] == reference["provider"]), None)
+        if provider is None:
+            raise ValueError("Selected provider no longer exists.")
         model = self.definition(reference)
         if not model.get("reasoning") and level in {"off", "default"}:
             return {}
@@ -339,6 +341,10 @@ class Providers:
             result = response.json()
         except requests.exceptions.JSONDecodeError:
             raise ValueError("模型接口未返回有效 JSON，请检查 API 地址。") from None
+        except requests.HTTPError:
+            raise ValueError(
+                f"模型列表请求失败（HTTP {response.status_code}），请检查 API 地址或服务商状态。"
+            ) from None
         except requests.RequestException:
             raise ValueError("无法连接模型服务，请检查 API 地址、网络或代理后重试。") from None
         if not isinstance(result, dict):

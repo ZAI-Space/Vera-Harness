@@ -24,7 +24,6 @@ export const zh = {
 		targetUnavailable: "通知对应的会话或连接已不可用。",
 	},
 	emptyState: {
-		slogan: "Build With VERA",
 		sloganLead: "Build With",
 		sloganBrand: "VERA",
 	},
@@ -801,7 +800,6 @@ export const zh = {
 			projectNeedsCwd: "当前没有打开的会话：项目级配置不可编辑",
 			runningNotice: "当前会话运行中：重连会打断它已保存的改动会在空闲后生效 —— 也可以等这轮结束再点重连",
 			gotIt: "知道了",
-			create: "创建",
 			addServer: "添加服务器",
 			editServer: "编辑服务器",
 			name: "名称",

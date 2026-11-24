@@ -46,7 +46,16 @@ class DockerCatalog:
     def __init__(self, store):
         self.store = store
         self.lock = threading.Lock()
-        self.data = store.get("market-cache", "docker") or json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+        cached = store.get("market-cache", "docker")
+        valid = (
+            isinstance(cached, dict)
+            and isinstance(cached.get("registry"), dict)
+            and all(isinstance(row, dict) for row in cached["registry"].values())
+            and isinstance(cached.get("recommended"), list)
+            and all(isinstance(name, str) for name in cached["recommended"])
+            and isinstance(cached.get("updatedAt"), str)
+        )
+        self.data = cached if valid else json.loads(SNAPSHOT.read_text(encoding="utf-8"))
 
     def refresh(self) -> None:
         """Replace the cache after a bounded, validated fetch; keep old data on failure."""
@@ -65,6 +74,8 @@ class DockerCatalog:
             if not isinstance(value, dict) or not isinstance(value.get("registry"), dict):
                 raise ToolError("Docker catalog returned an invalid registry.")
             entries = value["registry"]
+            if any(not isinstance(row, dict) for row in entries.values()):
+                raise ToolError("Docker catalog returned invalid service entries.")
             for name, row in entries.items():
                 previous = self.data["registry"].get(name, {})
                 if previous.get("icon") == row.get("icon") and previous.get("iconData"):
@@ -100,7 +111,7 @@ class DockerCatalog:
                     "version": row.get("image", "").rsplit("@", 1)[-1][:19] or "HTTP",
                     "icon": row.get("iconData") or row.get("icon", ""),
                     "repository": row.get("upstream") or row.get("source") or CATALOG_REPOSITORY,
-                    "category": row.get("metadata", {}).get("category", ""),
+                    "category": row["metadata"].get("category", "") if isinstance(row.get("metadata"), dict) else "",
                     "toolCount": len(row.get("tools", [])),
                     "transport": "HTTP" if row.get("remote") else "Docker",
                     "recommended": name in recommended,
@@ -139,7 +150,18 @@ class DockerCatalog:
             environment = {secret["env"] for secret in row.get("secrets", []) if secret.get("env")}
             for key in sorted(environment):
                 arguments.extend(["--env", key])
-            for variable in row.get("env", []):
+            variables = row.get("env", [])
+            if not isinstance(variables, list):
+                raise ToolError("此服务的环境变量格式无效，请参阅官方说明并使用 JSON 配置。")
+            for variable in variables:
+                if (
+                    not isinstance(variable, dict)
+                    or not isinstance(variable.get("name"), str)
+                    or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", variable["name"])
+                    or "value" not in variable
+                    or not isinstance(variable["value"], (str, int, float, bool))
+                ):
+                    raise ToolError("此服务的环境变量格式无效，请参阅官方说明并使用 JSON 配置。")
                 name, value = variable["name"], str(variable["value"])
                 if "{{" in value:
                     # Optional settings (such as Firecrawl's self-host URL) retain upstream defaults.

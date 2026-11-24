@@ -103,7 +103,7 @@ export function RemoteChannelCard({
 							value: row.sessionId,
 							label: modelAvailable(row)
 								? row.name || row.sessionId
-								: `${row.name || row.sessionId} · 模型已失效`,
+								: `${row.name || row.sessionId} · ${zh ? "模型已失效" : "Model unavailable"}`,
 							disabled: !modelAvailable(row),
 						})),
 				]}

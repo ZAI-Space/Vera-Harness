@@ -1,4 +1,5 @@
 import React, { type EffectCallback } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Execute the actual panel effect callbacks in Node. Hook registration/scheduling is controlled;
@@ -69,6 +70,15 @@ afterEach(() => {
 });
 
 describe("V03 panel effect callback ownership", () => {
+	it("LAN cannot change an unknown listener state, including after failed initial load", () => {
+		for (const error of [null, "status unavailable"]) {
+			Object.assign(harness.state, { lanStatus: null, lanError: error });
+			const html = renderToStaticMarkup(<LanObserverPanel />);
+			expect(html).toMatch(/role="switch"[^>]* disabled=""/);
+		}
+		harness.state.lanStatus = { enabled: false, urls: [] };
+		expect(renderToStaticMarkup(<LanObserverPanel />)).not.toMatch(/role="switch"[^>]* disabled=""/);
+	});
 	it("providers effect is mount-scoped and refreshes only the provider catalog", () => {
 		ProvidersPanel();
 		expect(harness.effects).toHaveLength(1);

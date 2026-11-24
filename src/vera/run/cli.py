@@ -165,8 +165,10 @@ def main(
                 def run_goal_turn(prompt, history, remaining):
                     selected = deepcopy(session.runtime_config())
                     options = selected.setdefault("agent", {})
-                    options["cost_limit"] = min(options.get("cost_limit") or remaining["cost"], remaining["cost"])
-                    options["wall_time_limit_seconds"] = max(1, int(min(options.get("wall_time_limit_seconds") or remaining["seconds"], remaining["seconds"])))
+                    if remaining["cost"] > 0:
+                        options["cost_limit"] = min(options.get("cost_limit") or remaining["cost"], remaining["cost"])
+                    if remaining["seconds"] > 0:
+                        options["wall_time_limit_seconds"] = max(1, int(min(options.get("wall_time_limit_seconds") or remaining["seconds"], remaining["seconds"])))
                     options["confirm_exit"] = False
                     if options.get("output_path"):
                         path = Path(options["output_path"])

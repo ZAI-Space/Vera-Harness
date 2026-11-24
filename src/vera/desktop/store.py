@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
-from vera.desktop.media_codec import decode_images, encode_images
+from vera.desktop.media_codec import decode_images, encode_images, image_digests
 
 
 class DesktopStore:
@@ -56,6 +56,13 @@ class DesktopStore:
                     "INSERT OR IGNORE INTO image_blobs VALUES (?,?,?)",
                     [(key, digest, content) for digest, content in blobs.items()],
                 )
+                retained = image_digests(value)
+                stale = [
+                    (key, digest)
+                    for (digest,) in db.execute("SELECT digest FROM image_blobs WHERE owner=?", (key,))
+                    if digest not in retained
+                ]
+                db.executemany("DELETE FROM image_blobs WHERE owner=? AND digest=?", stale)
             db.execute("INSERT OR REPLACE INTO documents VALUES (?,?,?)", (kind, key, json.dumps(value)))
 
     def delete(self, kind: str, key: str) -> None:
@@ -65,10 +72,13 @@ class DesktopStore:
                 db.execute("DELETE FROM image_blobs WHERE owner=?", (key,))
                 db.execute("DELETE FROM image_layouts WHERE owner=?", (key,))
 
-    def list(self, kind: str) -> list:
+    def list(self, kind: str, *, decode_media: bool = True) -> list:
+        """List detached documents; catalog callers can skip loading image blobs."""
         with self.lock, closing(sqlite3.connect(self.path)) as db:
             return [
-                decode_images(json.loads(row[1]), row[0], db) if kind == "session" else json.loads(row[1])
+                decode_images(json.loads(row[1]), row[0], db)
+                if kind == "session" and decode_media
+                else json.loads(row[1])
                 for row in db.execute("SELECT id,value FROM documents WHERE kind=?", (kind,)).fetchall()
             ]
 

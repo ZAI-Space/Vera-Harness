@@ -182,6 +182,8 @@ class DefaultAgent:
             )
         self.n_calls += 1
         message = self.model.query(self.messages)
+        # A parsed response ends a format-error streak even if its actions are denied.
+        self.n_consecutive_format_errors = 0
         self.cost += message.get("extra", {}).get("cost", 0.0)
         self._record_usage(message)
         self.add_messages(message)
@@ -207,7 +209,7 @@ class DefaultAgent:
         if extra.get("usage_reported"):
             self.token_usage["reportedCalls"] += 1
             for name in ("input", "output", "cacheRead", "cacheWrite", "totalTokens"):
-                self.token_usage[name] += extra["usage"][name]
+                self.token_usage[name] += (extra.get("usage") or {}).get(name, 0)
 
     def _execute_action(self, action: dict) -> dict:
         if self.run_record is not None:

@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from uuid import uuid4
 
+from pydantic import ValidationError
+
 from vera.config import get_config_from_spec
 from vera.desktop.events import LiveReply, assistant_message, history_message, message_events, transcript
 from vera.desktop.model_settings import ModelOptions, apply_reasoning
@@ -100,7 +102,10 @@ class Sessions:
         raw_options = definition.get("advanced")
         if raw_options is None:
             raw_options = {name: item for name, item in (value.get("modelOptions") or {}).items() if item != ""}
-        options = ModelOptions.model_validate(raw_options).model_dump(by_alias=True)
+        try:
+            options = ModelOptions.model_validate(raw_options).model_dump(by_alias=True)
+        except ValidationError:
+            raise ValueError("会话模型参数无效，请重新保存有效的模型选项后重试。") from None
         if options.get("toolCallLimit"):
             config["agent"]["desktop_tool_call_limit"] = int(options["toolCallLimit"])
         kwargs = config["model"].setdefault("model_kwargs", {})
@@ -179,6 +184,8 @@ class Sessions:
                 self.emit(key, {"type": "queue_update", "steering": [], "followUp": [text]})
                 return
             config = self.config(value)
+            if images and (config["agent"]["mode"] == "human" or not value["meta"].get("model")):
+                raise ValueError("图片需要选择支持图片输入的模型；手动执行模式不支持图片。")
             if images and value["meta"].get("model"):
                 definition = self.providers.definition(value["meta"]["model"])
                 if not definition.get("imageInput", False):

@@ -17,6 +17,7 @@ class TaskboardExecution:
     def __init__(self, desktop):
         self.desktop = desktop
         self.lock = threading.RLock()
+        self.sync_lock = threading.RLock()
         self.stopping = threading.Event()
         self.watcher = None
         self.pending = set()
@@ -35,15 +36,13 @@ class TaskboardExecution:
         """Return current issues and durable run history; recover interrupted runs after restart."""
         with self.lock:
             runs = self.desktop.store.list("taskboard-run")
-            for run in runs:
-                if run["status"] == "running" and run["sessionId"] not in self.desktop.sessions.running:
-                    self.finish(run)
-            return {
-                "tasks": self.request("GET", "tasks")["tasks"],
-                "runs": sorted(
-                    self.desktop.store.list("taskboard-run"), key=lambda row: row["startedAt"], reverse=True
-                ),
-            }
+        for run in runs:
+            if run["status"] == "running" and run["sessionId"] not in self.desktop.sessions.running:
+                self.finish(run)
+        return {
+            "tasks": self.request("GET", "tasks")["tasks"],
+            "runs": sorted(self.desktop.store.list("taskboard-run"), key=lambda row: row["startedAt"], reverse=True),
+        }
 
     def start(self, args: dict) -> dict:
         """Validate task version, workspace, model and permission before accepting one execution.
@@ -113,24 +112,35 @@ class TaskboardExecution:
 
     def finish(self, run: dict) -> None:
         """Persist the real terminal outcome, then retry safe board synchronization separately."""
-        value = self.desktop.store.get("session", run["sessionId"], {})
-        receipt = value.get("lastRunResult") or {}
-        status = receipt.get("exit_status", "Interrupted")
-        run.update(
-            status="completed" if status == "Submitted" and not run.get("error") else "error",
-            endedAt=int(time.time() * 1000),
-            output=str(receipt.get("submission", ""))[:16000],
-            error=run.get("error") or (None if status == "Submitted" else status),
-            synced=False,
-        )
-        self.desktop.store.save("taskboard-run", run["sessionId"], run)
-        self.pending.discard(run["sessionId"])
+        with self.lock:
+            current = self.desktop.store.get("taskboard-run", run["sessionId"], run)
+            if current["status"] != "running":
+                return
+            value = self.desktop.store.get("session", run["sessionId"], {})
+            receipt = value.get("lastRunResult") or {}
+            status = receipt.get("exit_status", "Interrupted")
+            run.update(
+                status="completed" if status == "Submitted" and not run.get("error") else "error",
+                endedAt=int(time.time() * 1000),
+                output=str(receipt.get("submission", ""))[:16000],
+                error=run.get("error") or (None if status == "Submitted" else status),
+                synced=False,
+            )
+            self.desktop.store.save("taskboard-run", run["sessionId"], run)
+            self.pending.discard(run["sessionId"])
         self.sync(run)
 
     def sync(self, run: dict) -> None:
         """Write a receipt comment once and never overwrite a user's later task state."""
         if not run or run["status"] == "running":
             raise ValueError("只能回写已结束的执行记录。")
+        # Serialize only board writes; observation and new dispatches remain available.
+        with self.sync_lock:
+            current = self.desktop.store.get("taskboard-run", run["sessionId"], run)
+            self._sync(current)
+
+    def _sync(self, run: dict) -> None:
+        """Synchronize a freshly read receipt while holding only the board-write lock."""
         path = "tasks/" + quote(run["taskId"], safe="")
         try:
             task = self.request("GET", path)["task"]
@@ -165,10 +175,10 @@ class TaskboardExecution:
         """Observe the normal desktop worker lifecycle without changing its execution loop."""
         while not self.stopping.wait(0.3):
             with self.lock:
-                for key in list(self.pending):
-                    run = self.desktop.store.get("taskboard-run", key)
-                    if run["status"] == "running" and run["sessionId"] not in self.desktop.sessions.running:
-                        self.finish(run)
+                runs = [self.desktop.store.get("taskboard-run", key) for key in self.pending]
+            for run in runs:
+                if run["status"] == "running" and run["sessionId"] not in self.desktop.sessions.running:
+                    self.finish(run)
 
     def close(self) -> None:
         """Stop observing on desktop shutdown; pending receipts recover on the next board load."""

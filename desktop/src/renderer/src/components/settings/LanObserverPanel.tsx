@@ -41,7 +41,7 @@ export function LanObserverPanel() {
 					<Switch
 						aria-label={t("settings.lan.title")}
 						checked={status?.enabled === true}
-						disabled={saving}
+						disabled={saving || status === null}
 						onCheckedChange={setEnabled}
 					/>
 				</div>

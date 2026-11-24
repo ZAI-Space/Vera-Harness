@@ -12,7 +12,9 @@ def refresh_legacy_history(messages: list[dict], variables: dict) -> list[dict]:
     old template is rendered with live environment facts and must match in full.
     """
     template = get_config_from_spec("vera.yaml")["agent"]["instance_template"]
-    prefix, _, suffix = template.partition("{{task}}")
+    prefix, separator, suffix = template.partition("{{task}}")
+    if not separator:
+        return messages
     suffix = Template(suffix, undefined=StrictUndefined).render(**variables)
     result = []
     for message in messages:
@@ -23,6 +25,6 @@ def refresh_legacy_history(messages: list[dict], variables: dict) -> list[dict]:
             and content.startswith(prefix)
             and content.endswith(suffix)
         ):
-            message = message | {"content": content[len(prefix) : -len(suffix)]}
+            message = message | {"content": content[len(prefix) : -len(suffix) if suffix else None]}
         result.append(message)
     return result

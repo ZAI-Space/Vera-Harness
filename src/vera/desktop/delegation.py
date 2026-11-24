@@ -104,13 +104,22 @@ class DelegatedConversations:
             result = json.loads(frame["result"].get("output", "{}"))
         except (ValueError, TypeError):
             result = {}
+        if not isinstance(result, dict):
+            result = {}
         trajectory = result.get("trajectory")
         messages = []
         if trajectory:
             path = Path(trajectory).resolve()
             root = (self.sessions.store.directory / "artifacts").resolve()
             if path.is_relative_to(root) and path.is_file():
-                messages = json.loads(path.read_text(encoding="utf-8")).get("messages", [])
+                try:
+                    stored = json.loads(path.read_text(encoding="utf-8"))
+                    imported = stored.get("messages", []) if isinstance(stored, dict) else []
+                    if isinstance(imported, list) and all(isinstance(item, dict) for item in imported):
+                        messages = imported
+                except (OSError, ValueError):
+                    # A partial trajectory must not prevent settling the live child.
+                    pass
         if messages:
             child["messages"] = child["messages"][:1]
             for raw in messages:

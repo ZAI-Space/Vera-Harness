@@ -15,7 +15,7 @@ from uuid import uuid4
 from vera.evolution.config import EvolutionError
 
 
-def read_optimizer_result(path: Path) -> dict:
+def _read_optimizer_result_once(path: Path) -> dict:
     """Read at most 1 MiB from a single regular optimizer result, without following links.
 
     Results cross from the optimizer into the trusted controller. Missing files
@@ -44,6 +44,25 @@ def read_optimizer_result(path: Path) -> dict:
     if not isinstance(value, dict):
         raise EvolutionError("Optimizer result must be a JSON object.")
     return value
+
+
+def read_optimizer_result(path: Path) -> dict:
+    """Read a bounded regular result, retrying only transient Windows access errors.
+
+    Each retry repeats identity, link and size checks. Missing files, malformed
+    JSON and persistent permission failures retain their original error behavior.
+    """
+    for _ in range(19):
+        try:
+            return _read_optimizer_result_once(path)
+        except PermissionError as error:
+            transient = getattr(error, "winerror", None) in {5, 32, 33} or (
+                getattr(error, "winerror", None) is None and error.errno == errno.EACCES
+            )
+            if os.name != "nt" or not transient:
+                raise
+            time.sleep(0.01)
+    return _read_optimizer_result_once(path)
 
 
 def read_json(path: Path) -> dict:

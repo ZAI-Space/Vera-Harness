@@ -38,7 +38,12 @@ class TaskboardService:
             return Path(directory).expanduser().resolve()
         descriptor = global_config_dir / "integrations/dashi-taskboard/current.json"
         if descriptor.is_file():
-            return Path(json.loads(descriptor.read_text(encoding="utf-8-sig"))["directory"])
+            try:
+                value = json.loads(descriptor.read_text(encoding="utf-8-sig"))
+                directory = value.get("directory") if isinstance(value, dict) else None
+                return Path(directory) if isinstance(directory, str) and directory else None
+            except (OSError, ValueError):
+                return None
         return None
 
     def status(self) -> dict:
@@ -101,7 +106,10 @@ class TaskboardService:
                 except (requests.ConnectionError, requests.Timeout):
                     pass
                 time.sleep(0.1)
-            self.close()
+            try:
+                self.close()
+            except (OSError, subprocess.TimeoutExpired) as error:
+                raise ValueError("Taskboard 启动失败且进程未能退出，请检查本机 Taskboard 日志。") from error
             raise ValueError("Taskboard 启动失败，请检查本机 Taskboard 日志与安装依赖。")
 
     def close(self) -> dict:
@@ -109,6 +117,11 @@ class TaskboardService:
         with self.lock:
             if self.process and self.process.poll() is None:
                 _kill_tree(self.process.pid)
-                self.process.wait(timeout=5)
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    # Retain ownership if escalation also fails; never hide a live child.
+                    self.process.kill()
+                    self.process.wait(timeout=5)
             self.process, self.url = None, None
             return self.status()

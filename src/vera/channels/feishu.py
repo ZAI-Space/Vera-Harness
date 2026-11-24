@@ -193,6 +193,7 @@ def pair_account(
             "credentials": {"app_id": client.app_id, "app_secret": client.secret},
             "code_hash": hashlib.sha256(code.encode()).hexdigest(),
             "expires": time.time() + timeout,
+            "stop_path": str(cancel.resolve()),
         },
     )
     show_code(code)

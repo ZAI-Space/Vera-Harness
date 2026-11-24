@@ -82,7 +82,10 @@ def marketplace_presentations(source: Source, paths: list[str], files: set[str])
             ".claude-plugin/plugin.json",
         )
     } & files
-    contents = source.read_files(list(manifests))
+    try:
+        contents = source.read_files(list(manifests))
+    except (PluginError, OSError):
+        return {path: {} for path in paths}
     icons = set()
     for path, content in contents.items():
         try:
@@ -98,5 +101,8 @@ def marketplace_presentations(source: Source, paths: list[str], files: set[str])
                         icons.add(icon)
         except (ValueError, PluginError):
             continue
-    contents.update(source.read_files(list(icons), limit=256 * 1024))
+    try:
+        contents.update(source.read_files(list(icons), limit=256 * 1024))
+    except (PluginError, OSError):
+        pass  # Optional artwork must not hide valid package descriptions.
     return {path: package_presentation(source, path, files, contents=contents) for path in paths}

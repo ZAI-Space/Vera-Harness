@@ -509,11 +509,13 @@ class Capabilities:
             elif source == "anthropic":
                 name = "claude-plugins-official"
                 if name not in self.plugins.list_marketplaces():
-                    self.plugins.add_marketplace("anthropics/claude-plugins-official")
+                    name = self.plugins.add_marketplace("anthropics/claude-plugins-official")["name"]
                 elif args.get("refresh"):
                     self.plugins.refresh_marketplace(name)
             else:
                 name = source
+                if name not in self.plugins.list_marketplaces():
+                    raise ValueError("插件仓库已不存在，请刷新仓库列表后重新选择。")
                 if args.get("refresh"):
                     self.plugins.refresh_marketplace(name)
             marketplace_name = name

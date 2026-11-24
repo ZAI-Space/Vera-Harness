@@ -60,7 +60,7 @@ class DesktopService:
         self.remote_channels = RemoteChannels(self)
 
     def metas(self) -> list[dict]:
-        return [value["meta"] for value in self.store.list("session")]
+        return [value["meta"] for value in self.store.list("session", decode_media=False)]
 
     def save_session(self, value: dict):
         """Keep catalog counts aligned when configuration or display history changes."""
@@ -181,11 +181,12 @@ class DesktopService:
             return {"projects": list(projects.values()), "complete": True, "errors": 0, "revision": uuid4().hex}
         if method == "verifySessionCatalog":
             result = []
+            catalog = self.metas()
             for ref in args["references"]:
                 meta = next(
                     (
                         meta
-                        for meta in self.metas()
+                        for meta in catalog
                         if meta["sessionId"] == ref.get("sessionId") or meta["sessionFile"] == ref.get("sessionFile")
                     ),
                     None,
@@ -287,15 +288,15 @@ class DesktopService:
         if method == "getLoadedSessions":
             return [
                 {
-                    "meta": meta,
-                    "sequence": self.sessions.get(meta["sessionId"])["sequence"],
-                    "permissionMode": self.sessions.get(meta["sessionId"])["permissionMode"],
+                    "meta": value["meta"],
+                    "sequence": value["sequence"],
+                    "permissionMode": value["permissionMode"],
                     "followUpQueue": [],
-                    "streaming": meta["sessionId"] in self.sessions.running,
+                    "streaming": value["meta"]["sessionId"] in self.sessions.running,
                     "compacting": False,
                 }
-                for meta in self.metas()
-                if meta["active"]
+                for value in self.store.list("session", decode_media=False)
+                if value["meta"]["active"]
             ]
         if method == "setModel":
             value = self.idle_session(key)
@@ -318,13 +319,11 @@ class DesktopService:
                 if args.get("permissionPolicy"):
                     value["permissionPolicy"] = args["permissionPolicy"]
                 if options := args.get("modelOptions"):
-                    for field, maximum in (("temperature", 2), ("topP", 1), ("topK", 100), ("toolCallLimit", 100000)):
-                        if options.get(field):
-                            number = float(options[field])
-                            if not 0 <= number <= maximum or (
-                                field in {"topK", "toolCallLimit"} and (not number.is_integer() or number < 1)
-                            ):
-                                raise ValueError("Invalid model option: " + field)
+                    from vera.desktop.model_settings import ModelOptions
+
+                    options = ModelOptions.model_validate(
+                        {name: option for name, option in options.items() if option != ""}
+                    ).model_dump(by_alias=True)
                     if options.get("reasoningParameter", "reasoning_effort") not in {
                         "reasoning_effort",
                         "reasoning.effort",

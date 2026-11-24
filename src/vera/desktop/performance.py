@@ -115,7 +115,8 @@ class PerformanceStats:
             tasks = [
                 json.loads(row[0])
                 for row in db.execute(
-                    "SELECT payload FROM desktop_performance WHERE " + " AND ".join(clauses), parameters
+                    "SELECT payload FROM desktop_performance" + (" WHERE " + " AND ".join(clauses) if clauses else ""),
+                    parameters,
                 )
             ]
         statuses = Counter(task["status"] for task in tasks)

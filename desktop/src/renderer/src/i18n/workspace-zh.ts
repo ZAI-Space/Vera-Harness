@@ -8,7 +8,6 @@ export const workspaceZh = {
 		saveRepository: "添加仓库",
 		sourceFilter: "筛选来源",
 		refreshMarket: "更新目录",
-		configureRepository: "配置仓库",
 		loadingMarket: "正在加载插件市场…",
 		retryMarket: "重新加载",
 		emptyMarket: "此市场暂无可安装插件",

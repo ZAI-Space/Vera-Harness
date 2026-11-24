@@ -19,6 +19,7 @@ from vera.models.utils.actions_toolcall_response import (
 )
 from vera.models.utils.retry import retry
 from vera.models.utils.tool_registry import ToolCallingModel
+from vera.models.utils.usage import token_usage
 
 logger = logging.getLogger("portkey_response_model")
 
@@ -35,7 +36,8 @@ class PortkeyResponseAPIModelConfig(BaseModel):
     model_kwargs: dict[str, Any] = {}
     litellm_model_registry: Path | str | None = os.getenv("LITELLM_MODEL_REGISTRY_PATH")
     litellm_model_name_override: str = ""
-    cost_tracking: Literal["default", "ignore_errors"] = os.getenv("VERA_COST_TRACKING", "default")
+    cost_tracking: Literal["default", "ignore_errors", "tokens"] = os.getenv("VERA_COST_TRACKING", "default")
+    """Use strict cost accounting, tolerate missing prices, or record only reported tokens."""
     format_error_template: str = "{{ error }}"
     observation_template: str = (
         "{% if output.exception_info %}<exception>{{output.exception_info}}</exception>\n{% endif %}"
@@ -132,7 +134,13 @@ class PortkeyResponseAPIModel(ToolCallingModel):
             registry=self.tool_registry,
         )
 
-    def _calculate_cost(self, response) -> dict[str, float]:
+    def _calculate_cost(self, response) -> dict:
+        if self.config.cost_tracking == "tokens":
+            usage = getattr(response, "usage", None)
+            raw = usage.model_dump() if hasattr(usage, "model_dump") else usage or {}
+            if not isinstance(raw, dict):
+                raw = {}
+            return {"cost": 0.0, "cost_known": False, "usage": token_usage(raw), "usage_reported": bool(raw)}
         try:
             cost = litellm.cost_calculator.completion_cost(
                 response, model=self.config.litellm_model_name_override or self.config.model_name

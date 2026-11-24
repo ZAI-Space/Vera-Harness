@@ -11,7 +11,6 @@ export const workspaceEn = {
 		saveRepository: "Add repository",
 		sourceFilter: "Filter source",
 		refreshMarket: "Refresh catalog",
-		configureRepository: "Configure repository",
 		loadingMarket: "Loading plugin marketplace…",
 		retryMarket: "Retry marketplace",
 		emptyMarket: "No installable plugins in this marketplace",

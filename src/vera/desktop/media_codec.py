@@ -6,6 +6,18 @@ from hashlib import sha256
 MARKER = "__vera_image_blob_v1__"
 
 
+def image_digests(value) -> set[str]:
+    """Retain every stored image reference when pruning one session's blobs."""
+    if isinstance(value, list):
+        return set().union(*(image_digests(item) for item in value))
+    if not isinstance(value, dict):
+        return set()
+    result = {value[MARKER]} if isinstance(value.get(MARKER), str) else set()
+    for item in value.values():
+        result.update(image_digests(item))
+    return result
+
+
 def encode_images(value, blobs: dict[str, bytes]):
     """Replace only typed image payloads; text and model/tool arguments stay unchanged."""
     if isinstance(value, list):
@@ -44,7 +56,13 @@ def decode_images(value, owner: str, db):
     result = {}
     for name, item in value.items():
         is_image_field = (name == "data" and str(value.get("mimeType", "")).startswith("image/")) or name == "url"
-        if is_image_field and isinstance(item, dict) and set(item) == {MARKER, "prefix"}:
+        if is_image_field and isinstance(item, dict) and MARKER in item:
+            if (
+                set(item) != {MARKER, "prefix"}
+                or not isinstance(item[MARKER], str)
+                or not isinstance(item["prefix"], str)
+            ):
+                raise ValueError("会话图片引用格式无效，请从截图整理备份恢复。")
             row = db.execute(
                 "SELECT content FROM image_blobs WHERE owner=? AND digest=?", (owner, item[MARKER])
             ).fetchone()

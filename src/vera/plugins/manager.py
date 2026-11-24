@@ -167,7 +167,6 @@ class PluginManager:
                 raise PluginError("Marketplace must contain a plugins array with at most 1,000 entries.")
             plugins = {}
             local_paths = set()
-            files = set(fetched.files())
             for entry in entries:
                 if not isinstance(entry, dict):
                     raise PluginError("Marketplace entries must be objects.")
@@ -233,7 +232,12 @@ class PluginManager:
                 if policy.get("installation") == "NOT_AVAILABLE":
                     specification["unsupported"] = "Marketplace policy marks this plugin NOT_AVAILABLE."
                 plugins[plugin_name] = specification
-            presentations = marketplace_presentations(fetched, list(local_paths), files)
+            presentations = {}
+            if local_paths:
+                try:
+                    presentations = marketplace_presentations(fetched, list(local_paths), set(fetched.files()))
+                except (PluginError, OSError):
+                    presentations = {path: {} for path in local_paths}
             for specification in plugins.values():
                 if specification.get("source") == fetched.location and specification.get("path") in local_paths:
                     unsupported = specification.get("unsupported")

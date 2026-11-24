@@ -170,9 +170,9 @@ def open_agent_runtime(config: dict, *, default_type: str = "interactive"):
 
             register_project_tools(registry, Path(workspace).expanduser().resolve())
         agent = get_agent(model, env, config.get("agent", {}), default_type=default_type, tool_registry=registry)
-        apply_user_context(
-            agent, UserContext(config.get("user_context", {}).get("directory", USER_CONTEXT_DIRECTORY)).render()
-        )
+        context_config = config.get("user_context") or {}
+        directory = context_config.get("directory") or USER_CONTEXT_DIRECTORY
+        apply_user_context(agent, UserContext(directory).render())
         if subagents.roles:
             register_subagent_tools(registry, agent, subagents, model_config, catalog)
         policy = sandbox.model_dump_json() if sandbox else ""

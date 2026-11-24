@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from vera.channels.config import ChannelError
 from vera.channels.credentials import CredentialStore
 from vera.tools import ToolError, ToolRegistry
 from vera.tools.web import firecrawl_provider, register_web_tools, searxng_provider, tavily_provider
@@ -33,7 +34,10 @@ class WebSettings:
         self.vault = CredentialStore(store.directory)
 
     def credentials(self) -> dict:
-        return self.vault.load("desktop-web") if self.vault.has("desktop-web") else {}
+        try:
+            return self.vault.load("desktop-web") if self.vault.has("desktop-web") else {}
+        except ChannelError:
+            return {}  # A saved replacement can repair an unreadable local vault.
 
     def status(self) -> dict:
         """Return only credential presence; runtime configuration contains no API key."""
@@ -69,7 +73,10 @@ class WebSettings:
             credentials[value.provider] = value.apiKey.strip()
         address = value.searxngUrl.strip().rstrip("/")
         if address:
-            parsed = urlsplit(address)
+            try:
+                parsed = urlsplit(address)
+            except ValueError:
+                raise ValueError("SearXNG 地址须为不含密钥、查询参数的 HTTP(S) 实例地址。") from None
             if (
                 parsed.scheme not in {"http", "https"}
                 or not parsed.hostname
@@ -79,8 +86,10 @@ class WebSettings:
                 or parsed.fragment
             ):
                 raise ValueError("SearXNG 地址须为不含密钥、查询参数的 HTTP(S) 实例地址。")
-        if value.provider == "searxng":
+        if value.provider == "searxng" and address and not value.removeKey:
             credentials["searxng"] = address
+        if value.provider == "searxng":
+            address = credentials.get("searxng", "")
         if value.enabled and not (credentials.get(value.provider) or os.getenv(VARIABLES[value.provider])):
             raise ValueError("请先填写搜索服务的 API Key 或 SearXNG 地址。")
         config = (

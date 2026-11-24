@@ -8,24 +8,35 @@ from pathlib import Path
 
 from vera.utils.windows_bash import find_git_bash
 
-_cached = (0.0, [])
+_cached = (None, [])
 
 
 def command_shells(*, refresh: bool = False) -> list[dict]:
     """Probe installed Bash executables/WSL distributions; never download or install a shell."""
     global _cached
-    if not refresh and time.monotonic() - _cached[0] < 30:
+    if not refresh and _cached[0] is not None and time.monotonic() - _cached[0] < 30:
         return _cached[1]
     rows = [{"id": "system", "label": "系统默认（自动选择 Bash）", "command": []}]
     if os.name == "nt":
-        if executable := find_git_bash():
+        try:
+            executable = find_git_bash()
+        except OSError:
+            executable = None
+        if executable:
             rows.append({"id": "git-bash", "label": "Git Bash", "command": [executable]})
         if wsl := shutil.which("wsl"):
-            result = subprocess.run(
-                [wsl, "--list", "--quiet"], capture_output=True, timeout=5, creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            for name in result.stdout.decode("utf-16-le", errors="replace").replace("\0", "").splitlines():
-                name = name.strip()
+            try:
+                result = subprocess.run(
+                    [wsl, "--list", "--quiet"],
+                    capture_output=True,
+                    timeout=5,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                result = None
+            output = result.stdout if result and result.returncode == 0 else b""
+            for name in output.decode("utf-16-le", errors="replace").replace("\0", "").splitlines():
+                name = name.strip().lstrip("\ufeff")
                 if not name or name.startswith("docker-desktop"):
                     continue
                 prefix = [wsl, "--distribution", name, "--exec", "bash"]
@@ -36,7 +47,7 @@ def command_shells(*, refresh: bool = False) -> list[dict]:
                         timeout=5,
                         creationflags=subprocess.CREATE_NO_WINDOW,
                     )
-                except subprocess.TimeoutExpired:
+                except (OSError, subprocess.TimeoutExpired):
                     continue
                 if probe.returncode == 0 and probe.stdout == b"VERA_BASH_READY":
                     rows.append({"id": "wsl:" + name, "label": f"WSL · {name} · Bash", "command": prefix})
@@ -53,8 +64,13 @@ def shell_command(selection: str) -> list[str]:
     if selection == "system":
         return []
     if selection == "git-bash" and os.name == "nt":
-        if executable := find_git_bash():
+        try:
+            executable = find_git_bash()
+        except OSError:
+            executable = None
+        if executable:
             return [executable]
+        raise ValueError("所选 Bash 环境不可用，请重新检测命令 Shell 并选择可用环境。")
     row = next((item for item in command_shells() if item["id"] == selection), None)
     if row is None:
         raise ValueError("所选 Bash 环境不可用，请重新检测命令 Shell 并选择可用环境。")

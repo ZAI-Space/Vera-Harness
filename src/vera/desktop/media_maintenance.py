@@ -58,7 +58,12 @@ class MediaMaintenance:
                 if not record or record["kind"] != "compact" or record["phase"] != "complete":
                     raise ValueError("没有可恢复的截图整理备份。")
                 value = self.session(record["sessionFile"])
-                backup = read_json(self.store.directory / "media-backups" / f"{record['requestId']}.json")
+                try:
+                    backup = read_json(self.store.directory / "media-backups" / f"{record['requestId']}.json")
+                except (OSError, ValueError):
+                    raise ValueError("截图整理备份不可读取；已保留当前会话，请检查备份文件。") from None
+                if not isinstance(backup, dict) or not isinstance(backup.get("meta"), dict):
+                    raise ValueError("截图整理备份格式无效；已保留当前会话。")
                 # Also accept backups from the original layout, whose digest included view state.
                 legacy_hash = sha256(json.dumps(backup, sort_keys=True).encode()).hexdigest()
                 if record["backupHash"] not in {fingerprint(backup), legacy_hash}:

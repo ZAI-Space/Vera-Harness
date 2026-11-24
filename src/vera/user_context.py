@@ -24,13 +24,34 @@ class UserContext:
         self.path = self.directory / "entries.json"
 
     def entries(self) -> list[dict]:
-        """Return detached persisted entries, without creating an empty profile on read."""
-        return read_json(self.path).get("entries", []) if self.path.exists() else []
+        """Return detached entries; malformed persisted state raises a clear ValueError."""
+        if not self.path.exists():
+            return []
+        try:
+            value = read_json(self.path)
+            rows = value.get("entries", []) if isinstance(value, dict) else None
+            if not isinstance(rows, list):
+                raise ValueError("Expected an entry list.")
+            for row in rows:
+                self._validate_entry(row)
+                if not isinstance(row.get("id"), str) or not row["id"].strip() or "enabled" not in row:
+                    raise ValueError("Missing entry identifier or enabled state.")
+            if len({row["id"] for row in rows}) != len(rows):
+                raise ValueError("Duplicate entry identifiers.")
+        except ValueError as error:
+            raise ValueError("用户规则文件格式无效，请检查 entries.json 后重试。") from error
+        return rows
 
-    def save(self, entry: dict) -> dict:
-        """Create/update a bounded entry atomically; reject unknown identifiers or excess enabled content."""
+    @staticmethod
+    def _validate_entry(entry: dict) -> None:
+        """Reject malformed input before persistence or downstream field access."""
+        if not isinstance(entry, dict):
+            raise ValueError("条目格式无效。")
+        identifier = entry.get("id")
+        if identifier is not None and (not isinstance(identifier, str) or not identifier.strip()):
+            raise ValueError("条目标识无效，请刷新后重试。")
         kind, title, content = entry.get("kind"), entry.get("title"), entry.get("content")
-        if kind not in {"rule", "memory"} or not isinstance(title, str) or not 1 <= len(title.strip()) <= 128:
+        if kind not in ("rule", "memory") or not isinstance(title, str) or not 1 <= len(title.strip()) <= 128:
             raise ValueError("请选择规则或记忆，并填写 1～128 字的标题。")
         if (
             not isinstance(content, str)
@@ -38,6 +59,11 @@ class UserContext:
             or not isinstance(entry.get("enabled", True), bool)
         ):
             raise ValueError("内容须为 1～16000 字，启用状态须为布尔值。")
+
+    def save(self, entry: dict) -> dict:
+        """Create/update a bounded entry atomically; invalid input raises ValueError."""
+        self._validate_entry(entry)
+        kind, title, content = entry["kind"], entry["title"], entry["content"]
         private_directory(self.directory)
         with experiment_lock(self.directory):
             rows = self.entries()

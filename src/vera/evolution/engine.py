@@ -342,8 +342,16 @@ class Experiment:
         if result_path.is_symlink():
             raise EvolutionError("Optimizer results cannot be symbolic links.")
         if result_path.exists():
-            report = read_optimizer_result(result_path)
-            self._settle(self.config.optimizer_cost_limit, float(report["cost"]))
+            try:
+                report = read_optimizer_result(result_path)
+                cost = float(report["cost"])
+                if isinstance(report["cost"], bool) or not math.isfinite(cost) or cost < 0:
+                    raise ValueError("Invalid optimizer cost")
+                if not isinstance(report["status"], str):
+                    raise ValueError("Invalid optimizer status")
+            except (OSError, ValueError, TypeError, KeyError, OverflowError) as error:
+                raise EvolutionError("Optimizer result has invalid cost/status or cannot be read.") from error
+            self._settle(self.config.optimizer_cost_limit, cost)
             result["agent_status"] = report["status"]
         version["optimizer_result"] = result
         if result["returncode"] != 0 or result.get("agent_status") != "Submitted":

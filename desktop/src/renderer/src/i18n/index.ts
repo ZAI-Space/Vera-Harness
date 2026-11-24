@@ -16,8 +16,10 @@ const dictionaries: Record<Language, Messages> = { zh, en };
 
 /** 默认跟随系统语言（仅首期支持中/英，其他按英文处理） */
 function detectLanguage(): Language {
-	const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("pi-desktop.lang");
-	if (saved === "zh" || saved === "en") return saved;
+	for (const key of [STORAGE_KEY, "pi-desktop.lang"]) {
+		const saved = localStorage.getItem(key);
+		if (saved === "zh" || saved === "en") return saved;
+	}
 	return navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 

@@ -161,7 +161,7 @@ def pair_feishu(directory: Path, nonce: str) -> None:
         supplied = hashlib.sha256(message.text[6:].strip().encode()).hexdigest()
         if hmac.compare_digest(supplied, pairing["code_hash"]):
             credentials.save(f"paired-{nonce}", {"allowed_users": [message.user]})
-            (directory / f"pairing-{nonce}.stop").touch()
+            Path(pairing.get("stop_path") or directory / f"pairing-{nonce}.stop").touch()
             store.connection(pairing["account"], "paired")
         else:
             store.connection(pairing["account"], "pairing_code_mismatch")

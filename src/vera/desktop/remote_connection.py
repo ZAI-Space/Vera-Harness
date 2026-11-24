@@ -7,6 +7,7 @@ import time
 from contextlib import closing
 from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 
 from vera.channels.config import AccountConfig, ChannelConfig, ChannelError
 from vera.channels.credentials import CredentialStore
@@ -75,6 +76,7 @@ class RemoteConnection:
     def _login(self, channel, args, generation):
         try:
             if channel == "weixin":
+                deadline = time.monotonic() + 480
 
                 def show_qr(value):
                     import qrcode
@@ -90,6 +92,8 @@ class RemoteConnection:
                 def read_pin():
                     self.login_state = "pin"
                     while generation == self.generation and not self.pin:
+                        if time.monotonic() >= deadline:
+                            raise ChannelError("验证码输入超时，请重新开始绑定。")
                         time.sleep(0.2)
                     if generation != self.generation:
                         raise ChannelError("登录已取消。")
@@ -98,7 +102,7 @@ class RemoteConnection:
 
                 client = WeixinClient()
                 try:
-                    credentials = login(client, show_qr, read_pin)
+                    credentials = login(client, show_qr, read_pin, timeout=480)
                     with self.lock:
                         if generation == self.generation:
                             self.credentials.save(channel, credentials)
@@ -184,17 +188,24 @@ class RemoteConnection:
         if not legacy.is_file() or destination.exists():
             return
         directory.mkdir(parents=True, exist_ok=True)
-        with closing(sqlite3.connect(legacy)) as source, closing(sqlite3.connect(destination)) as target:
-            source.backup(target)
-            with target:
-                for table in ("outbox", "cursors", "connections"):
-                    target.execute(f"DELETE FROM {table} WHERE account != ?", (self.channel,))
-                target.execute("DELETE FROM messages WHERE json_extract(payload, '$.account') != ?", (self.channel,))
-                target.execute("DELETE FROM sessions WHERE id NOT IN (SELECT session FROM messages)")
-                target.execute(
-                    "UPDATE messages SET status='interrupted' WHERE status IN ('running','queued','received')"
-                )
-                target.execute("UPDATE outbox SET status='unknown' WHERE status IN ('sending','pending')")
+        staging = directory / f".{uuid4().hex}.migrating"
+        try:
+            with closing(sqlite3.connect(legacy)) as source, closing(sqlite3.connect(staging)) as target:
+                source.backup(target)
+                with target:
+                    for table in ("outbox", "cursors", "connections"):
+                        target.execute(f"DELETE FROM {table} WHERE account != ?", (self.channel,))
+                    target.execute(
+                        "DELETE FROM messages WHERE json_extract(payload, '$.account') != ?", (self.channel,)
+                    )
+                    target.execute("DELETE FROM sessions WHERE id NOT IN (SELECT session FROM messages)")
+                    target.execute(
+                        "UPDATE messages SET status='interrupted' WHERE status IN ('running','queued','received')"
+                    )
+                    target.execute("UPDATE outbox SET status='unknown' WHERE status IN ('sending','pending')")
+            staging.replace(destination)
+        finally:
+            staging.unlink(missing_ok=True)
 
     def _serve(self, gateway):
         try:

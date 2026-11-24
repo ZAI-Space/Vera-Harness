@@ -1,7 +1,7 @@
 import { environmentEntityRef, LOCAL_ENVIRONMENT } from "@vera/contracts";
 import { useEffect, useMemo, useState } from "react";
-import { getDesktopApi } from "../../api";
 import { getExecutionApi } from "../../environment-api";
+import { useBackendReconnectRevision } from "../../hooks/use-backend-reconnect-revision";
 import { useT } from "../../i18n";
 import { selectActiveCwd } from "../../lib/active-cwd";
 import { getDailyDirCached, initDailyDir, isDailyCwd } from "../../lib/daily";
@@ -148,13 +148,7 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 	const [revision, setRevision] = useState(0);
 	const [changing, setChanging] = useState(false);
 	const online = !cwd || environmentEntityRef(cwd).environment.kind === "local";
-	useEffect(
-		() =>
-			getDesktopApi().onBackendStatusChanged(({ connected }) => {
-				if (connected) setRevision((value) => value + 1);
-			}),
-		[],
-	);
+	const reconnectRevision = useBackendReconnectRevision(Boolean(cwd && online));
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: revision 是显式刷新，instance 是同址服务重启；两者均要求重新对账
 	useEffect(() => {
@@ -174,7 +168,7 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [cwd, revision, online]);
+	}, [cwd, revision, reconnectRevision, online]);
 
 	if (error && !current)
 		return (
@@ -217,7 +211,7 @@ function BranchPicker({ cwd }: { cwd: string | null }) {
 										void getExecutionApi(cwd)
 											.checkoutBranch({ cwd, branch })
 											.then(() => setRevision((value) => value + 1))
-											.catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+											.catch((error: unknown) => setError(errText(error) ?? String(error)))
 											.finally(() => setChanging(false));
 									}
 									close();
