@@ -37,11 +37,13 @@ export function ConfirmDialog({
 }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const confirmRef = useRef<HTMLButtonElement>(null);
+	const cancelRef = useRef<HTMLButtonElement>(null);
 
-	// 默认焦点（仅 autoFocusConfirm 时）：走显式 focus() 而非 autoFocus 属性——
-	// 属性版会被 lint/a11y/noAutofocus 拦，行为也不如这里可控（只在需要时焦点）
+	// 默认聚焦取消；仅调用方明确要求时聚焦确认，并在关闭后恢复原焦点。
 	useEffect(() => {
-		if (autoFocusConfirm) confirmRef.current?.focus();
+		const previous = document.activeElement as HTMLElement | null;
+		(autoFocusConfirm ? confirmRef : cancelRef).current?.focus();
+		return () => previous?.focus();
 	}, [autoFocusConfirm]);
 
 	useEffect(() => {
@@ -50,13 +52,34 @@ export function ConfirmDialog({
 			onCancel();
 		};
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onCancel();
+			const dialog = ref.current;
+			if (!dialog || [...document.querySelectorAll('[role="dialog"]')].at(-1) !== dialog) return;
+			if (e.key === "Escape" && !e.isComposing) {
+				e.stopImmediatePropagation();
+				onCancel();
+			}
+			if (e.key !== "Tab") return;
+			const controls = [
+				...dialog.querySelectorAll<HTMLElement>(
+					'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [contenteditable="true"], [tabindex="0"]',
+				),
+			];
+			const first = controls[0],
+				last = controls.at(-1);
+			const outside = !dialog.contains(document.activeElement);
+			if (e.shiftKey && (outside || document.activeElement === first)) {
+				e.preventDefault();
+				last?.focus();
+			} else if (!e.shiftKey && (outside || document.activeElement === last)) {
+				e.preventDefault();
+				first?.focus();
+			}
 		};
 		window.addEventListener("pointerdown", onPointerDown, true);
-		window.addEventListener("keydown", onKeyDown);
+		window.addEventListener("keydown", onKeyDown, true);
 		return () => {
 			window.removeEventListener("pointerdown", onPointerDown, true);
-			window.removeEventListener("keydown", onKeyDown);
+			window.removeEventListener("keydown", onKeyDown, true);
 		};
 	}, [onCancel]);
 
@@ -85,6 +108,7 @@ export function ConfirmDialog({
 					<button
 						type="button"
 						className="flex h-8 items-center rounded-[9px] px-3.5 text-ui-13 text-ink-dim transition-colors hover:bg-hover hover:text-ink"
+						ref={cancelRef}
 						onClick={onCancel}
 					>
 						{cancelLabel}

@@ -24,6 +24,7 @@ import { ChevronRightIcon, CopyIcon, ErrorCircleIcon } from "../icons";
  */
 const MERMAID_PROPS = {
 	isStrict: false,
+	enableMermaidInteractions: false,
 	showHeader: true, // header 里放着按钮，关掉会连复制一起没了（样式上悬浮化，见 globals.css）
 	showModeToggle: true, // 预览 / 源码
 	showCopyButton: true,

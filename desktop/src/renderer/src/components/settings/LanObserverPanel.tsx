@@ -3,11 +3,12 @@ import { useT } from "../../i18n";
 import { useSettingsStore } from "../../stores/settings";
 import { Switch } from "../ui/Switch";
 
-/** 设置 → 局域网观察：仅展示本机只读 HTTP 服务的开关与访问入口。 */
+/** 本机局域网服务状态、配对入口与独立的远程控制开关。 */
 export function LanObserverPanel() {
 	const t = useT();
 	const status = useSettingsStore((s) => s.lanStatus);
 	const saving = useSettingsStore((s) => s.lanSaving);
+	const error = useSettingsStore((s) => s.lanError);
 	const refresh = useSettingsStore((s) => s.refreshLanStatus);
 	const setEnabled = useSettingsStore((s) => s.setLanEnabled);
 	const setRemoteControl = useSettingsStore((s) => s.setLanRemoteControl);
@@ -38,12 +39,25 @@ export function LanObserverPanel() {
 				<div className="flex items-center justify-between gap-4">
 					<h3 className="text-ui-13 font-medium text-ink">{t("settings.lan.title")}</h3>
 					<Switch
+						aria-label={t("settings.lan.title")}
 						checked={status?.enabled === true}
 						disabled={saving || status === null}
 						onCheckedChange={setEnabled}
 					/>
 				</div>
 				<p className="mt-0.5 text-ui-11 leading-relaxed text-ink-faint">{t("settings.lan.hint")}</p>
+				{error && (
+					<div role="alert" className="mt-3 text-ui-12 text-err">
+						<p>{error}</p>
+						<button
+							type="button"
+							className="mt-2 rounded-lg bg-hover px-3 py-2 text-ink"
+							onClick={() => void refresh()}
+						>
+							{t("settings.lan.retry")}
+						</button>
+					</div>
+				)}
 			</div>
 
 			{status?.enabled && (
@@ -59,7 +73,12 @@ export function LanObserverPanel() {
 								{t("settings.lan.remoteControlHint")}
 							</p>
 						</div>
-						<Switch checked={status.remoteControl} disabled={saving} onCheckedChange={setRemoteControl} />
+						<Switch
+							aria-label={t("settings.lan.remoteControl")}
+							checked={status.remoteControl}
+							disabled={saving}
+							onCheckedChange={setRemoteControl}
+						/>
 					</div>
 					{url ? (
 						<>

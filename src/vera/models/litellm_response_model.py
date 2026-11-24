@@ -1,3 +1,5 @@
+"""Adapt LiteLLM Responses messages and tool calls to the Model protocol."""
+
 import logging
 import time
 from collections.abc import Callable
@@ -12,6 +14,7 @@ from vera.models.utils.actions_toolcall_response import (
     format_toolcall_observation_messages,
     parse_toolcall_actions_response,
 )
+from vera.models.utils.content_string import get_content_string
 from vera.models.utils.retry import retry
 
 logger = logging.getLogger("litellm_response_model")
@@ -74,9 +77,19 @@ class LitellmResponseModel(LitellmModel):
             **cost_output,
             "timestamp": time.time(),
         }
+        if self.config.allow_text_final and not actions:
+            message["extra"]["text_final"] = True
         return message
 
     def _parse_actions(self, response) -> list[dict]:
+        if self.config.allow_text_final:
+            value = response.model_dump() if hasattr(response, "model_dump") else dict(response)
+            if (
+                value.get("status") == "completed"
+                and not any(item.get("type") == "function_call" for item in value.get("output", []))
+                and get_content_string(value).strip()
+            ):
+                return []
         return parse_toolcall_actions_response(
             getattr(response, "output", []),
             format_error_template=self.config.format_error_template,

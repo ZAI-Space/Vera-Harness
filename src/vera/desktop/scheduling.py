@@ -32,7 +32,7 @@ class ScheduledTasks:
                     ),
                     "errorCode": None if row["status"] == "completed" else row["status"],
                     "startedAt": row.get("started_at") or row.get("scheduled_at"),
-                    "endedAt": row.get("ended_at"),
+                    "endedAt": row.get("finished_at"),
                     "output": result.get("summary", ""),
                 }
             )
@@ -79,7 +79,13 @@ class ScheduledTasks:
                 }
             )
             config["agent"]["mode"] = "yolo"
+            if model:
+                config["desktop_provider_ref"] = model
+                config["desktop_state_dir"] = str(self.store.directory)
             spec = {
+                "cost_limit": 0,
+                "step_limit": 0,
+                "timeout": 0,
                 "name": draft["title"],
                 "prompt": draft["prompt"],
                 "schedule": expression,

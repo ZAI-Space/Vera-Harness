@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
-import { THINKING_BAR_KNOB, thinkingLevelKey, thinkingLevelPos } from "../../lib/thinking";
+import { isThinkingLevel, THINKING_BAR_KNOB, thinkingLevelKey, thinkingLevelPos } from "../../lib/thinking";
 import { useSessionsStore } from "../../stores/sessions";
 
 /** 指针位移超过它才当「拖拽」（像素）：低于它算点击，点击要留动画 */
@@ -19,6 +19,11 @@ const DRAG_THRESHOLD_PX = 3;
  */
 export function ThinkingSlider({ level, supported }: { level: string; supported: readonly string[] }) {
 	const t = useT();
+	const label = isThinkingLevel(level)
+		? t(thinkingLevelKey(level))
+		: level === "default"
+			? t("modelAdvanced.defaultReasoning")
+			: level;
 	const setThinkingLevel = useSessionsStore((s) => s.setThinkingLevel);
 	const [pressing, setPressing] = useState(false);
 	const [dragging, setDragging] = useState(false);
@@ -59,7 +64,7 @@ export function ThinkingSlider({ level, supported }: { level: string; supported:
 		<div className={`flex flex-col gap-[7px] px-2 pt-1 pb-2 ${locked ? "opacity-70" : ""}`}>
 			<div className="flex items-baseline justify-between px-0.5">
 				<span className="text-ui-11 text-ink-faint">{t("composer.thinkingDepth")}</span>
-				<span className="text-ui-13 font-medium text-ink-2">{t(thinkingLevelKey(level))}</span>
+				<span className="text-ui-13 font-medium text-ink-2">{label}</span>
 			</div>
 			<div className="think-slider" data-dragging={dragging ? "true" : "false"}>
 				<div className="think-track" />
@@ -83,7 +88,7 @@ export function ThinkingSlider({ level, supported }: { level: string; supported:
 							step={1}
 							value={index}
 							aria-label={t("composer.thinkingDepth")}
-							aria-valuetext={t(thinkingLevelKey(level))}
+							aria-valuetext={label}
 							onPointerDown={(e) => {
 								setPressing(true);
 								originX.current = e.clientX;

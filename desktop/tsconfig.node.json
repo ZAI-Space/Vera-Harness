@@ -12,6 +12,8 @@
     "src/main",
     "src/preload",
     "electron.vite.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "tests/main",
+    "tests/preload"
   ]
 }

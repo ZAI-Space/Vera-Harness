@@ -156,6 +156,17 @@ def test_reject_ambiguous_or_credential_bearing_sources(source):
     assert normalize_source("https://gitee.com/team/plugins") == "https://gitee.com/team/plugins.git"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows cannot create URL-shaped directory components.")
+@pytest.mark.parametrize("host", ["github.com", "gitee.com"])
+def test_remote_source_cannot_select_url_shaped_project_directory(tmp_path, monkeypatch, host):
+    """POSIX directories that resemble URLs cannot replace a remote repository."""
+    source = f"https://{host}/example/repository"
+    (tmp_path / source).mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    assert normalize_source(source) == source + ".git"
+    assert normalize_source(str(tmp_path)) == str(tmp_path.resolve())
+
+
 def test_unsupported_capabilities_bad_metadata_and_first_install_failure(tmp_path):
     manager = PluginManager(tmp_path / "store")
     package = write_plugin(tmp_path / "source", layout="codex")

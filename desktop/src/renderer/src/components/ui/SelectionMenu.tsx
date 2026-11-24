@@ -107,7 +107,10 @@ export function SelectionMenu({
 				onClose();
 		};
 		const scroll = (event: Event) => {
-			if (!ref.current?.contains(event.target as Node)) onClose();
+			const target = event.target;
+			// Background chat auto-scroll must not close another page's settings picker.
+			if (target === document || target === window || (target instanceof Element && target.contains(anchor)))
+				onClose();
 		};
 		window.addEventListener("pointerdown", outside, true);
 		window.addEventListener("scroll", scroll, true);

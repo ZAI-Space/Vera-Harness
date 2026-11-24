@@ -50,6 +50,8 @@ export interface McpGlobalNotice {
 
 /** 单个 MCP server 的视图（配置 + 运行态合流） */
 export interface McpServerView {
+	/** Validated transport options, including environment references, for JSON editing. */
+	config?: Record<string, unknown>;
 	/** Last explicit connection test. Its transport is already closed, not a live session connection. */
 	verification?: { ok: boolean; checkedAt: number; tools: McpToolView[]; error?: string } | null;
 	name: string;

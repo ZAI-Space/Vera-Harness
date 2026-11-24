@@ -1,0 +1,39 @@
+{
+	"name": "vera-harness",
+	"version": "0.1.0-alpha.1",
+	"description": "Launch the VERA Harness desktop app with its local Python runtime",
+	"type": "module",
+	"main": "out/main/index.js",
+	"bin": {
+		"vera-harness": "bin/vera-harness.mjs"
+	},
+	"engines": {
+		"node": ">=22 <26"
+	},
+	"license": "SEE LICENSE IN THIRD_PARTY_NOTICES.md",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ZAI-Space/Vera-Harness.git"
+	},
+	"homepage": "https://github.com/ZAI-Space/Vera-Harness",
+	"bugs": "https://github.com/ZAI-Space/Vera-Harness/issues",
+	"files": [
+		"bin",
+		"out",
+		"build",
+		"python",
+		"source",
+		"runtime.json",
+		"LICENSE.md",
+		"THIRD_PARTY_NOTICES.md",
+		"third_party"
+	],
+	"dependencies": {
+		"electron": "43.8.12"
+	},
+	"publishConfig": {
+		"access": "public",
+		"tag": "latest",
+		"registry": "https://registry.npmjs.org/"
+	}
+}

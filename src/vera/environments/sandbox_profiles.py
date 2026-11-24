@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import closing
 from copy import deepcopy
 from pathlib import Path
+from threading import RLock
 
 from pydantic import BaseModel, ConfigDict
 
@@ -32,7 +33,9 @@ def _name(name: str) -> str:
 class SandboxProfiles:
     """Manage named Docker/Bubblewrap profiles, without installing or starting containers.
 
-    SQLite transactions serialize updates across terminal and desktop processes.
+    A local lock queues callers sharing this store; SQLite transactions serialize
+    updates across terminal and desktop processes. Schema creation and profile
+    writes commit together.
     Workspace paths are bound to the current project when supplied to check/select;
     otherwise an explicitly saved workspace is used. Invalid changes leave the
     existing profile untouched. Corrupt or inaccessible stores raise ToolError.
@@ -40,6 +43,7 @@ class SandboxProfiles:
 
     def __init__(self, path: Path | None = None):
         self.path = (path if path is not None else SandboxProfileSettings().path).expanduser().resolve()
+        self._lock = RLock()
 
     @classmethod
     def from_config(cls, config: dict) -> "SandboxProfiles":
@@ -51,7 +55,10 @@ class SandboxProfiles:
         if not self.path.exists():
             return {}
         try:
-            with closing(sqlite3.connect(f"{self.path.as_uri()}?mode=ro", uri=True, timeout=5)) as connection:
+            with (
+                self._lock,
+                closing(sqlite3.connect(f"{self.path.as_uri()}?mode=ro", uri=True, timeout=5)) as connection,
+            ):
                 rows = connection.execute("SELECT name, config FROM profiles ORDER BY name").fetchall()
             return {_name(name): self._validate(json.loads(value)) for name, value in rows}
         except (sqlite3.Error, json.JSONDecodeError) as error:
@@ -75,14 +82,16 @@ class SandboxProfiles:
         profile.workspace = profile.workspace.expanduser().resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
-                connection.execute("CREATE TABLE IF NOT EXISTS profiles (name TEXT PRIMARY KEY, config TEXT NOT NULL)")
+            with self._lock, closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
                 connection.execute("BEGIN IMMEDIATE")
+                connection.execute("CREATE TABLE IF NOT EXISTS profiles (name TEXT PRIMARY KEY, config TEXT NOT NULL)")
                 if not replace and connection.execute("SELECT 1 FROM profiles WHERE name = ?", (name,)).fetchone():
                     raise ToolError("Sandbox profile already exists; explicitly request replacement.")
                 connection.execute("INSERT OR REPLACE INTO profiles VALUES (?, ?)", (name, profile.model_dump_json()))
         except sqlite3.Error as error:
-            raise ToolError(f"Cannot save sandbox profile: {type(error).__name__}.") from None
+            code = getattr(error, "sqlite_errorname", None)
+            detail = f"{type(error).__name__} ({code})" if code else type(error).__name__
+            raise ToolError(f"Cannot save sandbox profile: {detail}.") from None
         return {"name": name, "config": profile.model_dump(mode="json")}
 
     def remove(self, name: str) -> None:
@@ -91,7 +100,7 @@ class SandboxProfiles:
         if not self.path.exists():
             raise ToolError(f"Unknown sandbox profile: {name!r}.")
         try:
-            with closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
+            with self._lock, closing(sqlite3.connect(self.path, timeout=5)) as connection, connection:
                 if not connection.execute("DELETE FROM profiles WHERE name = ?", (name,)).rowcount:
                     raise ToolError(f"Unknown sandbox profile: {name!r}.")
         except sqlite3.Error as error:

@@ -1,8 +1,9 @@
 // Adapted from PI-Desktop PluginsPage / InstalledPluginsPanel / MarketplacePanel.
 // LGPL-3.0-only; see third_party/pi-desktop/NOTICE.md for source and modifications.
 import { useEffect, useState } from "react";
-import { PlusIcon, PuzzleIcon, TrashIcon } from "../../components/icons";
+import { PlusIcon, TrashIcon } from "../../components/icons";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { Modal } from "../../components/ui/Modal";
 import { Select } from "../../components/ui/Select";
 import { Switch } from "../../components/ui/Switch";
 import {
@@ -15,6 +16,7 @@ import { isHarnessConnected } from "../../harness-api";
 import { useT } from "../../i18n";
 import { GROUP_ORDER, groupOf, matchesQuery, pluginDescription, type WorkspacePlugin } from "./model";
 import { PluginDetail } from "./PluginDetail";
+import { PluginIcon } from "./PluginIcon";
 import { PluginSourceForm } from "./PluginSourceForm";
 import { usePluginPreviewStore } from "./plugin-preview-store";
 import { PLUGIN_PREVIEW_CATALOG } from "./preview-catalog";
@@ -35,9 +37,9 @@ export function PluginsPage() {
 	const [tab, setTab] = useState<"installed" | "market">("installed");
 	const [queries, setQueries] = useState({ installed: "", market: "" });
 	const [category, setCategory] = useState("all");
-	const [sort, setSort] = useState("featured");
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [sourceOpen, setSourceOpen] = useState(false);
+	const repositories = usePluginPreviewStore((state) => state.repositories);
 	const [pending, setPending] = useState<{ kind: "add" | "remove"; plugin: WorkspacePlugin } | null>(null);
 	useEffect(() => {
 		if (tab === "market" && isHarnessConnected() && !marketLoaded && !marketLoading && !marketError)
@@ -51,8 +53,6 @@ export function PluginsPage() {
 			matchesQuery(query, plugin.name, plugin.author, pluginDescription(plugin, t), ...plugin.capabilities) &&
 			(tab === "installed" || category === "all" || category === plugin.category),
 	);
-	if (sort === "name" && tab === "market")
-		filtered.sort((left, right) => left.name.localeCompare(right.name));
 	const added = (id: string) => plugins.some((plugin) => plugin.id === id);
 	const card = (plugin: WorkspacePlugin) => (
 		<article key={plugin.id} className="min-w-0 rounded-xl bg-surface p-5 shadow-soft">
@@ -62,7 +62,7 @@ export function PluginsPage() {
 					className="flex min-w-0 items-center gap-3 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ink-faint"
 					onClick={() => setSelectedId(plugin.id)}
 				>
-					<PuzzleIcon size={22} />
+					<PluginIcon key={plugin.id} name={plugin.name} icon={plugin.icon} />
 					<div className="min-w-0">
 						<h3 className="truncate text-ui-14 font-medium text-ink">{plugin.name}</h3>
 						<p className="mt-1 text-ui-11 text-ink-faint">
@@ -82,9 +82,17 @@ export function PluginsPage() {
 			<p className="mt-4 line-clamp-2 min-h-10 text-ui-13 leading-relaxed text-ink-dim">
 				{pluginDescription(plugin, t)}
 			</p>
-			<p className="mt-3 text-ui-11 text-ink-faint">
-				{plugin.capabilities.join(" · ") || t("plugins.sourceDraft")}
-			</p>
+			<div className="mt-3 flex flex-wrap gap-1.5">
+				{plugin.capabilities.length ? (
+					plugin.capabilities.map((capability) => (
+						<span key={capability} className="rounded-md bg-hover px-2 py-1 text-ui-11 text-ink-dim">
+							{capability}
+						</span>
+					))
+				) : (
+					<span className="text-ui-11 text-ink-faint">{t("plugins.sourceDraft")}</span>
+				)}
+			</div>
 			<div className="mt-4 flex items-center justify-between gap-2">
 				<WorkspaceButton onClick={() => setSelectedId(plugin.id)}>{t("plugins.details")}</WorkspaceButton>
 				{tab === "market" ? (
@@ -115,7 +123,7 @@ export function PluginsPage() {
 				<>
 					<WorkspaceButton onClick={() => setSourceOpen((open) => !open)}>
 						<PlusIcon />
-						{t("plugins.fromSource")}
+						{t("plugins.addRepository")}
 					</WorkspaceButton>
 					{tab === "installed" && (
 						<WorkspaceButton className="bg-hover" onClick={() => setTab("market")}>
@@ -126,33 +134,21 @@ export function PluginsPage() {
 			}
 		>
 			{sourceOpen && (
-				<PluginSourceForm
-					onCancel={() => setSourceOpen(false)}
-					onSave={async (plugin) => {
-						if ((await add(plugin)) === false) return;
-						setSourceOpen(false);
-						setTab("installed");
-						setSelectedId(plugin.id);
-					}}
-				/>
+				<Modal title={t("plugins.addRepository")} onClose={() => setSourceOpen(false)}>
+					<PluginSourceForm
+						errorMessage={error}
+						onCancel={() => setSourceOpen(false)}
+						onSave={async (plugin) => {
+							if (isHarnessConnected()) {
+								if (!(await usePluginPreviewStore.getState().addRepository(plugin.source ?? ""))) return;
+							} else if (!(await add(plugin))) return;
+							setSourceOpen(false);
+							setTab("market");
+						}}
+					/>
+				</Modal>
 			)}
-			{isHarnessConnected() && (
-				<fieldset className="flex gap-2" aria-label="Plugin marketplace source">
-					{(["github", "gitee"] as const).map((source) => (
-						<WorkspaceButton
-							key={source}
-							aria-pressed={marketSource === source}
-							disabled={busy !== null || (marketLoading && marketSource === source)}
-							onClick={() => {
-								setTab("market");
-								void usePluginPreviewStore.getState().loadMarket(source);
-							}}
-						>
-							{source === "github" ? "GitHub" : "Gitee"}
-						</WorkspaceButton>
-					))}
-				</fieldset>
-			)}
+
 			{error && (
 				<p role="alert" className="text-ui-12 text-err">
 					{error}
@@ -226,22 +222,32 @@ export function PluginsPage() {
 								label: t(`plugins.categories.${id}`),
 							}))}
 						/>
-						<Select
-							ariaLabel={t("plugins.sort")}
-							value={sort}
-							onChange={setSort}
-							variant="ghost"
-							options={(["featured", "name"] as const).map((id) => ({
-								value: id,
-								label: t(`plugins.sorts.${id}`),
-							}))}
-						/>
+						{isHarnessConnected() && (
+							<>
+								<Select
+									ariaLabel={t("plugins.sourceFilter")}
+									value={marketSource}
+									onChange={(source) => void usePluginPreviewStore.getState().loadMarket(source)}
+									variant="ghost"
+									options={repositories.map((repository) => ({
+										value: repository.id,
+										label: repository.name,
+									}))}
+								/>
+								<WorkspaceButton
+									disabled={marketLoading}
+									onClick={() => void usePluginPreviewStore.getState().loadMarket(marketSource, true)}
+								>
+									{t("plugins.refreshMarket")}
+								</WorkspaceButton>
+							</>
+						)}
 					</div>
 				</div>
 			)}
-			<div className={`grid min-w-0 gap-5 ${selected ? "min-[1100px]:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
+			<div className="min-w-0">
 				<div role="tabpanel" id={`plugins-panel-${tab}`} aria-labelledby={`plugins-tab-${tab}`}>
-					{tab === "market" && (marketLoading || marketError) ? null : filtered.length === 0 ? (
+					{tab === "market" && marketLoading && !filtered.length ? null : filtered.length === 0 ? (
 						<WorkspaceEmpty
 							title={t(
 								query || category !== "all"
@@ -282,15 +288,17 @@ export function PluginsPage() {
 						</div>
 					)}
 				</div>
-				{selected && (
+			</div>
+			{selected && (
+				<Modal title={t("plugins.details")} showHeader={false} onClose={() => setSelectedId(null)}>
 					<PluginDetail
 						plugin={selected}
 						added={added(selected.id)}
 						onClose={() => setSelectedId(null)}
 						onAdd={() => setPending({ kind: "add", plugin: selected })}
 					/>
-				)}
-			</div>
+				</Modal>
+			)}
 			{pending && (
 				<ConfirmDialog
 					title={t(pending.kind === "add" ? "plugins.addPreview" : "plugins.removeTitle")}

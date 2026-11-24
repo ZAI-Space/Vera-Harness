@@ -1,6 +1,7 @@
 import { deriveTurnChanges, environmentEntityRef, type TurnChanges } from "@vera/contracts";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getExecutionApi } from "../../environment-api";
+import { useBackendReconnectRevision } from "../../hooks/use-backend-reconnect-revision";
 import { useT } from "../../i18n";
 import { selectActiveCwd } from "../../lib/active-cwd";
 import { clearSelectionWithin } from "../../lib/clear-selection-within";
@@ -38,6 +39,7 @@ function BranchRowForDirectory({ cwd }: { cwd: string | null }) {
 	const [error, setError] = useState<string | null>(null);
 	const online = !cwd || environmentEntityRef(cwd).environment.kind === "local";
 	const hasContent = !!messages && messages.length > 0;
+	const reconnectRevision = useBackendReconnectRevision(Boolean(cwd && hasContent && online));
 
 	// cwd 变化（切会话/切项目）即刷新；展开时也重拉一次（分支可能在终端被切走）
 	// biome-ignore lint/correctness/useExhaustiveDependencies: open 是有意触发源——展开时重拉一次（分支可能在终端被切走）
@@ -58,7 +60,7 @@ function BranchRowForDirectory({ cwd }: { cwd: string | null }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [cwd, activeSessionId, hasContent, open, online]);
+	}, [cwd, activeSessionId, hasContent, open, online, reconnectRevision]);
 
 	// 点击外部关闭（Dropdown 同款）
 	useEffect(() => {

@@ -1,10 +1,10 @@
 """Exercise project selection and terminal commands with real files and prompt input."""
 
+import asyncio
 import json
+import os
 import subprocess
-import time
 from copy import deepcopy
-from threading import Thread
 
 import pytest
 from prompt_toolkit import PromptSession
@@ -61,6 +61,20 @@ def test_git_file_selection_filters_ignored_credentials_and_preserves_literal_co
     ]
     assert session.files.attach(r"email@example.org and \@literal") == r"email@example.org and \@literal"
     assert session.files.list(limit=0) == []
+
+
+@pytest.mark.skipif(os.name == "nt", reason="The portable fsmonitor fixture uses a POSIX shell.")
+def test_git_file_selection_does_not_run_workspace_fsmonitor(tmp_path, session):
+    """Project enumeration must not execute a hook selected by workspace metadata."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    marker = tmp_path.parent / "fsmonitor-marker"
+    hook = tmp_path / "fsmonitor.sh"
+    hook.write_text(f"#!/bin/sh\nprintf invoked > {marker}\nprintf 'token\\0'\n", encoding="utf-8")
+    hook.chmod(0o700)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "core.fsmonitor", str(hook)], check=True)
+
+    assert "src/hello.py" in session.files.list()
+    assert not marker.exists()
 
 
 @pytest.mark.parametrize(
@@ -210,24 +224,42 @@ def test_in_task_controls_do_not_reconfigure_active_agent_or_send_commands_to_mo
 
 def test_tab_inserts_quoted_file_in_actual_multiline_prompt(session):
     """Exercise key handling rather than only requesting completion candidates."""
-    with create_pipe_input() as pipe:
-        prompt = PromptSession(input=pipe, output=DummyOutput(), multiline=True, completer=TerminalCompleter(session))
 
-        def enter():
-            pipe.send_text("Read @space")
-            time.sleep(0.15)
-            pipe.send_text("\t")
-            time.sleep(0.15)
-            pipe.send_text("\x1b\r")
-            time.sleep(1)
-            pipe.close()
+    async def exercise_prompt():
+        with create_pipe_input() as pipe:
+            prompt = PromptSession(
+                input=pipe, output=DummyOutput(), multiline=True, completer=TerminalCompleter(session)
+            )
+            candidates_ready = asyncio.Event()
+            completion_inserted = asyncio.Event()
 
-        writer = Thread(target=enter, daemon=True)
-        writer.start()
-        try:
-            assert prompt.prompt() == 'Read @"space name.md"'
-        finally:
-            writer.join(timeout=3)
+            def observe_candidates(buffer):
+                state = buffer.complete_state
+                if (
+                    buffer.text == "Read @space"
+                    and state
+                    and any(item.text == '@"space name.md"' for item in state.completions)
+                ):
+                    candidates_ready.set()
+
+            def observe_text(buffer):
+                if buffer.text == 'Read @"space name.md"':
+                    completion_inserted.set()
+
+            prompt.default_buffer.on_completions_changed += observe_candidates
+            prompt.default_buffer.on_text_changed += observe_text
+
+            async def enter():
+                pipe.send_text("Read @space")
+                await candidates_ready.wait()
+                pipe.send_text("\t")
+                await completion_inserted.wait()
+                pipe.send_text("\x1b\r")
+
+            result, _ = await asyncio.wait_for(asyncio.gather(prompt.prompt_async(), enter()), timeout=5)
+            assert result == 'Read @"space name.md"'
+
+    asyncio.run(exercise_prompt())
 
 
 def test_existing_human_mode_is_preserved_until_permission_command(session):

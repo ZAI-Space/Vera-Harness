@@ -14,6 +14,21 @@ export default defineConfig({
 	renderer: {
 		resolve: { alias },
 		server: { port: 5180, strictPort: true },
-		plugins: [react(), tailwindcss()],
+		plugins: [
+			{
+				name: "vera-katex-woff2",
+				enforce: "pre",
+				transform(code, id) {
+					if (!/[/\\]katex[^/\\]*\.css(?:\?|$)/.test(id)) return;
+					// 在 Vite 收集资产之前移除旧格式，保留每个公式字族的 WOFF2。
+					return code.replace(/src:([^;}]+)/g, (declaration, sources: string) => {
+						const woff2 = sources.split(",").filter((source) => source.includes(".woff2"));
+						return woff2.length ? `src:${woff2.join(",")}` : declaration;
+					});
+				},
+			},
+			react(),
+			tailwindcss(),
+		],
 	},
 });

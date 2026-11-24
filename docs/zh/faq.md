@@ -28,4 +28,4 @@
 
 ??? question "前端接口全部完成了吗？"
 
-    已完成。桌面适配器通过带认证的本机回环传输连接 Python 服务。支持的方法和校验边界见[前端对接](frontend-integration.md)；可选供应商和沙箱仍取决于本机环境。
+    Electron 桌面端已通过带认证的本机回环 Python 服务接入会话、流式事件和 Runtime 操作。可选集成与真实服务商仍有各自的前置条件和验收范围。见[前端对接](frontend-integration.md)。

@@ -1,3 +1,5 @@
+"""Query OpenRouter Chat Completions and normalize usage and action observations."""
+
 import json
 import logging
 import os
@@ -18,6 +20,7 @@ from vera.models.utils.cache_control import set_cache_control
 from vera.models.utils.openai_multimodal import expand_multimodal_content
 from vera.models.utils.retry import retry
 from vera.models.utils.tool_registry import ToolCallingModel
+from vera.models.utils.usage import token_usage
 
 logger = logging.getLogger("openrouter_model")
 
@@ -27,8 +30,8 @@ class OpenRouterModelConfig(BaseModel):
     model_kwargs: dict[str, Any] = {}
     set_cache_control: Literal["default_end"] | None = None
     """Set explicit cache control markers, for example for Anthropic models"""
-    cost_tracking: Literal["default", "ignore_errors"] = os.getenv("VERA_COST_TRACKING", "default")
-    """Cost tracking mode for this model. Can be "default" or "ignore_errors" (ignore errors/missing cost info)"""
+    cost_tracking: Literal["default", "ignore_errors", "tokens"] = os.getenv("VERA_COST_TRACKING", "default")
+    """Use strict cost accounting, tolerate missing prices, or record only reported tokens."""
     format_error_template: str = "{{ error }}"
     """Template used when the LM's output is not in the expected format."""
     observation_template: str = (
@@ -53,6 +56,14 @@ class OpenRouterRateLimitError(Exception):
 
 
 class OpenRouterModel(ToolCallingModel):
+    """Call OpenRouter's chat-completions endpoint through the model protocol.
+
+    ``OpenRouterModelConfig`` supplies the model and request options. The
+    ``OPENROUTER_API_KEY`` environment variable is read by the adapter; calls
+    can perform network I/O, update usage statistics and raise API or format
+    errors.
+    """
+
     abort_exceptions: list[type[Exception]] = [OpenRouterAuthenticationError, KeyboardInterrupt]
 
     def __init__(self, **kwargs):
@@ -116,8 +127,11 @@ class OpenRouterModel(ToolCallingModel):
         }
         return message
 
-    def _calculate_cost(self, response) -> dict[str, float]:
+    def _calculate_cost(self, response) -> dict:
         usage = response.get("usage", {})
+        if self.config.cost_tracking == "tokens":
+            raw = usage if isinstance(usage, dict) else {}
+            return {"cost": 0.0, "cost_known": False, "usage": token_usage(raw), "usage_reported": bool(raw)}
         cost = usage.get("cost", 0.0)
         if cost <= 0.0 and self.config.cost_tracking != "ignore_errors":
             raise RuntimeError(

@@ -10,6 +10,7 @@ import { getExecutionApi } from "../../environment-api";
 import { isHarnessConnected } from "../../harness-api";
 import { prepareHarnessTask } from "../../harness-settings";
 import { useT } from "../../i18n";
+import { useBehaviorPreferencesStore } from "../../stores/behavior-preferences";
 import {
 	appendDraftInput,
 	COMPOSER_FOCUS_EVENT,
@@ -21,6 +22,7 @@ import {
 	takeDraft,
 	useDraftStore,
 } from "../../stores/drafts";
+import { usePermissionPolicyStore } from "../../stores/permission-policy";
 import { isSessionSynchronizing } from "../../stores/session-event-boundary";
 import { useSessionsStore } from "../../stores/sessions";
 import { useSettingsStore } from "../../stores/settings";
@@ -72,7 +74,7 @@ export function useComposerSend(options: UseComposerSendOptions) {
 	};
 
 	/** 确保有活跃会话（新会话页则把那唯一一份 draft 转正），返回 sessionId */
-	const ensureSession = async (): Promise<string | null> => {
+	const ensureSession = async (onCreated?: (sessionId: string) => void): Promise<string | null> => {
 		const current = options.activeSessionId;
 		if (current) {
 			if (isSessionSynchronizing(current)) throw new Error(t("environment.synchronizing"));
@@ -85,7 +87,21 @@ export function useComposerSend(options: UseComposerSendOptions) {
 		}
 		// 用返回值定位新会话，不读 activeSessionId：创建期间用户可能已切走，
 		// 此时新会话仍在后台存在（latest-wins 不让它抢焦点），读 active 会把消息发到别人身上
-		return useSessionsStore.getState().createSession();
+		const draft = useSessionsStore.getState().newSessionDraft;
+		const policy =
+			usePermissionPolicyStore.getState().byTarget[`draft:${draft?.generation ?? "initial"}`] ??
+			useBehaviorPreferencesStore.getState().permissionPolicy;
+		const sessionId = await useSessionsStore.getState().createSession();
+		if (sessionId) onCreated?.(sessionId);
+		// The first message must wait for the explicitly selected draft policy to reach the backend.
+		if (
+			sessionId &&
+			isHarnessConnected() &&
+			!(await usePermissionPolicyStore.getState().savePolicy(sessionId, policy))
+		) {
+			throw new Error(t("composer.permissionSaveFailed"));
+		}
+		return sessionId;
 	};
 
 	const resolveSlashContent = (content: string) =>
@@ -171,7 +187,11 @@ export function useComposerSend(options: UseComposerSendOptions) {
 				) {
 					throw new Error(t("composer.targetChanged"));
 				}
-				sessionId = await ensureSession();
+				sessionId = await ensureSession((created) => {
+					sessionId = created;
+					recoveryKey = created;
+					setPending(recoveryKey, true);
+				});
 				if (!sessionId) throw new Error(t("slash.feedback.noSession"));
 				recoveryKey = sessionId;
 				setPending(recoveryKey, true);
@@ -232,11 +252,22 @@ export function useComposerSend(options: UseComposerSendOptions) {
 		// 选区引用置于正文前；文件和 skill 保留在正文原位置。
 		const quoteBlock = buildQuoteBlock(quotes);
 		const body = text.trim();
-		let content = [quoteBlock, slashCommand ? `/${slashCommand}${body ? ` ${body}` : ""}` : body]
-			.filter(Boolean)
-			.join("\n\n");
+		if (slashCommand?.startsWith("subagent:") && !body) {
+			showFeedback(t("slash.feedback.noSubagentTask"), "warn");
+			return;
+		}
+		const invocation = slashCommand ? (options.resolveSlashCommand?.(slashCommand) ?? slashCommand) : null;
+		const isSubagent = slashCommand?.startsWith("subagent:");
+		// 委派命令必须在正文首部；引用也是本次任务的输入，不能把命令挤成普通文本。
+		let content = isSubagent
+			? `/${invocation} ${[quoteBlock, body].filter(Boolean).join("\n\n")}`
+			: [quoteBlock, invocation ? `/${invocation}${body ? ` ${body}` : ""}` : body]
+					.filter(Boolean)
+					.join("\n\n");
 		const hasReferences = currentDraft.document.parts.some((p) => p.type !== "text");
-		const prefix = [quoteBlock ? `${quoteBlock}\n\n` : "", slashCommand ? `/${slashCommand} ` : ""].join("");
+		const prefix = isSubagent
+			? `/${invocation} ${quoteBlock ? `${quoteBlock}\n\n` : ""}`
+			: [quoteBlock ? `${quoteBlock}\n\n` : "", invocation ? `/${invocation} ` : ""].join("");
 		const document = hasReferences
 			? normalizeComposerDocument({
 					version: 1,

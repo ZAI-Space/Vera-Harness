@@ -110,7 +110,7 @@ export interface UiState {
 	windowBounds: Rect | null;
 	/**
 	 * 上次使用的项目目录（重启后启动页预填用）。**只记目录、不恢复任何会话**：
-	 * v10 起启动仍然是纯空会话页（与 pi 原生/Codex 一致），这里只让用户不用重选项目。
+	 * 启动保持空会话页，此偏好只恢复项目目录，不恢复已打开的会话。
 	 */
 	lastCwd: string | null;
 }
@@ -284,6 +284,8 @@ export interface SlashCommandInfo {
 	name: string;
 	description: string;
 	argumentHint?: string;
+	/** Display aliases may include a selected resource; preserve the backend invocation. */
+	invocationName?: string;
 	source: SlashCommandSource;
 	/** 内置命令是否已在桌面端实现（模板/skill/扩展命令恒为 true，SDK 原生处理） */
 	supported: boolean;
@@ -297,35 +299,6 @@ export interface ContextUsageInfo {
 	contextWindow: number;
 	/** 已用百分比（0-100），未知为 null */
 	percent: number | null;
-}
-
-/** opencode-go 套餐额度窗口 key（5h 滚动 / 日历周 / 计费月） */
-export type QuotaWindowKey = "rolling" | "weekly" | "monthly";
-
-/** opencode-go 套餐额度单窗口 */
-export interface QuotaWindow {
-	key: QuotaWindowKey;
-	/** 短标签（5h / week / month，插件按需本地化） */
-	label: string;
-	/** 已用百分比（0-100） */
-	percent: number;
-	/** ISO 重置时间，无则 null */
-	resetsAt: string | null;
-	/** 估算已用美元（percent × limit），未知为 null */
-	usedUsd: number | null;
-	/** 窗口上限美元（rolling 12 / weekly 30 / monthly 60） */
-	limitUsd: number;
-	status: "ok" | "rate-limited";
-}
-
-/**
- * opencode-go 套餐额度（main 进程拉官方 API，5 分钟 TTL）。
- * null = 无 key/无订阅（插件应隐藏）；error 非空 = 拉取失败（插件可展示错误态）。
- */
-export interface QuotaInfo {
-	windows: QuotaWindow[];
-	updatedAt: number;
-	error?: string;
 }
 
 /** 运行中排队的消息（clearQueue 返回结构；桌面端只用 followUp，steering 恒为空） */

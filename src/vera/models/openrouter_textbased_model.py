@@ -1,3 +1,5 @@
+"""Parse text-based Bash actions from OpenRouter responses."""
+
 import json
 import logging
 

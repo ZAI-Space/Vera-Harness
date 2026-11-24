@@ -9,7 +9,7 @@
 ## Install from source
 
 ```bash
-git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
+git clone --branch main https://github.com/ZAI-Space/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```

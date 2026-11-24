@@ -1,6 +1,9 @@
 """Exercise the desktop's real HTTP/process boundary, approvals and persistence."""
 
 import json
+import os
+import subprocess
+import sys
 import threading
 import time
 
@@ -63,12 +66,131 @@ def wait_until(predicate):
     pytest.fail("Desktop worker did not reach the expected state.")
 
 
+def test_slash_subagent_catalog_exposes_enabled_roles_for_same_turn_task(desktop, tmp_path):
+    """Pick real enabled roles without selecting a model or sending a setup-only task."""
+    service, invoke, _, _ = desktop
+    role = {
+        "id": "reader",
+        "name": "content-reader",
+        "description": "提炼文章内容",
+        "instructions": "Read carefully.",
+        "tools": [],
+        "skills": [],
+        "step_limit": 10,
+        "cost_limit": 1,
+        "wall_time_limit_seconds": 60,
+        "enabled": True,
+    }
+    invoke("saveSubagentRoles", roles=[role, role | {"id": "disabled", "name": "disabled-reader", "enabled": False}])
+    session = invoke("createSession", options={"cwd": str(tmp_path)})
+    for method, arguments in (
+        ("listSlashCommandsForCwd", {"cwd": str(tmp_path)}),
+        ("listSlashCommands", {"sessionId": session["sessionId"]}),
+    ):
+        commands = {row["name"]: row for row in invoke(method, **arguments)}
+        assert "subagent" not in commands and "subagent:disabled-reader" not in commands
+        entry = commands["subagent:content-reader"]
+        assert entry["description"] == "提炼文章内容" and entry["supported"]
+        terminal = service.sessions.terminal(service.sessions.get(session["sessionId"]))
+        result = terminal.process("/" + entry["invocationName"] + " Summarize this article")
+        assert result.kind == "task" and 'subagent_run with role "content-reader"' in result.task
+        assert "Summarize this article" in result.task
+
+
+def test_server_expands_home_before_selecting_shared_context(tmp_path):
+    """A quoted tilde path must use the same store and context as its absolute path."""
+    home = tmp_path / "home"
+    home.mkdir()
+    connection = tmp_path / "connection.json"
+    environment = os.environ | {
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "VERA_GLOBAL_CONFIG_DIR": str(home / "vera"),
+        "VERA_SILENT_STARTUP": "1",
+    }
+    with (tmp_path / "server.log").open("wb") as output:
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "vera.desktop.server",
+                "--port",
+                "0",
+                "--directory",
+                "~/vera/desktop",
+                "--connection-file",
+                str(connection),
+            ],
+            cwd=tmp_path,
+            env=environment,
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+        try:
+            deadline = time.monotonic() + 60
+            while not connection.exists():
+                assert process.poll() is None
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+            address = json.loads(connection.read_text())
+            response = requests.post(
+                address["url"] + "/invoke",
+                headers={"Authorization": "Bearer " + address["token"]},
+                json={
+                    "method": "saveUserContextEntry",
+                    "args": {
+                        "entry": {"kind": "rule", "title": "Shared context", "content": "Keep the shared profile."}
+                    },
+                },
+                timeout=10,
+            )
+            assert response.status_code == 200, response.text
+            assert (home / "vera/user-context/entries.json").is_file()
+            assert not (home / "vera/desktop/user-context/entries.json").exists()
+            assert not (tmp_path / "~").exists()
+        finally:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=10)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "searchCatalog",
+        "installPackage",
+        "removePackage",
+        "listConfiguredPackages",
+        "checkPackageUpdates",
+        "getCacheWarming",
+        "setCacheWarming",
+    ],
+)
+def test_retired_settings_methods_are_rejected(desktop, method):
+    """Retired panels must not leave callable package or cache-warming routes."""
+    _, _, url, headers = desktop
+    response = requests.post(url + "/invoke", headers=headers, json={"method": method, "args": {}}, timeout=10)
+    assert response.status_code == 400
+    assert "not supported" in response.json()["error"]
+
+
 def test_real_desktop_run_files_history_and_restart(desktop, tmp_path):
     service, invoke, url, headers = desktop
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     (workspace / "context.txt").write_text("actual context", encoding="utf-8")
     assert requests.get(url + "/health", timeout=5).status_code == 401
+    unknown = requests.post(
+        url + "/invoke",
+        headers=headers,
+        json={"method": "__unknown_desktop_method__", "args": {}},
+        timeout=5,
+    )
+    assert unknown.status_code == 400 and "not supported" in unknown.json()["error"]
     assert (
         requests.get(url + "/health", headers=headers | {"Origin": "https://example.com"}, timeout=5).status_code == 401
     )
@@ -85,7 +207,7 @@ def test_real_desktop_run_files_history_and_restart(desktop, tmp_path):
     assert service.sessions.get(key)["runtimeMessages"][1]["content"].find("actual context") >= 0
     events = requests.get(url + "/events?after=0", headers=headers, timeout=5).json()["events"]
     types = [row["payload"]["event"]["type"] for row in events if row["method"] == "onEvent"]
-    assert "tool_execution_start" in types and types[-1] == "agent_settled"
+    assert "session_info_changed" in types and "tool_execution_start" in types and types[-1] == "agent_settled"
     assert list((service.store.directory / "artifacts").rglob("trajectory.json"))
     assert not list((service.store.directory / "artifacts").rglob("request.json"))
     restored = DesktopService(service.store.directory)
@@ -339,7 +461,12 @@ def test_settings_contract_human_mode_and_slash_status(desktop, tmp_path):
     service, invoke, _, _ = desktop
     workspace = tmp_path / "manual"
     workspace.mkdir()
-    key = invoke("createSession", options={"cwd": str(workspace)})["sessionId"]
+    service.store.save(
+        "settings", "mcp", {"must-not-start": {"enabled": True, "config": {"command": "missing-qa-service"}}}
+    )
+    key = invoke("createSession", options={"cwd": str(workspace), "provider": "unconfigured", "modelId": "chat"})[
+        "sessionId"
+    ]
     assert invoke("setModelHidden", provider="openai", modelId="gpt-4o-mini", hidden=True)["hiddenModels"] == {
         "openai": ["gpt-4o-mini"]
     }
@@ -356,6 +483,41 @@ def test_settings_contract_human_mode_and_slash_status(desktop, tmp_path):
     assert "/goal" in invoke("getSessionMessages", sessionId=key)[-1]["text"]
     assert invoke("getSessionMessages", sessionId=key)[-1]["role"] == "assistant"
     assert not invoke("getSessionBaseline", sessionId=key)["transcript"]["agentActive"]
+
+
+def test_goal_state_survives_the_real_worker_environment(desktop, tmp_path):
+    """The worker's private global directory must not change an already-created goal's location."""
+    import os
+    import subprocess
+    import sys
+
+    from vera.terminal.session import TerminalSession
+
+    service, invoke, _, _ = desktop
+    key = invoke("createSession", options={"cwd": str(tmp_path)})["sessionId"]
+    config = service.sessions.config(service.sessions.get(key))
+    session = TerminalSession(config, tmp_path)
+    session.process("/goal Verify the desktop goal boundary")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import json,sys; from pathlib import Path; from vera.terminal.session import TerminalSession; "
+                "config=json.load(sys.stdin); "
+                "print(json.dumps(TerminalSession(config, Path(config['sandbox']['workspace'])).goals.status()))"
+            ),
+        ],
+        input=json.dumps(config),
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+        env=os.environ | {"VERA_GLOBAL_CONFIG_DIR": str(service.store.directory), "VERA_SILENT_STARTUP": "1"},
+    )
+    state = json.loads(result.stdout)
+    assert state["status"] == "active"
+    assert state["objective"] == "Verify the desktop goal boundary"
 
 
 def test_scheduler_adapter_runs_a_real_persisted_job(desktop, tmp_path):

@@ -2,6 +2,7 @@
 
 import html
 import json
+import os
 import subprocess
 import time
 from copy import deepcopy
@@ -23,18 +24,43 @@ class DesktopService:
     bearer-authenticated and owned by the external desktop launcher.
     """
 
-    def __init__(self, directory: Path, config: dict | None = None):
+    def __init__(self, directory: Path, config: dict | None = None, *, context_directory: Path | None = None):
         from vera.channels.credentials import private_directory
         from vera.desktop.capabilities import Capabilities
+        from vera.desktop.lan import LanService
+        from vera.desktop.taskboard import TaskboardService
+        from vera.desktop.usage import UsageStats
+        from vera.user_context import UserContext
 
         self.store = DesktopStore(private_directory(directory))
         self.events = EventBus()
         self.providers = Providers(self.store)
+        self.user_context = UserContext(context_directory or self.store.directory / "user-context")
         self.sessions = Sessions(self.store, self.providers, self.events, config)
+        self.sessions.user_context_directory = self.user_context.directory
+        self.usage = UsageStats(self.store)
+        from vera.desktop.web import WebSettings
+
+        self.web = WebSettings(self.store)
+        self.taskboard = TaskboardService(self.store)
+        from vera.desktop.taskboard_execution import TaskboardExecution
+
+        self.taskboard_execution = TaskboardExecution(self)
+        self.sessions.usage = self.usage
+        from vera.desktop.project_deletion import ProjectDeletion
+
+        self.project_deletion = ProjectDeletion(self)
+        from vera.desktop.media_maintenance import MediaMaintenance
+
+        self.media_maintenance = MediaMaintenance(self)
         self.capabilities = Capabilities(self)
+        self.lan = LanService(self)
+        from vera.desktop.remote_channels import RemoteChannels
+
+        self.remote_channels = RemoteChannels(self)
 
     def metas(self) -> list[dict]:
-        return [value["meta"] for value in self.store.list("session")]
+        return [value["meta"] for value in self.store.list("session", decode_media=False)]
 
     def save_session(self, value: dict):
         """Keep catalog counts aligned when configuration or display history changes."""
@@ -42,6 +68,8 @@ class DesktopService:
         self.store.save("session", value["meta"]["sessionId"], value)
 
     def idle_session(self, key: str) -> dict:
+        if self.sessions.get(key)["meta"].get("parentSessionId"):
+            raise ValueError("Subagent inspection is read-only. Continue in the parent conversation.")
         if key in self.sessions.running:
             raise ValueError("Stop this session before changing its configuration or history.")
         return self.sessions.get(key)
@@ -54,6 +82,60 @@ class DesktopService:
         if method in self.capabilities.methods:
             return self.capabilities.invoke(method, args)
         key = args.get("sessionId")
+        if method in self.media_maintenance.methods:
+            return self.media_maintenance.invoke(method, args)
+        if method in {"previewSessionProjectDeletion", "deleteSessionProject"}:
+            return self.project_deletion.invoke(method, args)
+        if method == "getTaskboardStatus":
+            return self.taskboard.status()
+        if method == "startTaskboard":
+            return self.taskboard.start()
+        if method == "stopTaskboard":
+            if any(row["status"] == "running" for row in self.store.list("taskboard-run")):
+                raise ValueError("请先在执行对话中停止任务，再停止看板服务。")
+            return self.taskboard.close()
+        if method == "getTaskboardExecution":
+            return self.taskboard_execution.snapshot()
+        if method == "runTaskboardTask":
+            return self.taskboard_execution.start(args)
+        if method == "syncTaskboardRun":
+            with self.taskboard_execution.lock:
+                self.taskboard_execution.sync(self.store.get("taskboard-run", args["sessionId"]))
+                return self.taskboard_execution.snapshot()
+        if method == "getUserContext":
+            return {"entries": self.user_context.entries(), "scope": "global"}
+        if method == "getUsageStatistics":
+            return self.usage.query(args)
+        if method == "getWebSettings":
+            return self.web.status()
+        if method == "saveWebSettings":
+            return self.web.save(args)
+        if method == "testWebTools":
+            return self.web.test()
+        if method == "saveUserContextEntry":
+            return self.user_context.save(args["entry"])
+        if method == "removeUserContextEntry":
+            return self.user_context.remove(args["id"])
+        if method == "lanGetStatus":
+            return self.lan.status()
+        if method == "lanSetEnabled":
+            return self.lan.set_enabled(args["enabled"])
+        if method == "lanSetRemoteControl":
+            return self.lan.set_remote_control(args["enabled"])
+        if method == "remoteGetStatus":
+            return self.remote_channels.status()
+        if method == "remoteBeginLogin":
+            return self.remote_channels.begin_login(args)
+        if method == "remoteSubmitPin":
+            return self.remote_channels.submit_pin(args["pin"])
+        if method == "remoteStart":
+            return self.remote_channels.start(args)
+        if method == "remoteStop":
+            return self.remote_channels.stop(args["channel"])
+        if method == "remoteSwitchSession":
+            return self.remote_channels.switch_session(args)
+        if method == "remoteLogout":
+            return self.remote_channels.logout(args["channel"])
         if method == "createSession":
             value = self.store.create_session(args["options"])
             value["permissionPolicy"] = self.store.get("settings", "behavior", {}).get("permissionPolicy", "confirm")
@@ -99,11 +181,12 @@ class DesktopService:
             return {"projects": list(projects.values()), "complete": True, "errors": 0, "revision": uuid4().hex}
         if method == "verifySessionCatalog":
             result = []
+            catalog = self.metas()
             for ref in args["references"]:
                 meta = next(
                     (
                         meta
-                        for meta in self.metas()
+                        for meta in catalog
                         if meta["sessionId"] == ref.get("sessionId") or meta["sessionFile"] == ref.get("sessionFile")
                     ),
                     None,
@@ -119,6 +202,17 @@ class DesktopService:
         if method == "openSession":
             meta = next((meta for meta in self.metas() if meta["sessionFile"] == args["filePath"]), None)
             if not meta:
+                child = next(
+                    (
+                        row
+                        for row in self.store.list("delegated-session")
+                        if row["meta"]["sessionFile"] == args["filePath"]
+                    ),
+                    None,
+                )
+                if child:
+                    return child["meta"]
+            if not meta:
                 raise ValueError("Session file is not in the VERA desktop catalog.")
             value = self.sessions.get(meta["sessionId"])
             value["meta"]["active"] = True
@@ -127,7 +221,11 @@ class DesktopService:
         if method == "closeSession":
             if key in self.sessions.running:
                 return {"closed": False}
-            value = self.sessions.get(key)
+            value = self.store.get("session", key) or self.store.get("delegated-session", key)
+            if value is None:
+                return {"closed": True}  # Deletion may finish before a pending view-close acknowledgement.
+            if value["meta"].get("parentSessionId"):
+                return {"closed": True}  # The parent owns child updates; closing only unloads the inspection view.
             value["meta"]["active"] = False
             self.save_session(value)
             return {"closed": True}
@@ -135,6 +233,7 @@ class DesktopService:
             value = self.idle_session(key)
             (self.store.directory / "sessions" / (value["meta"]["sessionId"] + ".json")).unlink(missing_ok=True)
             self.store.delete("session", key)
+            self.events.emit("onSessionCatalogChanged", {"revision": uuid4().hex, "complete": True})
             return None
         if method in {"archiveSession", "unarchiveSession"}:
             value = self.idle_session(key)
@@ -189,15 +288,15 @@ class DesktopService:
         if method == "getLoadedSessions":
             return [
                 {
-                    "meta": meta,
-                    "sequence": self.sessions.get(meta["sessionId"])["sequence"],
-                    "permissionMode": self.sessions.get(meta["sessionId"])["permissionMode"],
+                    "meta": value["meta"],
+                    "sequence": value["sequence"],
+                    "permissionMode": value["permissionMode"],
                     "followUpQueue": [],
-                    "streaming": meta["sessionId"] in self.sessions.running,
+                    "streaming": value["meta"]["sessionId"] in self.sessions.running,
                     "compacting": False,
                 }
-                for meta in self.metas()
-                if meta["active"]
+                for value in self.store.list("session", decode_media=False)
+                if value["meta"]["active"]
             ]
         if method == "setModel":
             value = self.idle_session(key)
@@ -220,13 +319,11 @@ class DesktopService:
                 if args.get("permissionPolicy"):
                     value["permissionPolicy"] = args["permissionPolicy"]
                 if options := args.get("modelOptions"):
-                    for field, maximum in (("temperature", 2), ("topP", 1), ("topK", 100), ("toolCallLimit", 100000)):
-                        if options.get(field):
-                            number = float(options[field])
-                            if not 0 <= number <= maximum or (
-                                field in {"topK", "toolCallLimit"} and (not number.is_integer() or number < 1)
-                            ):
-                                raise ValueError("Invalid model option: " + field)
+                    from vera.desktop.model_settings import ModelOptions
+
+                    options = ModelOptions.model_validate(
+                        {name: option for name, option in options.items() if option != ""}
+                    ).model_dump(by_alias=True)
                     if options.get("reasoningParameter", "reasoning_effort") not in {
                         "reasoning_effort",
                         "reasoning.effort",
@@ -236,6 +333,8 @@ class DesktopService:
             else:
                 value["meta"]["name"] = args["name"][:200]
             self.save_session(value)
+            if method == "setSessionName":
+                self.events.emit("onSessionCatalogChanged", {"revision": uuid4().hex, "complete": True})
             return None
         if method == "getPermissionMode":
             return self.sessions.get(key)["permissionMode"]
@@ -243,7 +342,7 @@ class DesktopService:
             return {"enabled": True}
         if method == "getStats":
             return self.sessions.get(key)["stats"]
-        if method == "getContextUsage" or method == "getQuota":
+        if method == "getContextUsage":
             return None
         if method == "getFollowUpMessages":
             return [row["text"] for row in self.sessions.get(key).get("queue", [])]
@@ -278,8 +377,8 @@ class DesktopService:
                 (
                     i
                     for i, row in enumerate(value["messages"])
-                    if row["kind"] == "user"
-                    and (row["entryId"] == ref["entryId"] if "entryId" in ref else row["text"] == ref.get("text"))
+                    if row["kind"] in ({"user"} if method == "recallMessage" else {"user", "assistant"})
+                    and (row.get("entryId") == ref["entryId"] if "entryId" in ref else row["text"] == ref.get("text"))
                 ),
                 None,
             )
@@ -291,14 +390,42 @@ class DesktopService:
                 value["messages"] = value["messages"][:index]
                 value["runtimeMessages"] = value["runtimeMessages"][: recalled.get("runtimeIndex", 0)]
                 self.save_session(value)
-                return {"text": recalled["text"], "images": [], "document": recalled.get("document")}
+                return {
+                    "text": recalled["text"],
+                    "images": recalled.get("images", []),
+                    "document": recalled.get("document"),
+                }
+            target = value["messages"][index]
+            include_target = int(target["kind"] == "assistant")
+            runtime_index = target.get("runtimeIndex")
+            if not include_target and runtime_index is None:
+                runtime_index = 0
+            if runtime_index is None:
+                from vera.models.utils.content_string import get_content_string
+
+                matches = [
+                    i
+                    for i, row in enumerate(value["runtimeMessages"])
+                    if row.get("role") == "assistant" and get_content_string(row) == target["text"]
+                ]
+                occurrence = sum(
+                    row.get("kind") == "assistant" and row.get("text") == target["text"]
+                    for row in value["messages"][: index + 1]
+                )
+                if occurrence > len(matches):
+                    raise ValueError("无法定位此历史回复的上下文，请选择另一条回复。")
+                runtime_index = matches[occurrence - 1]
             child = self.store.create_session({"cwd": value["meta"]["cwd"], **(value["meta"].get("model") or {})})
-            child["messages"] = deepcopy(value["messages"][:index])
-            child["runtimeMessages"] = deepcopy(
-                value["runtimeMessages"][: value["messages"][index].get("runtimeIndex", 0)]
+            child["messages"] = deepcopy(value["messages"][: index + include_target])
+            child["runtimeMessages"] = deepcopy(value["runtimeMessages"][: runtime_index + include_target])
+            child["meta"].update(
+                name=value["meta"].get("name", "") + " · 分叉",
+                thinkingLevel=value["meta"].get("thinkingLevel", "default"),
             )
+            child["permissionPolicy"] = value.get("permissionPolicy", "confirm")
             child["selections"] = deepcopy(value["selections"])
             self.save_session(child)
+            self.events.emit("onSessionCatalogChanged", {"revision": uuid4().hex, "complete": True})
             return child["meta"]
         if method == "exportSession":
             rows = self.sessions.get(key)["messages"]
@@ -317,16 +444,27 @@ class DesktopService:
                 branch = args["branch"]
                 if not branch or branch.startswith("-"):
                     raise ValueError("Invalid branch.")
-                subprocess.run(["git", "-C", workspace, "switch", "--", branch], check=True, capture_output=True)
+                subprocess.run(
+                    ["git", "-C", workspace, "switch", "--", branch],
+                    check=True,
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                )
                 return None
             result = subprocess.run(
-                ["git", "-C", workspace, "branch", "--show-current"], capture_output=True, text=True
+                ["git", "-C", workspace, "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
             current = result.stdout.strip() or None
             if method == "getGitBranch":
                 return current
             branches = subprocess.run(
-                ["git", "-C", workspace, "branch", "--format=%(refname:short)"], capture_output=True, text=True
+                ["git", "-C", workspace, "branch", "--format=%(refname:short)"],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
             return {"current": current, "branches": branches.stdout.splitlines()}
         if method == "getChannelSubscriptionSessionIds":
@@ -336,9 +474,11 @@ class DesktopService:
             return {"sessionId": key, "topics": [], "generation": 0, "revision": 0, "live": False}
         if method in {"getChannelWatchConfig", "getCodemodeConfig"}:
             return {"enabled": False, "only": False}
-        if method == "getCacheWarming":
-            return {"mode": "off", "sessions": []}
         raise ValueError(f"{method} is not supported by this VERA runtime. No change was applied.")
 
     def close(self):
+        self.remote_channels.close()
+        self.taskboard_execution.close()
+        self.taskboard.close()
+        self.lan.close()
         self.sessions.close()
