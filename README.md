@@ -9,7 +9,7 @@
     <a href="LICENSE.md"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-6F42C1?style=flat-square" /></a>
   </p>
   <p><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
-  <p><a href="docs/zh/quickstart.md">快速开始</a> · <a href="docs/zh/index.md">文档</a> · <a href="docs/zh/frontend-integration.md">前端对接</a> · <a href="https://github.com/zml-mis/Vera-Harness/issues">反馈</a></p>
+  <p><a href="docs/zh/quickstart.md">快速开始</a> · <a href="docs/zh/index.md">文档</a> · <a href="docs/zh/frontend-integration.md">前端对接</a> · <a href="https://github.com/ZAI-Space/Vera-Harness/issues">反馈</a></p>
 </div>
 
 ---
@@ -33,10 +33,18 @@ VERA 是模块化的 Agent Harness。终端、渠道与定时任务复用同一�
 
 ## 开始使用
 
+桌面版需要 Node.js 24 LTS、Python 3.12 和 Bash（Windows 使用 Git for Windows）：
+
+```bash
+npx vera-harness
+```
+
+首次启动自动准备独立运行环境，随后在设置中配置模型。本次为 Alpha 版本，详见[安装与发布说明](docs/zh/releases.md)。
+
 需要 Python 3.10+；Windows 本地执行使用 Git Bash，Linux 使用 Bash。先从源码安装：
 
 ```bash
-git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
+git clone --branch main https://github.com/ZAI-Space/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```

@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Python runtime for the real worker contract test
-        run: python -m pip install -e '..[full,channels]'
+        run: python -m pip install -e '..[full,channels]' build
       - name: Install locked desktop dependencies
         run: npm ci
       - name: Validate execution boundary
@@ -50,6 +50,13 @@ jobs:
         run: npm test
       - name: Build Electron frontend
         run: npm run build
+      - name: Verify npm launcher boundaries
+        run: node --test ../tests/launcher/runtime.test.mjs
+      - name: Build and inspect npm desktop package
+        run: |
+          python ../scripts/build_desktop_package.py
+          node ../dist/npm/bin/vera-harness.mjs --doctor
+          npm pack ../dist/npm --dry-run
       - name: Check emitted font assets
         run: node tests/ui/font-assets.mjs
       - name: Prepare pinned optional Taskboard for acceptance

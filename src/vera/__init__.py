@@ -5,7 +5,7 @@ loads its .env file without replacing existing environment values. Protocols
 describe adapter contracts for static checking; inheritance is not required.
 """
 
-__version__ = "2.4.6"
+__version__ = "0.1.0a1"
 
 import os
 from pathlib import Path

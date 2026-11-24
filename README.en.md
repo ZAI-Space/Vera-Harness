@@ -9,7 +9,7 @@
     <a href="LICENSE.md"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-6F42C1?style=flat-square" /></a>
   </p>
   <p><a href="README.md">简体中文</a> · <strong>English</strong></p>
-  <p><a href="docs/quickstart.md">Quick start</a> · <a href="docs/index.md">Documentation</a> · <a href="docs/frontend-integration.md">Frontend integration</a> · <a href="https://github.com/zml-mis/Vera-Harness/issues">Issues</a></p>
+  <p><a href="docs/quickstart.md">Quick start</a> · <a href="docs/index.md">Documentation</a> · <a href="docs/frontend-integration.md">Frontend integration</a> · <a href="https://github.com/ZAI-Space/Vera-Harness/issues">Issues</a></p>
 </div>
 
 ---
@@ -33,10 +33,19 @@ VERA is a modular agent harness. Terminal, channel and scheduled tasks share a P
 
 ## Get started
 
+The desktop launcher needs Node.js 24 LTS, Python 3.12 and Bash (Git for Windows on Windows):
+
+```bash
+npx vera-harness
+```
+
+First launch prepares a private runtime. Configure a model in desktop settings.
+This is an Alpha release. See [installation and releases](docs/releases.md).
+
 Python 3.10+ is required. Windows local execution uses Git Bash; Linux uses Bash. Install from this source repository:
 
 ```bash
-git clone --branch dev https://github.com/zml-mis/Vera-Harness.git
+git clone --branch main https://github.com/ZAI-Space/Vera-Harness.git
 cd Vera-Harness
 python -m venv .venv
 ```

@@ -112,6 +112,7 @@ nav:
         - "Desktop streaming": desktop-streaming.md
         - "Documentation maintenance": documentation.md
         - "Website documentation": website.md
+        - "Releases and npm": releases.md
         - "Security": SECURITY.md
       - API Reference:
         - "reference/index.md"
@@ -197,6 +198,7 @@ nav:
         - "桌面流式呈现": zh/desktop-streaming.md
         - "文档维护": zh/documentation.md
         - "官网文档接入": zh/website.md
+        - "版本发布与 npm": zh/releases.md
         - "安全": zh/SECURITY.md
       - API 参考:
         - "zh/reference/index.md"

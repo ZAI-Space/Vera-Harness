@@ -138,7 +138,7 @@ async function start(): Promise<void> {
 		getAppInfo: () => ({
 			name: "VERA",
 			version: app.getVersion(),
-			releaseChannel: app.isPackaged ? "stable" : "dev",
+			releaseChannel: process.env.VERA_RELEASE_CHANNEL ?? (app.isPackaged ? "stable" : "dev"),
 			platform: process.platform,
 			arch: process.arch,
 			electron: process.versions.electron,
