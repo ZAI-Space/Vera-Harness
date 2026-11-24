@@ -110,17 +110,22 @@ try {
 	const editor = page.locator('[contenteditable="true"]');
 	const cancel = page.getByRole("button", { name: "取消所选命令", exact: true });
 	const option = page.getByRole("button").filter({ hasText: "/subagent:content-reader" });
-	async function chooseRole() {
-		await editor.fill("/subagent");
-		await option.waitFor();
-		assert.equal(await page.getByRole("button").filter({ hasText: "/subagent:disabled-reader" }).count(), 0);
-		await option.click();
-		await cancel.waitFor();
-		// Selection schedules focus at frame end; drain it before typing or moving the caret.
+	async function settleEditor() {
+		// Both selecting and cancelling schedule focus; finish that update before the next fill.
 		await editor.focus();
 		await page.evaluate(
 			() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
 		);
+	}
+	async function chooseRole() {
+		await settleEditor();
+		await editor.fill("/subagent");
+		await until(async () => assert.equal(await editor.innerText(), "/subagent"));
+		await option.waitFor();
+		assert.equal(await page.getByRole("button").filter({ hasText: "/subagent:disabled-reader" }).count(), 0);
+		await option.click();
+		await cancel.waitFor();
+		await settleEditor();
 	}
 	await check("slash menu selects the enabled role without creating a session", async () => {
 		await chooseRole();

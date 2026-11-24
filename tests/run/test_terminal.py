@@ -1,11 +1,10 @@
 """Exercise project selection and terminal commands with real files and prompt input."""
 
+import asyncio
 import json
 import os
 import subprocess
-import time
 from copy import deepcopy
-from threading import Thread
 
 import pytest
 from prompt_toolkit import PromptSession
@@ -225,24 +224,42 @@ def test_in_task_controls_do_not_reconfigure_active_agent_or_send_commands_to_mo
 
 def test_tab_inserts_quoted_file_in_actual_multiline_prompt(session):
     """Exercise key handling rather than only requesting completion candidates."""
-    with create_pipe_input() as pipe:
-        prompt = PromptSession(input=pipe, output=DummyOutput(), multiline=True, completer=TerminalCompleter(session))
 
-        def enter():
-            pipe.send_text("Read @space")
-            time.sleep(0.15)
-            pipe.send_text("\t")
-            time.sleep(0.15)
-            pipe.send_text("\x1b\r")
-            time.sleep(1)
-            pipe.close()
+    async def exercise_prompt():
+        with create_pipe_input() as pipe:
+            prompt = PromptSession(
+                input=pipe, output=DummyOutput(), multiline=True, completer=TerminalCompleter(session)
+            )
+            candidates_ready = asyncio.Event()
+            completion_inserted = asyncio.Event()
 
-        writer = Thread(target=enter, daemon=True)
-        writer.start()
-        try:
-            assert prompt.prompt() == 'Read @"space name.md"'
-        finally:
-            writer.join(timeout=3)
+            def observe_candidates(buffer):
+                state = buffer.complete_state
+                if (
+                    buffer.text == "Read @space"
+                    and state
+                    and any(item.text == '@"space name.md"' for item in state.completions)
+                ):
+                    candidates_ready.set()
+
+            def observe_text(buffer):
+                if buffer.text == 'Read @"space name.md"':
+                    completion_inserted.set()
+
+            prompt.default_buffer.on_completions_changed += observe_candidates
+            prompt.default_buffer.on_text_changed += observe_text
+
+            async def enter():
+                pipe.send_text("Read @space")
+                await candidates_ready.wait()
+                pipe.send_text("\t")
+                await completion_inserted.wait()
+                pipe.send_text("\x1b\r")
+
+            result, _ = await asyncio.wait_for(asyncio.gather(prompt.prompt_async(), enter()), timeout=5)
+            assert result == 'Read @"space name.md"'
+
+    asyncio.run(exercise_prompt())
 
 
 def test_existing_human_mode_is_preserved_until_permission_command(session):
