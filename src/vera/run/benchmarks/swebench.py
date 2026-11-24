@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """Run VERA on SWE-bench instances in batch mode."""
-# Read this first: https://github.com/zml-mis/Vera-Harness/blob/dev/docs/usage/swebench.md  (usage docs)
+# Read this first: https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/usage/swebench.md  (usage docs)
 
 import concurrent.futures
 import json
@@ -28,7 +28,7 @@ from vera.utils.serialize import UNSET, recursive_merge
 _HELP_TEXT = """Run VERA on SWEBench instances.
 
 [not dim]
-More information about the usage: [bold green]https://github.com/zml-mis/Vera-Harness/blob/dev/docs/usage/swebench.md[/bold green]
+More information about the usage: [bold green]https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/usage/swebench.md[/bold green]
 [/not dim]
 """
 

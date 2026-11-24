@@ -5,7 +5,7 @@
 Evolution is an external experiment controller. A historical VERA runtime edits a
 new generation of VERA source, required checks and fixed evaluations run, and an
 accepted generation becomes the optimizer and source base for the next iteration.
-The installed package, developer worktree, `dev`, and `main` are never updated by
+The installed package, developer worktree and `main` are never updated by
 experiment selection. No agent loop changes are required by this module.
 
 ## Upstream provenance and deliberate differences
@@ -141,7 +141,7 @@ as for the other `vera-extra` commands.
 * Experimental rollback changes future version selection only. Existing runs and
   task databases are independent. This module does not migrate production data or
   deploy an evolved version. Export the reviewed diff onto a task branch from
-  `dev`, then follow the normal PR/release process.
+  `main`, then follow the normal PR/release process.
 
 ## Use an existing auto-harness benchmark
 

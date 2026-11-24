@@ -34,7 +34,7 @@ class LitellmModelConfig(BaseModel):
     model_kwargs: dict[str, Any] = {}
     """Additional arguments passed to the API."""
     litellm_model_registry: Path | str | None = os.getenv("LITELLM_MODEL_REGISTRY_PATH")
-    """Model registry for cost tracking and model metadata. See the local model guide (https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/local_models.md) for more details."""
+    """Model registry for cost tracking and model metadata. See the local model guide (https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/models/local_models.md) for more details."""
     set_cache_control: Literal["default_end"] | None = None
     """Set explicit cache control markers, for example for Anthropic models"""
     cost_tracking: Literal["default", "ignore_errors", "tokens"] = os.getenv("VERA_COST_TRACKING", "default")
@@ -148,7 +148,7 @@ class LitellmModel(ToolCallingModel):
                     "You can ignore this issue from your config file with cost_tracking: 'ignore_errors' or "
                     "globally with export VERA_COST_TRACKING='ignore_errors'. "
                     "Alternatively check the 'Cost tracking' section in the documentation at "
-                    "https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/local_models.md. "
+                    "https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/models/local_models.md. "
                     " Still stuck? Please open a github issue at https://github.com/zml-mis/Vera-Harness/issues!"
                 )
                 logger.critical(msg)

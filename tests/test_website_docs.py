@@ -71,13 +71,21 @@ def test_output_refuses_repository_and_missing_landing(tmp_path, monkeypatch):
         website.checked_output(landing)
 
 
-def test_output_accepts_only_canonical_landing_inside_repository(tmp_path, monkeypatch):
+def test_output_refuses_landing_inside_repository(tmp_path, monkeypatch):
     landing = tmp_path / "website"
     landing.mkdir()
     (landing / "index.html").write_text("landing", encoding="utf-8")
     monkeypatch.setattr(website, "ROOT", tmp_path)
-    monkeypatch.setattr(website, "DEFAULT_LANDING_DIR", landing)
-    assert website.checked_output(landing) == landing / "docs"
+    with pytest.raises(ValueError, match="external landing"):
+        website.checked_output(landing)
+
+
+def test_build_requires_an_explicit_external_landing_directory(monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["build_website_docs.py"])
+    with pytest.raises(SystemExit) as error:
+        website.main()
+    assert error.value.code == 2
+    assert "--landing-dir" in capsys.readouterr().err
 
 
 def test_output_refuses_redirected_docs_directory(tmp_path):

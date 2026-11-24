@@ -2,7 +2,7 @@
 """
 Simple trajectory inspector for browsing agent conversation trajectories.
 
-More information about the usage: [bold green] https://github.com/zml-mis/Vera-Harness/blob/dev/docs/usage/inspector.md [/bold green].
+More information about the usage: [bold green] https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/usage/inspector.md [/bold green].
 """
 
 import json

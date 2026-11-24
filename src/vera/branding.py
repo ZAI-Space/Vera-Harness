@@ -9,7 +9,7 @@ import os
 APP_NAME = "VERA"
 DISTRIBUTION_NAME = "vera-harness"
 REPOSITORY_URL = "https://github.com/zml-mis/Vera-Harness"
-DOCUMENTATION_URL = f"{REPOSITORY_URL}/tree/dev/docs"
+DOCUMENTATION_URL = f"{REPOSITORY_URL}/tree/main/docs"
 ISSUES_URL = f"{REPOSITORY_URL}/issues"
 
 

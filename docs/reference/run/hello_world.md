@@ -4,7 +4,7 @@
 
 !!! note "Hello World run script"
 
-    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/run/hello_world.py)
+    - [Read on GitHub](https://github.com/ZAI-Space/Vera-Harness/blob/main/src/vera/run/hello_world.py)
 
     ??? note "Full source code"
 

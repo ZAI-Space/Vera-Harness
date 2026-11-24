@@ -22,7 +22,9 @@ Use actual files, subprocesses and explicit local protocol peers for new integra
 
 ## Branches and delivery
 
-`dev` integrates daily work; `main` is for releases, hotfixes and production rollback. Create task branches from `dev`, named `<type>/-<kebab-case>`, and submit focused PRs to `dev`. Use conventional commits. Synchronize the target before merging and rerun affected checks. Squash daily work; release `dev` to `main` with a merge commit. Follow the current repository/user collaboration rules for branch protection and review.
+`main` is the only long-lived, default and production branch. Create temporary task branches from `main`, named `<type>/-<kebab-case>`, and submit focused PRs to `main`. Use conventional commits. Synchronize the target before merging and rerun affected checks. Squash daily and hotfix PRs. Tag the landed `main` commit for a release and delete temporary branches after delivery.
+
+Keep `main` protected. The single-maintainer policy requires PRs and all 10 required CI checks, with zero required human approvals. AI review supplies evidence; it is not a human GitHub approval.
 
 ## Documentation
 

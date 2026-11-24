@@ -97,7 +97,7 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-Daily branches start from `dev` and merge through PRs into `dev`; releases enter `main`. Report optional prerequisites, paid provider tests and human platform acceptance separately. Skipped tests and upstream scores are not VERA results.
+`main` is the only long-lived, default and production branch. Temporary task branches start from `main`, merge through PRs into `main`, and are deleted after delivery. Report optional prerequisites, paid provider tests and human platform acceptance separately. Skipped tests and upstream scores are not VERA results.
 
 ## License and provenance
 

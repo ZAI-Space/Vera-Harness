@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from mkdocs.config.defaults import MkDocsConfig
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_LANDING_DIR = ROOT / "website"
 BUILD_MARKER = ".vera-website-docs"
 MARKER_CONTENT = "VERA generated website documentation\n"
 MAINTENANCE_PAGES = {
@@ -69,8 +68,8 @@ def on_config(config: MkDocsConfig) -> MkDocsConfig:
 def checked_output(landing_dir: Path) -> Path:
     """Return a safe docs target, or raise before MkDocs can clean any files.
 
-    Require an existing landing ``index.html``. Within this repository, allow
-    only ``website/docs``. Refuse redirected directories and unmarked output.
+    Require an existing landing ``index.html`` outside this repository.
+    Refuse redirected directories and unmarked output.
     Only the returned directory may be cleaned by MkDocs.
     """
     landing_dir = landing_dir.expanduser().resolve()
@@ -79,9 +78,8 @@ def checked_output(landing_dir: Path) -> Path:
     output = landing_dir / "docs"
     if output.resolve() != output:
         raise ValueError(f"Documentation output must not redirect to another path: {output}")
-    canonical_output = DEFAULT_LANDING_DIR / "docs"
-    if (output.is_relative_to(ROOT) and output != canonical_output) or ROOT.is_relative_to(output):
-        raise ValueError(f"Repository output is restricted to {canonical_output}: {output}")
+    if output.is_relative_to(ROOT) or ROOT.is_relative_to(output):
+        raise ValueError(f"Documentation output is restricted to an external landing directory: {output}")
     if output.exists():
         if not output.is_dir():
             raise ValueError(f"Documentation output is not a directory: {output}")
@@ -99,7 +97,7 @@ def main() -> int:
     On success, stdout reports source counts and the absolute output directory.
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--landing-dir", type=Path, default=DEFAULT_LANDING_DIR, help="Existing landing page directory")
+    parser.add_argument("--landing-dir", type=Path, required=True, help="Existing external landing page directory")
     args = parser.parse_args()
     try:
         output = checked_output(args.landing_dir)

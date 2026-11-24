@@ -50,22 +50,23 @@ node dist/npm/bin/vera-harness.mjs --doctor
 node --test tests/launcher/runtime.test.mjs
 ```
 
-包中包含桌面构建、对应前端源码与补丁、许可证、VERA wheel 和 SHA-256 校验值，
-不包含本机配置与凭据。`dist/` 不纳入 Git。npm 版本 `0.1.0-alpha.1` 对应
-Python 版本 `0.1.0a1` 与标签 `v0.1.0-alpha.1`。
+包中包含桌面前端构建、`source/` 下的对应前端源码与补丁、许可证、VERA wheel 和 SHA-256 校验值，
+不包含宣传落地页源码、本机配置与凭据。`dist/` 不纳入 Git。npm 版本 `0.1.0-alpha.2` 对应
+Python 版本 `0.1.0a2` 与标签 `v0.1.0-alpha.2`。
 
-候选经 PR 和必需 CI 合入 `dev`。发布 PR 的必需检查通过后，以 Merge Commit 将 `dev` 合入 `main`。
-给已合入的提交打标签，创建 Alpha GitHub Release，附上已审查的 npm 压缩包、Python wheel 与校验文件。
+从 `main` 创建临时分支准备发布候选，全部 10 项必需 CI 检查通过后，经 PR 合入受保护的 `main`。
+单维护者策略的人工批准数为 0，交付后删除临时分支。
+给已合入 `main` 的提交打标签，创建 Alpha GitHub Release，附上已审查的 npm 压缩包、Python wheel 与校验文件。
 GitHub 同时提供标签对应的源码归档，Release 工作流也会从标签重建并上传产物。
 
 使用已获授权的 npm 账号发布已审查的包：
 
 ```bash
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./dist/vera-harness-0.1.0-alpha.1.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./dist/vera-harness-0.1.0-alpha.2.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 npm view vera-harness version --registry=https://registry.npmjs.org/
 ```
 
-首个 Alpha 作为 npm 默认版本，用户直接运行 `npx vera-harness` 即可使用，版本号仍明确标注 Alpha。
+发布的 Alpha 作为 npm 默认版本，用户直接运行 `npx vera-harness` 即可使用，版本号仍明确标注 Alpha。
 在本机完成浏览器授权或双因素确认，不提交 npm 凭据。工作流不发布 PyPI，也不保存 npm token。
 发布后核实全新 npm 安装，并记录最终提交与产物校验值。

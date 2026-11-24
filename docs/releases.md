@@ -53,13 +53,16 @@ node dist/npm/bin/vera-harness.mjs --doctor
 node --test tests/launcher/runtime.test.mjs
 ```
 
-The package contains the frontend build, corresponding source and patches,
-licenses, a VERA wheel and its SHA-256 checksum. Local configuration and
-credentials are excluded. Keep `dist/` out of Git. npm version `0.1.0-alpha.1`
-corresponds to Python `0.1.0a1` and tag `v0.1.0-alpha.1`.
+The package contains the desktop frontend build, corresponding source and patches
+under `source/`, licenses, a VERA wheel and its SHA-256 checksum. Promotional
+landing page source, local configuration and credentials are excluded. Keep
+`dist/` out of Git. npm version `0.1.0-alpha.2` corresponds to Python `0.1.0a2`
+and tag `v0.1.0-alpha.2`.
 
-Merge the candidate through a PR and required CI into `dev`. Release `dev` to
-`main` with a merge commit after its required checks pass. Tag the landed commit
+Create the release candidate on a temporary branch from `main`. Merge its PR
+into protected `main` after all 10 required CI checks pass. The single-maintainer
+policy requires zero human approvals. Delete the temporary branch after delivery.
+Tag the landed `main` commit
 and create an Alpha GitHub Release. Attach the reviewed npm tarball, Python wheel
 and checksums. GitHub supplies the tagged source archive. The release workflow
 also rebuilds and uploads artifacts from the released tag.
@@ -68,11 +71,11 @@ Publish the reviewed tarball with an authorized npm account:
 
 ```bash
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./dist/vera-harness-0.1.0-alpha.1.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./dist/vera-harness-0.1.0-alpha.2.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 npm view vera-harness version --registry=https://registry.npmjs.org/
 ```
 
-The first Alpha is the npm default so `npx vera-harness` starts it. Its version
+The published Alpha is the npm default so `npx vera-harness` starts it. Its version
 remains explicitly Alpha. Complete any browser or two-factor confirmation locally.
 Never commit npm credentials. The workflow does not publish to PyPI or store an
 npm token. Verify a fresh npm installation and record the final SHA and hashes.

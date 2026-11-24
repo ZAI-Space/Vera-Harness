@@ -12,13 +12,15 @@ This repository contains the VERA Runtime, terminal and desktop adapters, tests,
 | `desktop/tests/` | Frontend unit and component tests | Mirror the tested source paths; UI acceptance lives in `desktop/tests/ui/`. |
 | `examples/` | Safe plugin and configuration examples | Use placeholder credentials and local paths. Do not call paid services. |
 | `docs/` and `docs/zh/` | Paired English and Chinese documentation | Update both pages when behavior changes. Preserve exact commands and identifiers. |
-| `website/` | Static landing page source | Build the shared documentation into `website/docs/`; commit source only. See [website documentation](website.md). |
+| `mkdocs.website.yml` and `scripts/build_website_docs.py` | Documentation integration for an external landing page | Export to an existing directory outside this repository. See [website documentation](website.md). |
 | `desktop/third_party/` and `THIRD_PARTY_NOTICES.md` | Source and license notices | Keep notices with redistributed source. |
 | `scripts/` | Repository maintenance and launch scripts | Do not store credentials or reports in the repository. |
 
 ## Generated and local files
 
-Do not commit `.venv/`, Python caches, coverage output, `desktop/node_modules/`, `desktop/out/`, `desktop/.local/`, `desktop/coverage/`, `site/`, `website/docs/`, local trajectories, logs, reports or credentials. The UI acceptance command writes screenshots and logs to a temporary directory; keep those artifacts outside the repository.
+Do not commit `.venv/`, Python caches, coverage output, `desktop/node_modules/`, `desktop/out/`, `desktop/.local/`, `desktop/coverage/`, `site/`, local trajectories, logs, reports or credentials. The UI acceptance command writes screenshots and logs to a temporary directory; keep those artifacts outside the repository.
+
+Promotional landing page source is maintained outside this repository. Exported website documentation also stays in that external directory.
 
 ## Naming and ownership
 

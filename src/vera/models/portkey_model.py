@@ -223,7 +223,7 @@ class PortkeyModel(ToolCallingModel):
                     "You can ignore this issue from your config file with cost_tracking: 'ignore_errors' or "
                     "globally with export VERA_COST_TRACKING='ignore_errors' to ignore this error. "
                     "Alternatively check the 'Cost tracking' section in the documentation at "
-                    "https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/local_models.md. "
+                    "https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/models/local_models.md. "
                     "Still stuck? Please open a github issue at https://github.com/zml-mis/Vera-Harness/issues!"
                 )
                 logger.critical(msg)

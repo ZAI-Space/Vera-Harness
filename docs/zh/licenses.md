@@ -22,15 +22,3 @@ KaTeX 保留全部公式字族，Electron 构建只保留 WOFF2 格式，去掉�
 发布时一并携带 `desktop/third_party/katex-LICENSE`、`codicons-LICENSE` 和 Monaco 的许可证及第三方声明。新增字体、素材、插件或上游代码前，核对固定版本的实际许可；不要用单个 npm 包的 license 字段概括所有内嵌素材。
 
 来源：[KaTeX fonts](https://github.com/KaTeX/katex-fonts/blob/master/LICENSE)、[Codicons](https://github.com/microsoft/vscode-codicons/blob/main/LICENSE)。
-
-## 落地页字体
-
-静态落地页通过 Google Fonts 加载 Inter、Quantico、Space Grotesk 和 JetBrains Mono。
-这四个字族采用 SIL Open Font License 1.1，允许商业使用。仓库没有打包落地页字体文件。
-如需自行托管字体，保留版权和 OFL 声明，并遵守保留字体名称的限制。
-远程字体需要能够访问 Google Fonts；服务不可达时，页面使用本地回退字体。
-
-字体许可：[Inter](https://github.com/google/fonts/blob/main/ofl/inter/OFL.txt)、
-[Quantico](https://github.com/google/fonts/blob/main/ofl/quantico/OFL.txt)、
-[Space Grotesk](https://github.com/google/fonts/blob/main/ofl/spacegrotesk/OFL.txt)、
-[JetBrains Mono](https://github.com/google/fonts/blob/main/ofl/jetbrainsmono/OFL.txt)。

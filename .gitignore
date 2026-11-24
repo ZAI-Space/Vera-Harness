@@ -196,8 +196,7 @@ desktop/*.log
 desktop/.local/
 
 # Generated documentation beside the maintained landing-page source.
-/website/docs/
-/website/.vite/
+/website/
 
 # LSP config files
 pyrightconfig.json

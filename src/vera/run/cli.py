@@ -39,7 +39,7 @@ DEFAULT_OUTPUT_FILE = global_config_dir / "last_vera_run.traj.json"
 _HELP_TEXT = """Run VERA in your local environment.
 
 [not dim]
-Documentation: [bold green]https://github.com/zml-mis/Vera-Harness/tree/dev/docs[/bold green]
+Documentation: [bold green]https://github.com/ZAI-Space/Vera-Harness/tree/main/docs[/bold green]
 [/not dim]
 """
 
