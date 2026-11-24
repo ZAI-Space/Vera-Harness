@@ -53,12 +53,23 @@ The script refuses a nonempty `docs/` directory unless it contains the script's
 `.vera-website-docs` marker. Choose another landing directory if unrelated files
 already occupy that path. Do not add the marker to unrelated directories.
 
-Serve the whole landing directory to test relative links and search:
+Use Node.js 24 and the installed desktop dependencies to preview the landing page:
 
 ```bash
-python -m http.server 8765 --directory /absolute/path/to/landing
+npm --prefix desktop run preview:website
 ```
+
+For an external landing directory, run from the repository root:
+
+```bash
+node desktop/node_modules/vite/bin/vite.js /absolute/path/to/landing --host 127.0.0.1 --port 8765 --strictPort
+```
+
+This server supports HTTP byte-range requests, which the demo video needs for
+seeking. Use a static host with byte-range support when you deploy the website.
 
 Open `http://127.0.0.1:8765/#docs`. Check the persistent top navigation, view
 switching, category navigation, page contents, language links, search and code
 copying. Scroll a long article and confirm that both sidebars stay in place.
+Open `#demo` and check playback, seeking and fullscreen. The silent demo keeps
+only these controls and pauses when you leave the view.

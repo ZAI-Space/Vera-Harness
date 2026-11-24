@@ -40,11 +40,20 @@ python scripts/build_website_docs.py --landing-dir /absolute/path/to/landing
 如果非空 `docs/` 缺少脚本生成的 `.vera-website-docs` 标记，脚本会拒绝清理。
 该目录已有其他文件时，选择另一个落地页目录。不要给无关目录添加该标记。
 
-以整个落地页目录启动静态服务，验证相对链接与搜索：
+使用 Node.js 24 和已安装的桌面端依赖预览落地页：
 
 ```bash
-python -m http.server 8765 --directory /absolute/path/to/landing
+npm --prefix desktop run preview:website
 ```
+
+预览外部落地页目录时，在仓库根目录运行：
+
+```bash
+node desktop/node_modules/vite/bin/vite.js /absolute/path/to/landing --host 127.0.0.1 --port 8765 --strictPort
+```
+
+该服务支持 HTTP 字节范围请求，视频拖动进度时需要此能力。部署官网时，也应使用支持字节范围请求的静态托管服务。
 
 打开 `http://127.0.0.1:8765/#docs`，检查顶部导航、栏目切换、分类导航、页内目录、语言链接、搜索和代码复制。
 滚动长文档时，确认两侧栏保持原位。
+打开 `#demo`，检查播放、进度跳转和全屏。无声演示仅保留这些控件，离开演示页时自动暂停。

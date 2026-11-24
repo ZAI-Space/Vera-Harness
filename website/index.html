@@ -12,8 +12,8 @@
 
   <!-- Tailwind CSS & Global Clean Styles -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="./css/style.css?v=docs-shell-2">
-  <script src="./js/main.js?v=docs-shell-2"></script>
+  <link rel="stylesheet" href="./css/style.css?v=demo-video-3">
+  <script src="./js/main.js?v=demo-video-3"></script>
 
   <style>
     /* Clean Seamless Section Frames */
@@ -146,7 +146,30 @@
         <iframe id="docs-frame" data-src="./docs/zh/" title="VERA 使用文档、维护文档与接口参考"></iframe>
       </section>
       <section id="view-demo" class="site-view demo-view" aria-label="演示" aria-hidden="true" inert>
-        <iframe src="./sections/02_desktop.html?v=9" title="VERA 桌面演示" class="section-frame" scrolling="no" onload="autoResize(this)"></iframe>
+        <div class="demo-content">
+          <header class="demo-heading">
+            <h1 id="demo-title" class="font-quantico">VERA HARNESS</h1>
+            <p class="demo-tagline"><span>做你所想</span><span>如你所愿</span></p>
+          </header>
+          <div id="demo-player" class="demo-player">
+            <video id="demo-video" muted playsinline preload="none" poster="./assets/video/vera-harness-demo.jpg" aria-labelledby="demo-title" tabindex="0">
+              <source src="./assets/video/vera-harness-demo.mp4" type="video/mp4">
+              你的浏览器不支持视频播放，请<a href="./assets/video/vera-harness-demo.mp4">下载视频</a>后观看。
+            </video>
+            <div class="demo-controls" role="group" aria-label="视频播放控制">
+              <button id="demo-play" type="button" aria-label="播放视频" data-playing="false">
+                <svg class="demo-play-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                <svg class="demo-pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+              </button>
+              <span id="demo-time">0:00 / 0:00</span>
+              <input id="demo-progress" type="range" min="0" max="0" step="0.1" value="0" aria-label="播放进度" disabled>
+              <button id="demo-fullscreen" type="button" aria-label="全屏播放">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
+              </button>
+            </div>
+          </div>
+          <p id="demo-error" class="demo-error" role="alert" hidden></p>
+        </div>
       </section>
     </div>
   </div>

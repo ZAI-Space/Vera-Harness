@@ -110,11 +110,101 @@ function initScrollSpy() {
   });
 }
 
+// Silent demo playback keeps only transport, seeking and fullscreen controls.
+function initDemoPlayer() {
+  const video = document.getElementById('demo-video');
+  const player = document.getElementById('demo-player');
+  const play = document.getElementById('demo-play');
+  const progress = document.getElementById('demo-progress');
+  const time = document.getElementById('demo-time');
+  const fullscreen = document.getElementById('demo-fullscreen');
+  const error = document.getElementById('demo-error');
+  if (!video || !player || !play || !progress || !time || !fullscreen || !error) return;
+  let dragging = false;
+
+  function formatTime(value) {
+    const seconds = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+
+  function showError(message) {
+    error.textContent = message;
+    error.hidden = false;
+  }
+
+  function syncProgress() {
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    progress.disabled = duration <= 0;
+    progress.max = String(duration);
+    if (!dragging) progress.value = String(video.currentTime);
+    progress.setAttribute('aria-valuetext', `${formatTime(video.currentTime)} / ${formatTime(duration)}`);
+    time.textContent = `${formatTime(video.currentTime)} / ${formatTime(duration)}`;
+  }
+
+  function togglePlayback() {
+    if (!video.paused) {
+      video.pause();
+      return;
+    }
+    error.hidden = true;
+    void video.play().catch(() => showError('视频暂时无法播放，请刷新页面后重试。'));
+  }
+
+  function syncPlayback() {
+    play.dataset.playing = String(!video.paused);
+    play.setAttribute('aria-label', video.paused ? '播放视频' : '暂停视频');
+  }
+
+  play.addEventListener('click', togglePlayback);
+  video.addEventListener('click', togglePlayback);
+  video.addEventListener('keydown', (event) => {
+    if (event.code === 'Space' || event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      togglePlayback();
+    } else if (['ArrowLeft', 'ArrowRight'].includes(event.key) && Number.isFinite(video.duration)) {
+      event.preventDefault();
+      const offset = event.key === 'ArrowRight' ? 5 : -5;
+      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + offset));
+    }
+  });
+  for (const name of ['play', 'pause', 'ended']) video.addEventListener(name, syncPlayback);
+  for (const name of ['loadedmetadata', 'durationchange', 'timeupdate']) video.addEventListener(name, syncProgress);
+  video.addEventListener('error', () => showError('视频加载失败，请刷新页面后重试。'));
+  progress.addEventListener('pointerdown', () => { dragging = true; });
+  function finishDragging() {
+    dragging = false;
+    syncProgress();
+  }
+  window.addEventListener('pointerup', finishDragging);
+  window.addEventListener('pointercancel', finishDragging);
+  progress.addEventListener('input', () => {
+    if (Number.isFinite(video.duration) && video.duration > 0) {
+      video.currentTime = Math.max(0, Math.min(video.duration, Number(progress.value)));
+      syncProgress();
+    }
+  });
+  fullscreen.hidden = !document.fullscreenEnabled;
+  fullscreen.addEventListener('click', async () => {
+    try {
+      if (document.fullscreenElement === player) await document.exitFullscreen();
+      else await player.requestFullscreen();
+    } catch {
+      showError('暂时无法进入全屏，请稍后重试。');
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    fullscreen.setAttribute('aria-label', document.fullscreenElement === player ? '退出全屏' : '全屏播放');
+  });
+  syncProgress();
+  syncPlayback();
+}
+
 // Hash changes restore the active view without replacing the global navigation.
 function initViews() {
   const names = ['home', 'docs', 'demo'];
   const track = document.getElementById('view-track');
   const docsFrame = document.getElementById('docs-frame');
+  const demoVideo = document.getElementById('demo-video');
   const docsBase = new URL('./docs/', window.location.href);
   let currentDocsPath = 'zh/';
 
@@ -127,6 +217,15 @@ function initViews() {
     const [route, query = ''] = window.location.hash.slice(1).split('?');
     const name = names.includes(route) ? route : 'home';
     document.body.dataset.view = name;
+    // Fetch video metadata on demand and stop playback when leaving the demo.
+    if (demoVideo) {
+      if (name === 'demo' && demoVideo.preload === 'none') {
+        demoVideo.preload = 'metadata';
+        demoVideo.load();
+      } else if (name !== 'demo') {
+        demoVideo.pause();
+      }
+    }
     track.style.transform = `translateX(-${names.indexOf(name) * 100}%)`;
     names.forEach((view) => {
       const panel = document.getElementById(`view-${view}`);
@@ -173,5 +272,6 @@ function initViews() {
 document.addEventListener('DOMContentLoaded', () => {
   initNavbarScroll();
   initScrollSpy();
+  initDemoPlayer();
   initViews();
 });
