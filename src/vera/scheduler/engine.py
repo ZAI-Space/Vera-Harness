@@ -2,7 +2,6 @@
 
 import os
 import subprocess
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -22,6 +21,7 @@ from vera.evolution.process import (
 from vera.scheduler.config import DEFAULT_DIRECTORY, JobSpec
 from vera.scheduler.store import JobStore
 from vera.tools import ToolError
+from vera.utils.python_process import python_module_command
 
 
 def service_status(directory: Path = DEFAULT_DIRECTORY) -> dict:
@@ -116,7 +116,7 @@ class Scheduler:
                 ),
             }
             outcome = run_process(
-                [sys.executable, "-m", "vera.scheduler.worker", str(self.directory), key],
+                python_module_command("vera.scheduler.worker", str(self.directory), key),
                 cwd=spec.workspace,
                 env=environment,
                 log=output / "process.log",
@@ -174,16 +174,14 @@ def start_service(directory: Path = DEFAULT_DIRECTORY, *, workers: int = 2) -> d
     if service_status(directory)["running"]:
         return service_status(directory)
     private_directory(directory)
-    command = [
-        sys.executable,
-        "-m",
+    command = python_module_command(
         "vera.run.utilities.cron",
         "--state",
         str(directory),
         "serve",
         "--workers",
         str(workers),
-    ]
+    )
     with (directory / "service.log").open("ab") as log:
         process = subprocess.Popen(
             command,

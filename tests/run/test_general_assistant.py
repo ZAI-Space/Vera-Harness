@@ -186,6 +186,10 @@ def general_desktop(tmp_path, request):
 
 
 def test_plain_answer_needs_no_tools_or_price_and_has_one_completion(general_desktop, tmp_path):
+    # The desktop worker must import the installed runtime, even in a Python project.
+    project_package = tmp_path / "vera"
+    project_package.mkdir()
+    (project_package / "__init__.py").write_text("raise RuntimeError('Project package imported')\n", encoding="utf-8")
     service, key, received, run = general_desktop
     receipt, trajectory = run("你好，请你做一个自我介绍！")
     assert receipt["status"] == "completed" and receipt["exit_reason"] == "Submitted"

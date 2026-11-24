@@ -2,7 +2,6 @@
 
 import json
 import os
-import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -14,6 +13,7 @@ from vera.channels.store import ChannelStore
 from vera.channels.weixin import DeliveryRejected, SessionExpired, WeixinClient, normalize_message
 from vera.config import get_config_from_spec
 from vera.evolution.process import recover_processes, run_process
+from vera.utils.python_process import python_module_command
 from vera.utils.serialize import recursive_merge
 
 
@@ -75,14 +75,12 @@ class ChannelGateway:
     def _spawn(self, arguments: list[str], name: str, timeout: float, cancel: Path) -> dict:
         log = private_directory(self.config.state_directory / "artifacts" / name) / "process.log"
         return run_process(
-            [
-                sys.executable,
-                "-m",
+            python_module_command(
                 "vera.channels.worker",
                 "--state",
                 str(self.config.state_directory),
                 *arguments,
-            ],
+            ),
             cwd=self.config.workspace,
             env=self.environment,
             log=log,

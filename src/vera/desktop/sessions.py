@@ -3,7 +3,6 @@
 import json
 import os
 import subprocess
-import sys
 import threading
 import time
 from pathlib import Path
@@ -15,6 +14,7 @@ from vera.desktop.model_settings import ModelOptions, apply_reasoning
 from vera.desktop.performance import TaskObservation
 from vera.evolution.process import _kill_tree
 from vera.terminal.session import TerminalSession
+from vera.utils.python_process import python_module_command
 from vera.utils.serialize import recursive_merge, strip_sensitive
 
 
@@ -282,7 +282,7 @@ class Sessions:
             error_log = (run / "worker.log").open("w", encoding="utf-8")
             try:
                 process = subprocess.Popen(
-                    [sys.executable, "-m", "vera.desktop.worker", "-"],
+                    python_module_command("vera.desktop.worker", "-"),
                     cwd=value["meta"]["cwd"],
                     env=environment,
                     stdin=subprocess.PIPE,

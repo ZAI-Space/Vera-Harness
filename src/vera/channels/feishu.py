@@ -6,6 +6,7 @@ from pathlib import Path
 
 from vera.channels.config import AccountConfig, ChannelError, InboundMessage
 from vera.channels.weixin import DeliveryRejected, api_origin
+from vera.utils.python_process import python_module_command
 
 
 def normalize_event(account: str, value: dict) -> InboundMessage | None:
@@ -171,7 +172,6 @@ def pair_account(
     """
     import hashlib
     import secrets
-    import sys
     import time
     from uuid import uuid4
 
@@ -206,15 +206,13 @@ def pair_account(
             ),
         }
         run_process(
-            [
-                sys.executable,
-                "-m",
+            python_module_command(
                 "vera.channels.worker",
                 "--state",
                 str(config.state_directory),
                 "--pair-feishu",
                 nonce,
-            ],
+            ),
             cwd=config.workspace,
             env=environment,
             log=directory / "process.log",
