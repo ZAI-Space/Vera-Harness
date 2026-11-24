@@ -1,3 +1,5 @@
+"""Execute actions through a Singularity or Apptainer environment."""
+
 #!/usr/bin/env python3
 
 import logging

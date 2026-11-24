@@ -1,3 +1,5 @@
+"""Provide the compatible OpenRouter Responses model adapter."""
+
 import json
 import logging
 import time

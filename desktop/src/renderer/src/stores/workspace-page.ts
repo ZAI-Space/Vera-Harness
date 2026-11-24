@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { claimActivation, noteUserIntent, onSessionNavigationIntent } from "./session-navigation";
 
 /** 首页工作区导航；只切换视图，不关闭会话或清空输入草稿。 */
-export type WorkspacePage = "chat" | "plugins" | "scheduled";
+export type WorkspacePage = "chat" | "plugins" | "scheduled" | "taskboard";
 
 export const useWorkspacePageStore = create<{
 	page: WorkspacePage;

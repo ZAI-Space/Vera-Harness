@@ -3,6 +3,7 @@ import { type RefObject, useEffect, useState } from "react";
 import { getExecutionApi } from "../../environment-api";
 import { isHarnessConnected } from "../../harness-api";
 import { useT } from "../../i18n";
+import { useSubagentDraftsStore } from "../../stores/subagent-drafts";
 import type { ComposerEditorHandle } from "./ComposerEditor";
 import { withDesktopSlashCommands } from "./desktop-slash-commands";
 import { extractSlashToken, filterCommands, type SlashToken } from "./slash-filter";
@@ -17,11 +18,11 @@ export interface UseSlashMenuOptions {
 	setText: (updater: string | ((prev: string) => string)) => void;
 	setSlashCommand: (command: string | null) => void;
 	editorRef: RefObject<ComposerEditorHandle | null>;
-	ensureSession: () => Promise<string | null>;
+	ensureSession: (onCreated?: (sessionId: string) => void) => Promise<string | null>;
 	runSlashCommand: (content: string, sessionId: string | null) => Promise<boolean>;
 	handleSend: () => Promise<void>;
 	showFeedback: (message: string, tone?: "info" | "warn") => void;
-	setError: (error: string | null) => void;
+	setError: (error: string | null, target?: string) => void;
 }
 
 /**
@@ -39,7 +40,13 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 	const [slashToken, setSlashToken] = useState<SlashToken | null>(null);
 
 	const { activeSessionId, cwd, trustVersion, text } = options;
-	const target = JSON.stringify([activeSessionId, cwd, trustVersion]);
+	const subagentDrafts = useSubagentDraftsStore((state) => state.drafts);
+	const target = JSON.stringify([
+		activeSessionId,
+		cwd,
+		trustVersion,
+		subagentDrafts.map(({ name, description, enabled }) => [name, description, enabled]),
+	]);
 	const [loadedTarget, setLoadedTarget] = useState("");
 	/** 胶囊已存在时不再探测（发送拼装只支持单命令，args 里打 / 不开菜单） */
 	const updateToken = (value: string, cursor: number) => {
@@ -77,7 +84,7 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 			.then((list) => {
 				if (!cancelled) {
 					setSlashCommands(withDesktopSlashCommands(list, isHarnessConnected()));
-					setLoadedTarget(JSON.stringify([activeSessionId, cwd, trustVersion]));
+					setLoadedTarget(target);
 				}
 			})
 			.catch(() => {
@@ -86,7 +93,7 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 		return () => {
 			cancelled = true;
 		};
-	}, [activeSessionId, cwd, trustVersion, target]);
+	}, [activeSessionId, cwd, target]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: 查询词变化时重置选中项
 	useEffect(() => {
@@ -119,17 +126,25 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 			command.source === "builtin" &&
 			new Set(["new", "settings"]).has(command.name);
 		if (standaloneInline) {
-			options.setText("");
-			const sessionId = command.name === "new" ? null : await options.ensureSession();
-			if (command.name !== "new" && !sessionId) {
-				options.showFeedback(t("slash.feedback.noSession"), "warn");
-				return;
-			}
-			setSlashToken(null);
+			let createdSessionId: string | undefined;
 			try {
+				const sessionId =
+					command.name === "new"
+						? null
+						: await options.ensureSession((created) => {
+								createdSessionId = created;
+							});
+				if (command.name !== "new" && !sessionId) {
+					options.showFeedback(t("slash.feedback.noSession"), "warn");
+					return;
+				}
+				options.setText("");
+				setSlashToken(null);
 				await options.runSlashCommand(`/${command.name}`, sessionId);
 			} catch (err) {
-				options.setError(err instanceof Error ? err.message : String(err));
+				const message = err instanceof Error ? err.message : String(err);
+				if (createdSessionId) options.setError(message, createdSessionId);
+				else options.setError(message);
 			}
 			return;
 		}
@@ -161,12 +176,10 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 		void confirmCommand(command, { allowInline: false });
 	};
 
-	/** 胶囊弹回文本（空文本 Backspace/Delete，或 Esc）：命令以 "/cmd " 拼回开头，等待继续编辑 */
-	const restoreSlashPill = (e: React.KeyboardEvent<HTMLDivElement>) => {
-		e.preventDefault();
-		const cmd = options.slashCommand;
+	/** 取消命令标签，保留任务正文；不把已取消的命令重新插入编辑器。 */
+	const cancelSlashCommand = (event?: React.SyntheticEvent) => {
+		event?.preventDefault();
 		options.setSlashCommand(null);
-		if (cmd) options.editorRef.current?.replaceText(0, 0, `/${cmd} `);
 		setSlashToken(null);
 		setSlashDismissed(true);
 		requestAnimationFrame(() => {
@@ -216,7 +229,7 @@ export function useSlashMenu(options: UseSlashMenuOptions) {
 		updateToken,
 		handleSlashPick: (command: SlashCommandInfo) => confirmCommand(command),
 		handleSlashPickByIndex,
-		restoreSlashPill,
+		cancelSlashCommand,
 		handleKeyDown,
 	};
 }

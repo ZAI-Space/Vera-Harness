@@ -1,3 +1,5 @@
+"""Provide deterministic model adapters for offline demonstrations and regression tests."""
+
 import logging
 import time
 from typing import Any

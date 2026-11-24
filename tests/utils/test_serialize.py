@@ -1,4 +1,6 @@
-from vera.utils.serialize import UNSET, recursive_merge
+import pytest
+
+from vera.utils.serialize import UNSET, recursive_merge, strip_sensitive
 
 
 def test_empty_input():
@@ -147,3 +149,52 @@ def test_nested_dict_with_only_unset():
     assert recursive_merge({"a": {"b": {"c": UNSET}}}) == {"a": {"b": {}}}
     # Mixed: some UNSET, some real values
     assert recursive_merge({"run": {"task": UNSET, "other": "value"}}) == {"run": {"other": "value"}}
+
+
+def test_strip_sensitive_removes_nested_credentials_without_mutating_input():
+    value = {
+        "model": {"model_kwargs": {"api_key": "private", "temperature": 0.2}},
+        "items": [{"token": "secret", "id": "safe"}],
+    }
+    assert strip_sensitive(value) == {"model": {"model_kwargs": {"temperature": 0.2}}, "items": [{"id": "safe"}]}
+    assert value["model"]["model_kwargs"]["api_key"] == "private"
+
+
+def test_strip_sensitive_preserves_validated_mcp_header_environment_references():
+    headers = {"CONTEXT7_API_KEY": "CONTEXT7_API_KEY", "X-Api-Key": "MCP_API_KEY", "Authorization": "MCP_AUTH"}
+    value = {
+        "model": {"model_kwargs": {"api_key": "private-provider-key"}},
+        "mcp_servers": {"remote": {"url": "https://example.invalid/mcp", "headers_from": headers}},
+    }
+    cleaned = strip_sensitive(value)
+    assert cleaned == {
+        "model": {"model_kwargs": {}},
+        "mcp_servers": {"remote": {"url": "https://example.invalid/mcp", "headers_from": headers}},
+    }
+    cleaned["mcp_servers"]["remote"]["headers_from"].clear()
+    assert value["mcp_servers"]["remote"]["headers_from"] == headers
+
+
+@pytest.mark.parametrize(
+    "server",
+    [
+        {"url": "https://example.invalid/mcp", "headers_from": {"X-Api-Key": "literal-private-key"}},
+        {"url": "https://example.invalid/mcp", "headers_from": {"Authorization": "Bearer private"}},
+        {"url": "https://example.invalid/mcp", "headers_from": {"Host": "MCP_HOST"}},
+        {"url": "http://example.invalid/mcp", "headers_from": {"X-Api-Key": "MCP_API_KEY"}},
+        {"command": "fixture", "headers_from": {"X-Api-Key": "MCP_API_KEY"}},
+        {"headers_from": {"X-Api-Key": "MCP_API_KEY"}},
+        {"url": "https://example.invalid/mcp", "headers_from": "private"},
+    ],
+)
+def test_strip_sensitive_drops_unvalidated_mcp_headers(server):
+    assert strip_sensitive(server)["headers_from"] == {}
+
+
+def test_strip_sensitive_does_not_preserve_raw_headers_alongside_mcp_references():
+    value = {
+        "url": "https://example.invalid/mcp",
+        "headers_from": {"X-Api-Key": "MCP_API_KEY"},
+        "headers": {"X-Api-Key": "private"},
+    }
+    assert strip_sensitive(value) == {"url": "https://example.invalid/mcp", "headers_from": {}}

@@ -28,6 +28,8 @@ When setting a secret, omit the value and use the prompt instead of placing it i
 
 ## Paths and startup
 
+`VERA_COST_TRACKING` accepts `default`, `ignore_errors` and `tokens` in the LiteLLM, OpenRouter and Portkey adapters. `tokens` records reported usage without establishing a monetary cost. A zero compatibility cost does not mean that the provider request is free.
+
 | Variable | Purpose |
 | --- | --- |
 | `VERA_CONFIG_DIR` | Extra configuration lookup directory |

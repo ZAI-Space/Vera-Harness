@@ -37,4 +37,4 @@
 
 ??? question "Is there a desktop API already?"
 
-    Yes. The desktop adapter exposes an authenticated loopback transport to the Python service. Its supported methods and validation boundaries are documented in [frontend integration](frontend-integration.md); optional provider and sandbox acceptance remains environment-dependent.
+    Yes. The Electron desktop uses an authenticated loopback Python service for sessions, streaming events and Runtime operations. Optional integrations and live providers have separate prerequisites and acceptance scope. See [frontend integration](frontend-integration.md).

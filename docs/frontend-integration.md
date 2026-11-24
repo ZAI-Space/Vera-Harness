@@ -22,6 +22,18 @@ Windows PowerShell: `powershell -File scripts/start-desktop.ps1`. Git Bash: `bas
 
 The launcher owns only its new service process and children. It creates an authenticated loopback connection file, builds the desktop and removes the connection file on exit. It never installs Docker or Bubblewrap.
 
+## Default assistant and completion
+
+The desktop overlays `desktop/assistant.yaml` on `vera.yaml`. Ordinary conversation, writing and explanations can finish with text. Project tasks use registered tools when needed. Global rules and memory still apply. Coding tasks still require inspection and relevant verification.
+
+The prompt separates identity, tool guidance, task boundaries, response rules and environment context. Its structure references [Pi's prompt builder](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/src/core/system-prompt.ts), without replacing the VERA execution loop. The optional Coding workflow Subagent template retains inspection, reproduction, changes and tests. Create and enable that role before delegation.
+
+`allow_text_final` accepts a nonempty, normally completed text response. The existing `Submitted` mechanism records completion. Tool responses retain the query, dispatch, observation and next-query cycle. Empty, truncated and malformed responses remain invalid. Plan, Goal, read-only tasks and Subagents retain their completion tools. Benchmark defaults remain strict. Explicit `-Config` task prompts remain in use.
+
+Desktop LiteLLM requests use `cost_tracking: tokens`. This mode records reported input, output and cache tokens without a price lookup. Missing model prices cannot reject a returned response. `cost=0` remains a compatibility value; `cost_known=false` means that no monetary amount is established. Usage enters the statistics ledger and `info.model_stats.token_usage` in trajectories. Consumed responses rejected during format validation still count.
+
+Priced evaluations and RSI tasks can retain strict monetary accounting. Desktop token statistics are not provider billing statements.
+
 ## Integration map
 
 | UI operation | Request / returned fields | Python boundary |
@@ -33,7 +45,7 @@ The launcher owns only its new service process and children. It creates an authe
 | File attachment | `listProjectFiles({cwd})` → relative paths; composer `file.path` parts | `ProjectFiles` |
 | Model settings | Provider ID, protocol, base URL and definitions; execution pickers expose authenticated, visible models only | `Providers`, private credential vault |
 | Role editor | Name, instructions, model reference, tools, skills and budgets | `SubagentConfig`, shared Runtime |
-| Skill / MCP markets | Explicit search, preview and install/add; MCP saved disabled | `SkillMarket`, `MCPRegistry` |
+| MCP market | Explicit search, preview and add; new services stay disabled | `DockerCatalog` |
 | MCP settings | User scope, stdio or URL, direct exposure, enabled flag and explicit connection test | Python MCP SDK; tests initialize and list tools only |
 | Plugins | GitHub / Gitee market, install, enable, disable, remove | `PluginManager` |
 | Sandbox | Saved profile + availability/reason; unavailable choices disabled | `SandboxProfiles` |
@@ -42,6 +54,18 @@ The launcher owns only its new service process and children. It creates an authe
 | Export / fork / recall | Display history and retained pre-turn model context | SQLite + immutable runtime receipts |
 
 Full TypeScript definitions live in `desktop/src/contracts/`; Python routing lives in `src/vera/desktop/`. UI preferences remain in Electron's user-data directory. Backend configuration, sessions, safe display exports, credential vault and run receipts live under the private VERA desktop state directory.
+
+Skill market search and installation use the skills CLI. The desktop loads installed Skills through the resource catalog. Legacy package-market and cache-warming bridges are removed; they have no active desktop settings page.
+
+## Common desktop operations
+
+1. Open Settings → Behavior to choose defaults for new tasks and the detected local shell. A permission change must be saved before the first task starts. Keep an unavailable saved shell visible until you choose a replacement.
+2. Open Rules & Memory to create an entry, save it, and use its switch to enable or disable it. Entries persist across restarts. Deletion requires confirmation; a failed save or delete leaves the current entry available for retry. Do not put credentials in instructions.
+3. Open Web Tools, choose a provider, and supply its key or SearXNG instance address. Save changes before testing. A blank key preserves the stored key; use explicit key removal and save to delete it. A successful connection test checks the provider, not a complete agent task.
+4. Open Statistics to filter recorded usage by project and time range. Missing counters are unknown. Connection tests and tools billed outside VERA are excluded. See the page hints for the cache denominator.
+5. Open a session's context menu to inspect image maintenance. Preview the size estimate before confirming compaction. Keep the backup; restore is refused if the conversation changed afterwards. If a response is lost, inspect the existing operation record before submitting a new request.
+
+See [channels](channels.md) for remote account pairing and [Taskboard](taskboard.md) for the optional task application. Opening settings alone does not start either transport.
 
 ## Transport and streaming
 
@@ -61,7 +85,17 @@ Test connection starts the configured MCP stdio process or connects to its URL, 
 
 Unattended schedules require explicit `yolo` and a fresh context per run. Saving leaves a task paused; manual tasks use Run now. Schedule times include the desktop's timezone; Monday-based UI weekdays are converted to cron weekdays. The scheduler has its own lifetime, so closing the desktop does not stop enabled schedules.
 
-OAuth subscription login, SSH, LAN remote control, PI extensions, codemode/deferred MCP exposure and manual context compaction are not supplied by this backend adapter. Their UI entries are disabled or reject unsupported operations explicitly. MCP configuration applies to the next task; the settings page does not pretend a persistent connection is alive. These limits are separate from the existing Hindsight memory/context module.
+The API form asks for the provider, API key and model IDs in that order. Configuration labels are generated from the provider or custom endpoint; model display names are omitted.
+
+SSH, PI extensions, codemode/deferred MCP exposure and manual context compaction are not supplied by this backend adapter. Their UI entries are disabled or reject unsupported operations explicitly. MCP configuration applies to the next task; the settings page does not pretend a persistent connection is alive. These limits are separate from the existing Hindsight memory/context module.
+
+## Settings and remote capabilities
+
+Behavior settings detect installed Bash runtimes, including available WSL Bash on Windows. They do not silently install or replace a shell. Users explicitly maintain global rules and memory. Usage statistics track tokens; an unknown cost does not mean free execution.
+
+For WSL, explicitly configured environment overrides and Python encoding settings are forwarded through `WSLENV`. Other Windows variables are not copied wholesale into the distribution; existing `WSLENV` flags remain effective.
+
+Device interconnect starts disabled. Enabling it creates a separate LAN listener and pairing token; remote control needs an additional opt-in. Weixin/Feishu use the existing paired-user channel controls. See [API boundaries](desktop-api.md). The optional [taskboard](taskboard.md) is installed separately and leaves execution results ready for review.
 
 ## Verification
 

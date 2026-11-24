@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from vera.scheduler.config import JobSpec, next_occurrence, parse_schedule
+from vera.scheduler.config import JobSpec, next_occurrence, parse_schedule, utc_text
 from vera.scheduler.engine import Scheduler
 from vera.scheduler.store import JobStore
 from vera.tools import ToolError
@@ -42,6 +42,22 @@ def job_definition(workspace: Path, **changes) -> dict:
         },
         **changes,
     }
+
+
+def test_job_persistence_preserves_mcp_references_without_provider_credentials(tmp_path):
+    """Creation and edits retain only the validated HTTP header environment references."""
+    store = JobStore(tmp_path / "state")
+    definition = job_definition(tmp_path)
+    definition["config"]["model"]["model_kwargs"] = {"api_key": "private-fixture-key"}
+    server = {"url": "https://example.invalid/mcp", "headers_from": {"CONTEXT7_API_KEY": "CONTEXT7_API_KEY"}}
+    definition["config"]["mcp_servers"] = {"remote": server}
+    job = store.create(definition, now=BASE)
+    assert store.definition(job["id"]).config["mcp_servers"]["remote"] == server
+    assert store.definition(job["id"]).config["model"]["model_kwargs"] == {}
+    server["headers_from"] = {"Authorization": "UPDATED_MCP_AUTH"}
+    store.update(job["id"], definition, now=BASE)
+    assert store.definition(job["id"]).config["mcp_servers"]["remote"] == server
+    assert store.definition(job["id"]).config["model"]["model_kwargs"] == {}
 
 
 def test_four_schedule_formats_timezone_and_bounded_invalid_inputs():
@@ -83,8 +99,8 @@ def test_background_policy_limits_and_read_queries_do_not_create_state(tmp_path)
         {"config": {"agent": {"mode": "confirm"}}},
         {"config": {"agent": {"mode": "human"}}},
         {"timezone": "fake"},
-        {"cost_limit": 0},
-        {"timeout": 0},
+        {"cost_limit": -1},
+        {"timeout": -1},
     ):
         with pytest.raises(ValidationError):
             JobSpec.model_validate(job_definition(tmp_path, **override))
@@ -137,7 +153,9 @@ def test_pause_edit_remove_repeat_and_manual_runs_keep_snapshot_history(tmp_path
     with pytest.raises(ToolError, match="active"):
         store.control(key, "run")
     store.start(execution)
+    assert store.history(key)[0]["finished_at"] is None
     store.finish(execution, "failed", {"reason": "failure does not retry side effects"})
+    assert store.history(key)[0]["finished_at"] == utc_text(store.execution(execution)["finished_at"])
     assert store.claim_due(1, now=BASE + 100) == []
     assert store.control(key, "run")["status"] == "queued"
     assert store.get(key)["next_run_at"] is None and store.get(key)["fired"] == 1
@@ -159,7 +177,8 @@ def test_concurrent_writers_do_not_lose_jobs_or_expose_provider_config(tmp_path)
     with ThreadPoolExecutor(max_workers=4) as executor:
         list(executor.map(lambda _: store.create(value, now=BASE), range(12)))
     assert len(store.list()) == 12 and "private-fixture-key" not in json.dumps(store.list())
-    assert "private-fixture-key" in json.dumps(store.definition(store.list()[0]["id"]).model_dump(mode="json"))
+    assert "private-fixture-key" not in json.dumps(store.definition(store.list()[0]["id"]).model_dump(mode="json"))
+    assert b"private-fixture-key" not in store.database.read_bytes()
 
 
 def test_single_owner_lock_and_recovery_never_replays_unknown_occurrences(tmp_path):

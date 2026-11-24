@@ -65,7 +65,7 @@ Cron uses calendar time and timezone/DST rules. State uses UTC. `repeat` optiona
 
 Background jobs require explicit `config.agent.mode: yolo`. `confirm` and `human` need interactive input and are rejected. This choice is independent of sandbox isolation. Supply `config.sandbox_profile` and, if needed, `config.sandbox_profiles.path` to select a saved sandbox; missing engines/images fail the execution without falling back to the host. Installation remains the user's choice.
 
-`config` uses the same Runtime configuration for models, Hindsight memory, web tools, MCP servers, plugins and Subagent roles. `skills` selects skills to inject into the initial task. Project `@file` references use the existing attachment rules. Every occurrence has fresh messages; shared long-term memory follows the configured memory provider. The per-invocation timeout, step and cost limits also bound delegated work through the existing Runtime.
+`config` uses the same Runtime configuration for models, Hindsight memory, web tools, MCP servers, plugins and Subagent roles. Each worker merges its saved configuration over the installed defaults; it does not load a project-local `vera.yaml` at execution time. `skills` selects skills to inject into the initial task. Project `@file` references use the existing attachment rules. Every occurrence has fresh messages; shared long-term memory follows the configured memory provider. The per-invocation timeout, step and cost limits also bound delegated work through the existing Runtime.
 
 ## Agent tool and frontend integration
 

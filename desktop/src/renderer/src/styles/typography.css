@@ -1,55 +1,7 @@
 /**
- * 字号表 —— **本项目字号的唯一事实源**（spec D10）。
- *
- * 任何要写字号的地方（组件 class、globals.css、插件规范）都从这里取，不要手写 `text-[13px]`。
- * 新增一个字号 = 在下面 `@layer utilities` 里加一个类（命名规则：去掉小数点，如 `-105` = 10.5px），
- * 然后在 `globals.css` 里改成 `calc(<px> * var(--fs-ui-scale, 1))` / `var(--fs-code-scale, 1)`。
- * 守护测试 `typography.test.ts` 会拦住往组件里写死的 px 字号。
- *
- * ## 两层乘数
- *
- * - `--fs-ui-scale`：界面字号乘数。用在本文件全部 `-*` 类 + `globals.css` 的界面类（38 处 font-size）。
- * - `--fs-code-scale`：代码字号乘数。用在 `globals.css` 里代码族的 7 处 font-size（内联 `code` / 常文代码块 fallback /
- *   diff 正文与行号 / mermaid 源码 pre）；monaco 编辑器内部字号的量**不经过 CSS**（阶段 3 用 `monacoOptions` 按平台基线算，见 spec D4.4）。
- *
- * 两个变量都由 renderer 的 `ui-preferences` store 写在 `document.documentElement.style`，默认 1
- * （即「默认档 = 迁移前的现状」，这是本功能的安全网：默认档必须与改动前逐像素一致）。
- * CSS 里一律带兜底值 `var(--fs-ui-scale, 1)`，变量没注入时也等于现状。
- *
- * ## ⚠️ @import 顺序是硬要求
- *
- * `globals.css` 顶部必须是：
- *
- * ```css
- * @import "tailwindcss";
- * @import "./typography.css";
- * ```
- *
- * 反过来（本文件先于 tailwindcss）会让层序变成 `utilities` 在 `base` **之前**，
- * 于是 Tailwind preflight 的 `font: inherit` 会把我们整层的字号压掉 —— 按钮/输入框上尤其明显
- * （阶段 0 探针实测：层序颠倒时 `<button class="text-ui-13">` 的计算字号是继承值，不是 13px）。
- *
- * ## 现值 ↔ token 对照（迁移前 → 迁移后，默认档完全等价）
- *
- * | 原写法 | token 类 | 默认档计算值 |
- * | --- | --- | --- |
- * | `text-[10px]` | `.text-ui-10` | 10px |
- * | `text-[10.5px]` | `.text-ui-105` | 10.5px |
- * | `text-[11px]` | `.text-ui-11` | 11px |
- * | `text-[11.5px]` | `.text-ui-115` | 11.5px |
- * | `text-[12px]` | `.text-ui-12` | 12px |
- * | `text-[12.5px]` | `.text-ui-125` | 12.5px |
- * | `text-[13px]` | `.text-ui-13` | 13px |
- * | `text-[13.5px]` | `.text-ui-135` | 13.5px |
- * | `text-[14px]` | `.text-ui-14` | 14px |
- * | `text-[15px]` | `.text-ui-15` | 15px |
- * | `text-[16px]` | `.text-ui-16` | 16px |
- * | （18px：`text-lg` 那档，见下表末三行） | `.text-ui-18` | 18px |
- * | `text-[19px]` | `.text-ui-19` | 19px |
- * | `text-xs`（12px + 行高 16px） | `.text-ui-12 leading-[calc(1_/_0.75)]` | 12px / 16px |
- * | `text-sm`（14px + 行高 20px） | `.text-ui-14 leading-[calc(1.25_/_0.875)]` | 14px / 20px |
- * | `text-lg`（18px + 行高 28px） | `.text-ui-18 leading-[calc(1.75_/_1.125)]` | 18px / 28px |
- * | Markdown 标题 `1.25/1.125/1/0.9375rem` | `calc(20px/18px/16px/15px * var(--fs-ui-scale, 1))` | 20/18/16/15px |
+ * 界面字号 token：使用 --fs-ui-scale 缩放，代码区使用 --fs-code-scale。
+ * 新增字号时同步 contracts/typography.ts；由 tests 中的字号守护测试校验。
+ * globals.css 必须先导入 Tailwind，再导入本文件，以保留 utilities 的层级优先级。
  */
 
 :root {
@@ -100,6 +52,12 @@
 }
 
 /* 注册为 Tailwind utility，让空态的响应式字号前缀也能生成。 */
+@utility text-ui-23 {
+	font-size: calc(23px * var(--fs-ui-scale, 1));
+}
+@utility text-ui-26 {
+	font-size: calc(26px * var(--fs-ui-scale, 1));
+}
 @utility text-ui-28 {
 	font-size: calc(28px * var(--fs-ui-scale, 1));
 }

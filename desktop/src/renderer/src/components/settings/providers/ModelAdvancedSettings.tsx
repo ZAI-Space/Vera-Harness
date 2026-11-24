@@ -53,13 +53,15 @@ function TokenField({
 	);
 }
 
-/** 按模型编辑高级选项。已支持的能力留在模型行，其余选项只写前端偏好。 */
+/** 按模型编辑持久化请求参数；内置厂商的能力由模型目录补全。 */
 export function ModelAdvancedSettings({
 	rows,
 	onChange,
+	mode = "custom",
 }: {
 	rows: ModelRow[];
 	onChange: (rows: ModelRow[]) => void;
+	mode?: "preset" | "custom";
 }) {
 	const t = useT();
 	const id = useId();
@@ -121,92 +123,103 @@ export function ModelAdvancedSettings({
 					className={INPUT_CLASS}
 					type="number"
 					min={1}
+					max={10000}
 					step={1}
 					placeholder="500"
 					value={advanced.toolCallLimit}
 					onChange={(event) => update({ toolCallLimit: event.target.value })}
 				/>
 			</label>
-			<fieldset>
-				<legend className="mb-2 text-ui-12 font-medium text-ink-dim">{t("modelAdvanced.imageInput")}</legend>
-				<div className="flex gap-5 text-ui-12 text-ink-dim">
-					{[true, false].map((supported) => (
-						<label key={String(supported)} className="flex items-center gap-2">
-							<input
-								type="radio"
-								name={`${id}-image`}
-								checked={row.imageInput === supported}
-								onChange={() => updateRow({ imageInput: supported })}
-							/>
-							{t(supported ? "modelAdvanced.supported" : "modelAdvanced.unsupported")}
-						</label>
-					))}
-				</div>
-			</fieldset>
-			<section className="flex flex-col gap-3">
-				<div className="flex items-center justify-between gap-3">
-					<div className="flex items-center gap-1.5 text-ui-12 font-medium text-ink-dim">
-						{t("modelAdvanced.reasoning")}
-						<HintIcon label={t("modelAdvanced.reasoningHint")} />
-					</div>
-					<Switch
-						aria-label={t("modelAdvanced.reasoning")}
-						checked={row.reasoning}
-						onCheckedChange={(reasoning) => updateRow({ reasoning })}
-					/>
-				</div>
-				<p className="text-ui-11 leading-relaxed text-ink-faint">{t("modelAdvanced.reasoningHint")}</p>
-				<fieldset disabled={!row.reasoning} className="flex min-w-0 flex-col gap-2 disabled:opacity-50">
-					<label className="flex flex-col gap-2 text-ui-12 text-ink-dim" htmlFor={`${id}-parameter`}>
-						{t("modelAdvanced.reasoningParameter")}
-						<input
-							id={`${id}-parameter`}
-							className={INPUT_CLASS}
-							placeholder="reasoning_effort"
-							value={advanced.reasoningParameter}
-							onChange={(event) => update({ reasoningParameter: event.target.value })}
-						/>
-					</label>
-					<div className="text-ui-12 text-ink-dim">{t("modelAdvanced.reasoningValues")}</div>
-					<div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border p-2">
-						{advanced.reasoningValues.map((value) => (
-							<span
-								key={value}
-								className="flex items-center gap-1 rounded-md bg-hover px-2 py-1 text-ui-11 text-ink-dim"
-							>
-								{value === "default"
-									? t("modelAdvanced.defaultReasoning")
-									: value === "off"
-										? t("modelAdvanced.offReasoning")
-										: value}
-								<button
-									type="button"
-									aria-label={t("modelAdvanced.removeValue", { value })}
-									onClick={() =>
-										update({ reasoningValues: advanced.reasoningValues.filter((item) => item !== value) })
-									}
-								>
-									<CloseIcon size={10} />
-								</button>
-							</span>
+			{mode === "custom" && (
+				<fieldset>
+					<legend className="mb-2 text-ui-12 font-medium text-ink-dim">
+						{t("modelAdvanced.imageInput")}
+					</legend>
+					<div className="flex gap-5 text-ui-12 text-ink-dim">
+						{[true, false].map((supported) => (
+							<label key={String(supported)} className="flex items-center gap-2">
+								<input
+									type="radio"
+									name={`${id}-image`}
+									checked={row.imageInput === supported}
+									onChange={() => updateRow({ imageInput: supported })}
+								/>
+								{t(supported ? "modelAdvanced.supported" : "modelAdvanced.unsupported")}
+							</label>
 						))}
-						<input
-							className="min-w-0 flex-1 bg-transparent px-1 py-1 text-ui-12 text-ink outline-none"
-							aria-label={t("modelAdvanced.reasoningValues")}
-							placeholder={t("modelAdvanced.reasoningPlaceholder")}
-							value={effort}
-							maxLength={64}
-							onChange={(event) => setEffort(event.target.value)}
-							onKeyDown={(event) => {
-								if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-									event.preventDefault();
-									addEffort();
-								}
-							}}
-						/>
 					</div>
 				</fieldset>
-			</section>
+			)}
+			{mode === "preset" ? (
+				<div className="rounded-xl border border-border p-3 text-ui-12 leading-relaxed text-ink-dim">
+					{t(row.reasoning ? "modelForm.reasoningSupported" : "modelForm.reasoningUnknown")}
+				</div>
+			) : (
+				<section className="flex flex-col gap-3">
+					<div className="flex items-center justify-between gap-3">
+						<div className="flex items-center gap-1.5 text-ui-12 font-medium text-ink-dim">
+							{t("modelAdvanced.reasoning")}
+							<HintIcon label={t("modelAdvanced.reasoningHint")} />
+						</div>
+						<Switch
+							aria-label={t("modelAdvanced.reasoning")}
+							checked={row.reasoning}
+							onCheckedChange={(reasoning) => updateRow({ reasoning })}
+						/>
+					</div>
+					<p className="text-ui-11 leading-relaxed text-ink-faint">{t("modelAdvanced.reasoningHint")}</p>
+					<fieldset disabled={!row.reasoning} className="flex min-w-0 flex-col gap-2 disabled:opacity-50">
+						<label className="flex flex-col gap-2 text-ui-12 text-ink-dim" htmlFor={`${id}-parameter`}>
+							{t("modelAdvanced.reasoningParameter")}
+							<input
+								id={`${id}-parameter`}
+								className={INPUT_CLASS}
+								placeholder="reasoning_effort"
+								value={advanced.reasoningParameter}
+								onChange={(event) => update({ reasoningParameter: event.target.value })}
+							/>
+						</label>
+						<div className="text-ui-12 text-ink-dim">{t("modelAdvanced.reasoningValues")}</div>
+						<div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border p-2">
+							{advanced.reasoningValues.map((value) => (
+								<span
+									key={value}
+									className="flex items-center gap-1 rounded-md bg-hover px-2 py-1 text-ui-11 text-ink-dim"
+								>
+									{value === "default"
+										? t("modelAdvanced.defaultReasoning")
+										: value === "off"
+											? t("modelAdvanced.offReasoning")
+											: value}
+									<button
+										type="button"
+										aria-label={t("modelAdvanced.removeValue", { value })}
+										onClick={() =>
+											update({ reasoningValues: advanced.reasoningValues.filter((item) => item !== value) })
+										}
+									>
+										<CloseIcon size={10} />
+									</button>
+								</span>
+							))}
+							<input
+								className="min-w-0 flex-1 bg-transparent px-1 py-1 text-ui-12 text-ink outline-none"
+								aria-label={t("modelAdvanced.reasoningValues")}
+								placeholder={t("modelAdvanced.reasoningPlaceholder")}
+								value={effort}
+								maxLength={64}
+								onChange={(event) => setEffort(event.target.value)}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+										event.preventDefault();
+										addEffort();
+									}
+								}}
+							/>
+						</div>
+					</fieldset>
+				</section>
+			)}
 			<fieldset className="flex min-w-0 flex-col gap-2">
 				<legend className="mb-2 text-ui-12 font-medium text-ink-dim">{t("modelAdvanced.sampling")}</legend>
 				{(["temperature", "topP", "topK"] as const).map((field) => (
@@ -241,9 +254,9 @@ export function ModelAdvancedSettings({
 						updateRow({
 							contextWindow: EMPTY_MODEL_ROW.contextWindow,
 							maxTokens: EMPTY_MODEL_ROW.maxTokens,
-							imageInput: false,
-							reasoning: false,
-							thinkingLevelMap: undefined,
+							...(mode === "custom"
+								? { imageInput: false, reasoning: false, thinkingLevelMap: undefined }
+								: {}),
 							advanced: undefined,
 						});
 						setEffort("");

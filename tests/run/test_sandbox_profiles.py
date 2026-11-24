@@ -6,6 +6,8 @@ import sqlite3
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
+from threading import Event
 
 import pytest
 import yaml
@@ -63,6 +65,79 @@ def test_store_transactions_preserve_concurrent_settings_and_report_corruption(t
     with pytest.raises(ToolError, match="unavailable"):
         store.list_profiles()
     assert store.path.exists()
+
+
+def test_store_waits_for_another_connection_to_release_its_write_transaction(tmp_path, monkeypatch):
+    """Keep SQLite's cross-connection waiting contract, independently of the instance lock."""
+    store = SandboxProfiles(tmp_path / "profiles.sqlite3")
+    store.save("existing", {"mode": "docker"})
+    connect = sqlite3.connect
+    writer_started = Event()
+
+    def observe_writer(*args, **kwargs):
+        connection = connect(*args, **kwargs)
+        connection.set_trace_callback(
+            lambda statement: writer_started.set() if statement == "BEGIN IMMEDIATE" else None
+        )
+        return connection
+
+    with closing(connect(store.path)) as blocker:
+        blocker.execute("BEGIN IMMEDIATE")
+        monkeypatch.setattr(sqlite3, "connect", observe_writer)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            pending = executor.submit(store.save, "waiting", {"mode": "bubblewrap"})
+            try:
+                assert writer_started.wait(timeout=5), "The second connection never attempted its write transaction"
+            finally:
+                blocker.commit()
+            assert pending.result(timeout=5)["name"] == "waiting"
+    assert set(store.list_profiles()) == {"existing", "waiting"}
+
+
+def test_failed_replacement_rolls_back_and_reports_only_the_sqlite_error_name(tmp_path):
+    """A real SQLite abort must preserve the previous profile and release its write lock."""
+    store = SandboxProfiles(tmp_path / "profiles.sqlite3")
+    store.save("existing", {"mode": "docker"})
+    with closing(sqlite3.connect(store.path)) as connection, connection:
+        connection.execute(
+            "CREATE TRIGGER reject_replacement AFTER INSERT ON profiles "
+            "BEGIN SELECT RAISE(ABORT, 'private trigger diagnostic'); END"
+        )
+    with pytest.raises(ToolError) as error:
+        store.save("existing", {"mode": "bubblewrap"}, replace=True)
+    if sys.version_info >= (3, 11):
+        assert "SQLITE_CONSTRAINT_TRIGGER" in str(error.value)
+    else:
+        assert "IntegrityError" in str(error.value)
+    assert "private trigger diagnostic" not in str(error.value)
+    assert store.select("existing").mode == "docker"
+    with closing(sqlite3.connect(store.path)) as connection, connection:
+        connection.execute("DROP TRIGGER reject_replacement")
+    store.save("existing", {"mode": "bubblewrap"}, replace=True)
+    assert store.select("existing").mode == "bubblewrap"
+
+
+def test_failed_first_save_rolls_back_schema_creation(tmp_path, monkeypatch):
+    """Reject the first insert through SQLite itself; schema creation must roll back too."""
+    store = SandboxProfiles(tmp_path / "profiles.sqlite3")
+    connect = sqlite3.connect
+
+    def reject_profile_insert(action, table, column, database, trigger):
+        return sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_INSERT and table == "profiles" else sqlite3.SQLITE_OK
+
+    def restricted_connection(*args, **kwargs):
+        connection = connect(*args, **kwargs)
+        connection.set_authorizer(reject_profile_insert)
+        return connection
+
+    with monkeypatch.context() as patch:
+        patch.setattr(sqlite3, "connect", restricted_connection)
+        with pytest.raises(ToolError, match="Cannot save sandbox profile"):
+            store.save("first", {"mode": "docker"})
+    with closing(connect(store.path)) as connection:
+        assert connection.execute("SELECT name FROM sqlite_master WHERE name = 'profiles'").fetchall() == []
+    store.save("first", {"mode": "docker"})
+    assert set(store.list_profiles()) == {"first"}
 
 
 def test_runtime_resolution_preserves_legacy_and_replaces_profile_options(tmp_path):

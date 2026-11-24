@@ -1,3 +1,5 @@
+"""Configure VERA logging and optional file handlers."""
+
 import logging
 from pathlib import Path
 

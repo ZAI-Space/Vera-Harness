@@ -184,17 +184,20 @@ poetry.toml
 # Desktop dependencies and generated Electron bundles
 !desktop/src/renderer/src/lib/
 !desktop/src/renderer/src/lib/**
+!desktop/tests/renderer/src/lib/
+!desktop/tests/renderer/src/lib/**
 desktop/node_modules/
 desktop/out/
-desktop/build/
 desktop/coverage/
 desktop/*.log
+
+# Local review state and isolated UI profiles are never product source.
+.gstack/
 desktop/.local/
 
-# Local acceptance artifacts and generated reports
-artifacts/
-reports/
-evidence/
+# Generated documentation beside the maintained landing-page source.
+/website/docs/
+/website/.vite/
 
 # LSP config files
 pyrightconfig.json

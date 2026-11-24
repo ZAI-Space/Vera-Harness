@@ -1,0 +1,143 @@
+:root {
+	font:
+		16px / 1.6 system-ui,
+		sans-serif;
+	color: #202126;
+	background: #f7f7f9;
+	color-scheme: light dark;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+}
+header {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 20px 24px;
+	background: #fff;
+	border-bottom: 1px solid #e5e5e9;
+	position: sticky;
+	top: 0;
+}
+header strong {
+	letter-spacing: 3px;
+}
+header span,
+#readonly {
+	font-size: 13px;
+	color: #737681;
+}
+main {
+	max-width: 850px;
+	margin: auto;
+	padding: 24px 16px 40px;
+}
+label {
+	display: block;
+	font-size: 13px;
+	color: #737681;
+	margin-bottom: 6px;
+}
+select,
+textarea {
+	width: 100%;
+	padding: 12px;
+	border: 1px solid #dddde4;
+	border-radius: 12px;
+	background: #fff;
+	color: inherit;
+	font: inherit;
+}
+article {
+	margin-top: 16px;
+	padding: 18px;
+	border: 1px solid #e6e6ec;
+	border-radius: 14px;
+	background: #fff;
+	overflow-wrap: anywhere;
+}
+article.user {
+	border-left: 3px solid #4564aa;
+}
+article strong {
+	display: block;
+	font-size: 12px;
+	color: #737681;
+	margin-bottom: 8px;
+}
+article p,
+pre {
+	margin: 0;
+	white-space: pre-wrap;
+	font: inherit;
+}
+pre {
+	font:
+		12px / 1.6 ui-monospace,
+		monospace;
+	overflow: auto;
+	margin-top: 8px;
+	max-height: 320px;
+}
+details {
+	margin-top: 12px;
+}
+#error {
+	color: #bc3939;
+	font-size: 14px;
+}
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 10px;
+}
+button {
+	padding: 10px 18px;
+	border: 1px solid #d5d5dc;
+	border-radius: 10px;
+	background: #fff;
+	color: #202126;
+	font: inherit;
+	cursor: pointer;
+}
+button[type="submit"] {
+	background: #202126;
+	color: white;
+	border-color: #202126;
+}
+button:disabled {
+	opacity: 0.5;
+	cursor: wait;
+}
+form {
+	margin-top: 24px;
+}
+[hidden] {
+	display: none !important;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		background: #17171a;
+		color: #ececf0;
+	}
+	header,
+	article,
+	select,
+	textarea {
+		background: #232328;
+		border-color: #393940;
+	}
+	button {
+		background: #34343c;
+		color: #ececf0;
+		border-color: #505059;
+	}
+	button[type="submit"] {
+		background: #e8e8ed;
+		color: #202126;
+	}
+}

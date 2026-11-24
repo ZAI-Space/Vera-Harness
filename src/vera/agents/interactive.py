@@ -133,6 +133,8 @@ class InteractiveAgent(DefaultAgent):
         tool_calls = [action for action in actions if "tool" in action]
         outputs = []
         try:
+            if message.get("extra", {}).get("text_final") and not actions:
+                return super().execute_actions(message)
             self._ask_confirmation_or_interrupt(commands, tool_calls=tool_calls)
             for action in actions:
                 outputs.append(self._execute_action(action))

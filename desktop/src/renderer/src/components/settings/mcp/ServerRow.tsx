@@ -149,13 +149,26 @@ export function ServerRow({
 				)}
 				{/* hover / 键盘聚焦才显形的操作组 */}
 				<span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+					{server.enabled && (
+						<button
+							type="button"
+							className={ghost}
+							onClick={() =>
+								void upsert({ scope: server.source, cwd, name: server.name, enabled: false }).catch(
+									reportHarnessFailure,
+								)
+							}
+						>
+							{t("settings.mcp.disable")}
+						</button>
+					)}
 					{server.enabled ? (
 						<button
 							type="button"
 							className={ghost}
 							disabled={running}
 							title={running ? t("settings.mcp.reconnectRunning") : undefined}
-							onClick={() => void reload(cwd)}
+							onClick={() => void reload(cwd).catch(reportHarnessFailure)}
 						>
 							{t("settings.mcp.reconnect")}
 						</button>
@@ -163,7 +176,11 @@ export function ServerRow({
 						<button
 							type="button"
 							className={ghost}
-							onClick={() => void upsert({ scope: server.source, cwd, name: server.name, enabled: true })}
+							onClick={() =>
+								void upsert({ scope: server.source, cwd, name: server.name, enabled: true }).catch(
+									reportHarnessFailure,
+								)
+							}
 						>
 							{t("settings.mcp.enable")}
 						</button>
@@ -271,7 +288,7 @@ export function ServerRow({
 						className="rounded-full px-2 py-0.5 text-ui-11 text-err transition-colors hover:bg-hover"
 						onClick={() => {
 							setConfirming(false);
-							void remove({ scope: server.source, cwd, name: server.name });
+							void remove({ scope: server.source, cwd, name: server.name }).catch(reportHarnessFailure);
 						}}
 					>
 						{t("settings.mcp.deleteNow")}

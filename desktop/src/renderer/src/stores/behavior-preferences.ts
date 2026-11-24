@@ -3,7 +3,14 @@ import type { PermissionPolicy } from "./permission-policy";
 
 /** 桌面配置草稿；不向借用的 Pi 后端发送执行模式、Shell 或沙箱设置。 */
 export type BehaviorMode = "agent" | "plan" | "goal";
-export type CommandShell = "system" | "windows-powershell" | "pwsh" | "git-bash" | "bash" | "zsh";
+export type CommandShell =
+	| "system"
+	| "windows-powershell"
+	| "pwsh"
+	| "git-bash"
+	| "bash"
+	| "zsh"
+	| `wsl:${string}`;
 
 /** 字段对应 Harness SandboxConfig；可命名的配置只接受显式的 Docker 或 Bubblewrap。 */
 export interface SandboxProfileDraft {
@@ -102,11 +109,12 @@ function restorePreferences(saved: unknown): BehaviorPreferences {
 		permissionPolicy: ["human", "confirm", "yolo"].includes(String(saved.permissionPolicy))
 			? (saved.permissionPolicy as PermissionPolicy)
 			: "confirm",
-		commandShell: ["system", "windows-powershell", "pwsh", "git-bash", "bash", "zsh"].includes(
-			String(saved.commandShell),
-		)
-			? (saved.commandShell as CommandShell)
-			: "system",
+		commandShell:
+			["system", "windows-powershell", "pwsh", "git-bash", "bash", "zsh"].includes(
+				String(saved.commandShell),
+			) || /^wsl:.{1,128}$/.test(String(saved.commandShell))
+				? (saved.commandShell as CommandShell)
+				: "system",
 		sandboxProfiles,
 		defaultSandbox: sandboxProfiles.some((profile) => profile.name === saved.defaultSandbox)
 			? String(saved.defaultSandbox)

@@ -23,9 +23,9 @@ class GoalConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     directory: Path = global_config_dir / "goals"
-    max_turns: int = Field(default=20, ge=1, le=100)
-    cost_limit: float = Field(default=3, gt=0, le=100)
-    timeout: int = Field(default=1800, ge=1, le=86400)
+    max_turns: int = Field(default=20, ge=0, le=100)
+    cost_limit: float = Field(default=3, ge=0, le=100)
+    timeout: int = Field(default=1800, ge=0, le=86400)
     judge_model: dict | None = None
 
 
@@ -289,7 +289,10 @@ def drive_goal(session, run_turn, show):
                 "cost": state["cost_limit"] - state["cost"],
                 "seconds": state["timeout"] - elapsed,
             }
-            if min(remaining.values()) <= 0:
+            if any(
+                state[limit] > 0 and remaining[counter] <= 0
+                for limit, counter in (("max_turns", "turns"), ("cost_limit", "cost"), ("timeout", "seconds"))
+            ):
                 store.patch(identity, status="paused", elapsed=elapsed, reason="Goal budget exhausted")
                 break
             state = store.patch(identity, in_flight=True, runtime=signature)
@@ -300,7 +303,7 @@ def drive_goal(session, run_turn, show):
                 "Standing goal: " + state["objective"] + "\nTake the next concrete step, verify results, "
                 "and finish this turn with the evidence. Do not claim the goal is achieved without verification."
             )
-            show(f"Goal turn {state['turns'] + 1}/{state['max_turns']}: {state['objective']}")
+            show(f"Goal turn {state['turns'] + 1}/{state['max_turns'] or 'unlimited'}: {state['objective']}")
             try:
                 agent = run_turn(prompt, state["messages"], remaining)
                 result = agent.messages[-1].get("extra", {}) if agent.messages else {}
@@ -323,7 +326,9 @@ def drive_goal(session, run_turn, show):
                         identity, in_flight=False, status="paused", reason="Runtime choices changed; set a new goal"
                     )
                     break
-                if cost >= state["cost_limit"] or state["elapsed"] >= state["timeout"]:
+                if (state["cost_limit"] > 0 and cost >= state["cost_limit"]) or (
+                    state["timeout"] > 0 and state["elapsed"] >= state["timeout"]
+                ):
                     store.patch(
                         identity, in_flight=False, status="paused", reason="Goal budget exhausted before judging"
                     )

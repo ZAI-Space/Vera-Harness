@@ -2,6 +2,7 @@ import { TASK_NOTIFICATION_COPY, UI_WORKBENCH_TRUST_COPY } from "@vera/contracts
 import { behaviorEn } from "./behavior-en";
 import { modelAccessEn } from "./model-access-en";
 import { modelAdvancedEn } from "./model-advanced-en";
+import { settingsExtraEn } from "./settings-extra-en";
 import { subagentsEn } from "./subagents-en";
 import { workspaceEn } from "./workspace-en";
 import type { Messages } from "./zh";
@@ -9,6 +10,7 @@ import type { Messages } from "./zh";
 /** English language pack (mirrors zh.ts shape) */
 export const en: Messages = {
 	...workspaceEn,
+	...settingsExtraEn,
 	behavior: behaviorEn,
 	modelAccess: modelAccessEn,
 	modelAdvanced: modelAdvancedEn,
@@ -24,7 +26,8 @@ export const en: Messages = {
 		targetUnavailable: "The notification's session or connection is no longer available.",
 	},
 	emptyState: {
-		slogan: "Build With VERA",
+		sloganLead: "Build With",
+		sloganBrand: "VERA",
 	},
 	storageStartup: {
 		preparing: "Preparing…",
@@ -194,6 +197,7 @@ export const en: Messages = {
 		queueRestore: "Take back to editor",
 		queueFull: "A message is already queued — take it back first",
 		targetChanged: "The project has changed. Return to the original project to retry sending.",
+		permissionSaveFailed: "Permission mode could not be saved. Retry before sending.",
 		removeQuote: "Remove quote",
 		permissionMode: "Permission mode",
 		permissionPolicies: {
@@ -219,6 +223,8 @@ export const en: Messages = {
 		noMatch: "No matching commands",
 		notConfigured: "No available configuration detected",
 		argPlaceholder: "Type arguments…",
+		cancelCommand: "Cancel selected command",
+		subagentTaskPlaceholder: "Enter a task for the selected subagent…",
 		builtin: {
 			new: { label: "New chat", description: "Create a new conversation" },
 			compact: { label: "compact", description: "Compress session context", argumentHint: "[focus]" },
@@ -245,6 +251,7 @@ export const en: Messages = {
 			exported: "Exported: {path}",
 			exportCancelled: "Export cancelled",
 			noSession: "Pick a project directory and create a session first",
+			noSubagentTask: "Enter a task for the selected subagent first",
 		},
 	},
 	at: {
@@ -444,8 +451,7 @@ export const en: Messages = {
 		working: "Processing in background…",
 		background:
 			"The confirmed operation runs in the background. Closing this dialog does not stop it; reopen to query durable state.",
-		closedRequired:
-			"Only this session is affected. Close the session, read-only views and running writers before execution.",
+		closedRequired: "Only this session is affected. Running sessions cannot be compacted or restored.",
 		backupKept: "Independent original backup (never removed automatically):",
 		appendSafety:
 			"Direct restore is refused after new messages or source changes. Keep both the current file and original backup; retain a separate backup copy rather than overwrite new data.",
@@ -459,7 +465,7 @@ export const en: Messages = {
 		},
 		confirm: {
 			compact:
-				"Compact display screenshots in this session only? An independent original is retained. Original images and the candidate are validated before atomic replacement. Additional space is needed for backup, candidate and media. User attachments, read images and other records stay unchanged.",
+				"Losslessly compact image storage for this session? A full independent backup is retained before images are deduplicated. Image contents and chat history remain intact. The backup needs additional space.",
 			restore:
 				"Restore the original? Replacement is allowed only while the current file still matches the compacted version, with no new messages. Source or backup mismatches are refused. New data is never overwritten, and the backup remains.",
 			resume:
@@ -481,16 +487,16 @@ export const en: Messages = {
 	mediaPreview: {
 		title: "Screenshot compaction and recovery",
 		readOnly:
-			"Scans all branches in this session only; no transcript or media is changed. Backups are retained and are not counted as savings.",
+			"Preview image storage for this session without changing content. Backups are retained and are not counted as savings.",
 		refresh: "Preview again",
 		cancelled: "Scan cancelled; the original and media are unchanged.",
 		failed: "Read failed",
 		unsupported:
 			"The session version is unsupported or its header is invalid. Compaction is unavailable; the original is unchanged.",
-		noBenefit: "No eligible display images, or no estimated reduction of the active file.",
+		noBenefit: "No eligible images, already compacted, or no estimated reduction of stored content.",
 		scanning: "Scanning in the background: {done} / {total}. Close to cancel; other sessions remain usable.",
 		summary:
-			"Estimated active file: {before} → {after}; {count} display images ({unique} unique); backup: {backup}; conservative additional peak: {peak}. Existing images may be reused; the estimate assumes all are new.",
+			"Estimated stored content: {before} → {after}; {count} attachments ({unique} unique images). Backup: {backup}; additional space: {peak}. Database files may reuse free pages, so disk usage may not shrink immediately.",
 		preserved:
 			"Preserved {invalid} invalid lines; skipped {skipped} images that cannot be safely compacted. User attachments and read images stay unchanged.",
 	},
@@ -534,6 +540,7 @@ export const en: Messages = {
 	sidebar: {
 		plugins: "Plugins",
 		scheduled: "Scheduled tasks",
+		taskboard: "Taskboard",
 		title: "Navigation",
 		newSession: "New task",
 		newSessionInProject: "New session in {name}",
@@ -579,9 +586,13 @@ export const en: Messages = {
 		loading: "Loading…",
 		comingSoon: "Settings for this category are coming in a future release.",
 		category: {
+			web: "Web tools",
 			archived: "Archived chats",
 			appearance: "General",
 			behavior: "Behavior",
+			rules: "Rules & memory",
+			statistics: "Usage statistics",
+			about: "About",
 			subagents: "Subagent",
 			models: "Models",
 			skills: "Skills",
@@ -653,6 +664,7 @@ export const en: Messages = {
 		centerOrbHint:
 			"While a task is running, shows an enlarged status animation at the center of the conversation area (above the text, with a translucent scrim dimming whatever is behind it). Only controls the centered animation — the small orb before the Working/Thinking row always stays.",
 		lan: {
+			retry: "Reconnect",
 			title: "Cross-device",
 			hint: "View live agent progress from your phone on a trusted local network. Off by default; the access token rotates every time it is enabled.",
 			port: "Listening port: {port}",
@@ -669,9 +681,10 @@ export const en: Messages = {
 				"The observer can show conversation output, tool calls, and task content, which may include code or sensitive data.",
 			securityTrusted: "Enable and share the link only on trusted local networks.",
 			securityForward: "Do not forward this port or expose it to the public internet.",
-			securityFirewall: "A macOS “allow incoming connections” firewall prompt on first use is normal.",
+			securityFirewall: "Use the same local network and allow incoming connections in the system firewall.",
 		},
 		about: {
+			feedback: "Report an issue",
 			backendConnected: "Backend connected",
 			backendDisconnected: "Backend not connected",
 		},
@@ -708,8 +721,6 @@ export const en: Messages = {
 			testOk: "Connection OK ({modelId})",
 			testFailed: "Test failed: {error}",
 			removeCredential: "Remove credential",
-			login: "Sign in with subscription",
-			loginApiKey: "Sign in",
 			builtinEdit: "Endpoint & key",
 			builtinEditTitle: "Configure {name} endpoint",
 			builtinBaseUrl: "baseUrl (optional; blank = official endpoint)",
@@ -748,18 +759,6 @@ export const en: Messages = {
 				"One model per row. Paste IDs separated by commas or newlines; new providers need at least one, built-in overrides may stay empty to keep the official list.",
 			submitting: "Saving…",
 		},
-		login: {
-			title: "Subscription sign-in · {name}",
-			apiKeyTitle: "Sign in · {name}",
-			browserHint:
-				"Authorization page opened in your browser. If it doesn't complete automatically, paste the final redirect URL from the browser address bar into the input below",
-			deviceCodeHint: "Enter this code on the verification page",
-			deviceCodeExpires: "Code expires in {minutes} min",
-			waiting: "Waiting for authorization…",
-			waitingInteractive: "Waiting for your input…",
-			submit: "Submit",
-			failed: "Sign-in failed",
-		},
 		skills: {
 			title: "Loaded Skills",
 			hint: "View Skills provided by the backend",
@@ -773,6 +772,16 @@ export const en: Messages = {
 			diagnostics: "Load diagnostics",
 		},
 		mcp: {
+			login: "Sign in",
+			jsonAdd: "Add JSON",
+			scanLocal: "Scan local MCP configurations",
+			scanEmpty:
+				"No configuration found in project .mcp.json, Cursor, VS Code or user Claude settings. You can paste JSON directly.",
+			marketAdd: "Add from market",
+			marketTitle: "MCP marketplace",
+			jsonHint:
+				"Paste a complete mcpServers JSON object. Supports stdio commands and HTTP endpoints. Reference credentials through environment variables. New services remain disabled until you enable them.",
+			jsonInvalid: "Invalid JSON. Check brackets, quotes and commas.",
 			argsFormat: "Use a JSON array of strings; keep paths containing spaces in a single array item",
 			probe: "Test connection",
 			probing: "Testing…",
@@ -793,7 +802,6 @@ export const en: Messages = {
 			reasonTitle: "Official notification",
 			reasonHint:
 				"Common causes: the command is not an absolute path (a GUI process has a narrower PATH), wrong args/package, or the server needs authorization.",
-			login: "Sign in",
 			loginWaiting:
 				"Authorization page opened in your browser — it takes effect once authorized (the official extension handles the callback prompt)",
 			loginManual:
@@ -806,6 +814,7 @@ export const en: Messages = {
 			deleteAsk: "Remove {name}? The mcp.json entry is removed immediately.",
 			deleteNow: "Remove",
 			enable: "Enable",
+			disable: "Disable",
 			reconnectDisabledHint: "Reconnect disabled (this session is running)",
 			configFiles: "Config files",
 			pathGlobal: "Global",

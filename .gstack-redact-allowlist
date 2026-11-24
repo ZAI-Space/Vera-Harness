@@ -1,0 +1,8 @@
+# Exact benign samples independently checked against official catalog/test context.
+# These are public placeholders or rejection fixtures, not usable credentials.
+# db.url_with_password — src/vera/config/markets/docker.json
+mongodb+srv://username:password@cluster.mongodb.net
+# slack.token — src/vera/config/markets/docker.json
+xoxb-your-bot-token
+# creds.basic_auth_url — tests/run/test_desktop_web.py
+https://user:secret@example.com"})

@@ -20,6 +20,8 @@ grace_seconds 默认 120。过期一次性任务跳过；周期任务默认合�
 
 ## 能力和结果
 
+Worker 将已保存的任务配置合并到安装包内置默认值，不在执行时读取项目目录中的 `vera.yaml`。修改任务配置应通过任务编辑入口完成。
+
 每次运行独立消息，长期记忆按配置共享；可注入 Skill、@文件，复用 MCP、插件、模型、Subagent、具名沙箱。引擎或镜像缺失时失败，不回退宿主。cronjob_manage 默认为关闭，由宿主显式开启，只管理当前项目，不能改凭据/工作区/权限。计划 Worker 禁用该工具，防止递归调度。
 
 历史含执行状态、摘要、run ID；artifacts/执行ID 下保留 trajectory.json、result.json、process.log，普通 RunStore 在 runs.sqlite3。前端通过 JobStore 和 Scheduler 接口管理，无通用 HTTP API，也不自动向微信飞书主动发送定时结果。

@@ -1,10 +1,12 @@
 """Validate authorized remote jobs through real provider protocols, SQLite and agent subprocesses."""
 
+import json
 import os
 import subprocess
 import sys
 import time
 from pathlib import Path
+from threading import Event, Thread
 
 import pytest
 import yaml
@@ -15,6 +17,35 @@ from vera.channels.credentials import CredentialStore
 from vera.channels.gateway import ChannelGateway, authorized, gateway_lock
 from vera.channels.store import ChannelStore, chunks
 from vera.channels.weixin import WeixinClient, api_origin, login, normalize_message
+
+
+def test_cursor_read_waits_for_active_journal_transaction(tmp_path):
+    """A concurrent reader must survive journal contention beyond the previous five-second limit."""
+    store = ChannelStore(tmp_path)
+    started, finished = Event(), Event()
+    values, errors = [], []
+
+    def read_cursor():
+        started.set()
+        try:
+            values.append(store.cursor("unconfigured"))
+        except Exception as error:
+            errors.append(error)
+        finally:
+            finished.set()
+
+    reader = Thread(target=read_cursor, daemon=True)
+    try:
+        with store.connect():
+            reader.start()
+            assert started.wait(timeout=5)
+            finished_under_lock = finished.wait(timeout=5.5)
+    finally:
+        reader.join(timeout=10)
+    assert not reader.is_alive()
+    assert not finished_under_lock, errors
+    assert not errors
+    assert values == [""]
 
 
 def test_weixin_login_pin_wire_headers_and_reply_context(tmp_path):
@@ -76,6 +107,21 @@ def test_journal_dedupe_commands_history_cancel_and_uncertain_delivery(tmp_path)
     assert "previous result" in store.history(second.key)
     store.accept([normalize_message("wechat", weixin_message(4, text="/cancel"))])
     assert store.get(second.key)["status"] == "cancelled"
+    store.accept([normalize_message("wechat", weixin_message(41, text="/pause"))])
+    with store.connect() as db:
+        latest_reply = db.execute("SELECT payload FROM outbox ORDER BY created DESC LIMIT 1").fetchone()[0]
+    assert "没有可暂停" in json.loads(latest_reply)["text"]
+    active_pause = normalize_message("wechat", weixin_message(42, text="Active task"))
+    store.accept([active_pause])
+    claimed_active = store.claim()
+    store.accept([normalize_message("wechat", weixin_message(43, text="/pause"))])
+    assert store.get(claimed_active["id"])["status"] == "running"
+    with store.connect() as db:
+        row = db.execute("SELECT payload FROM outbox ORDER BY created DESC LIMIT 1").fetchone()[0]
+    assert "不支持安全暂停" in json.loads(row)["text"]
+    store.accept([normalize_message("wechat", weixin_message(44, text="/cancel"))])
+    assert store.get(claimed_active["id"])["cancel"] == 1
+    store.finish(claimed_active["id"], "cancelled", "cancelled")
     store.accept([normalize_message("wechat", weixin_message(5, text="/new"))])
     third = normalize_message("wechat", weixin_message(6, text="New conversation"))
     store.accept([third])

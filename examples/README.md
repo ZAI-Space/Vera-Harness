@@ -1,15 +1,20 @@
 # VERA examples
 
-This directory contains small, inspectable examples that can be copied into a
-local VERA configuration. They are demonstrations of public manifests and
-capability declarations, not production plugins and not test doubles for the
-runtime.
+Run examples from the repository root after installing the project.
 
-## Contents
+## Offline Runtime
 
-- `plugins/review-kit/` demonstrates a Skill and a Subagent declaration.
-- `plugins/github/` demonstrates a plugin with an MCP service declaration.
+```bash
+vera -c examples/basic.yaml -t "Complete the offline demonstration" -o offline-example.traj.json --exit-immediately
+```
 
-Examples must remain safe to inspect without credentials or network access.
-They may contain placeholders, but must not contain tokens, private paths or
-generated test output. Runtime fixtures belong under `tests/`, not here.
+The deterministic adapter returns one fixed completion. It makes no provider request and runs no tool. The trajectory is local output; do not commit it.
+
+## Plugin declarations
+
+- `plugins/review-kit/`: a local Skill and a budgeted reviewer role. The role has Bash authority; its instructions are not a security sandbox.
+- `plugins/github/`: the official GitHub MCP endpoint. Actual execution requires network access and a scoped `GITHUB_TOKEN` environment variable.
+
+Installing a plugin leaves it disabled. Inspect its declarations before enabling it. These examples contain no live credentials.
+
+`tests/run/test_examples.py` loads both manifests and runs the offline configuration without connecting to the remote MCP service.

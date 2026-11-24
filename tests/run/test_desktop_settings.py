@@ -4,6 +4,7 @@ import json
 import sqlite3
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from tests.run.test_plugins import write_market, write_plugin
@@ -11,6 +12,113 @@ from vera.desktop.providers import Providers
 from vera.desktop.service import DesktopService
 from vera.desktop.store import DesktopStore
 from vera.plugins import PluginManager
+from vera.scheduler.config import utc_text
+
+
+def test_scheduled_run_snapshot_exposes_parseable_completion_time(tmp_path):
+    """The renderer needs an ISO end time to display completed run durations."""
+    from vera.desktop.scheduling import ScheduledTasks
+
+    service = DesktopService(tmp_path / "data")
+    try:
+        scheduled = ScheduledTasks(service)
+        key = scheduled.jobs.create(
+            {
+                "name": "History fixture",
+                "prompt": "Never executed",
+                "schedule": "1s",
+                "workspace": str(tmp_path),
+                "config": {"agent": {"mode": "yolo"}},
+            },
+            now=0,
+        )["id"]
+        execution = scheduled.jobs.claim_due(1, now=1)[0]
+        assert scheduled.jobs.start(execution)
+        assert service.invoke("getScheduledTasks")["runs"][0]["endedAt"] is None
+        scheduled.jobs.finish(execution, "completed", {"summary": "Completed fixture"})
+        run = service.invoke("getScheduledTasks")["runs"][0]
+        assert run["taskId"] == key and run["status"] == "completed"
+        assert run["endedAt"] == utc_text(scheduled.jobs.execution(execution)["finished_at"])
+        assert datetime.fromisoformat(run["endedAt"]) >= datetime.fromisoformat(run["startedAt"])
+    finally:
+        service.close()
+
+
+def test_market_reads_publisher_metadata_images_and_skips_incompatible_names(tmp_path):
+    """One incompatible identity must not hide valid packages or their publisher artwork."""
+    root = tmp_path / "source"
+    package = write_plugin(root / "plugins/review", layout="codex")
+    manifest = package / ".codex-plugin/plugin.json"
+    value = json.loads(manifest.read_text())
+    value["interface"] = {
+        "displayName": "Review",
+        "shortDescription": "Inspect changes",
+        "composerIcon": "./assets/logo.svg",
+    }
+    manifest.write_text(json.dumps(value))
+    (package / "assets").mkdir()
+    (package / "assets/logo.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h10v10z"/></svg>')
+    write_market(
+        root,
+        [
+            {"name": "42unsupported", "source": "./plugins/review"},
+            {"name": "review-kit", "source": "./plugins/review"},
+        ],
+    )
+    service = DesktopService(tmp_path / "data")
+    try:
+        service.capabilities.plugins.add_marketplace(str(root))
+        market = service.invoke("pluginMarket", {"source": "team-market"})
+        assert len(market) == 1
+        assert market[0]["description"] == "Review changes."
+        assert market[0]["name"] == "Review"
+        assert market[0]["icon"].startswith("data:image/svg+xml;base64,")
+        assert market[0]["capabilities"] == ["Skills"]
+        assert market[0]["marketplace"] == "team-market"
+    finally:
+        service.close()
+
+
+def test_mcp_json_batch_is_atomic_and_preserves_environment_and_enablement(tmp_path):
+    import pytest
+
+    service = DesktopService(tmp_path / "data")
+    try:
+        service.invoke(
+            "saveMcpJson",
+            {
+                "config": {
+                    "mcpServers": {
+                        "qa": {
+                            "type": "stdio",
+                            "command": "npx",
+                            "args": ["-y", "fixture"],
+                            "env": {"QA_TOKEN": "${QA_TOKEN}"},
+                        },
+                        "remote": {
+                            "type": "http",
+                            "url": "https://example.com/mcp",
+                            "headers": {"Authorization": "Bearer ${QA_REMOTE_TOKEN}"},
+                        },
+                    }
+                }
+            },
+        )
+        entries = service.store.get("settings", "mcp")
+        assert entries["qa"]["config"]["env_from"] == ["QA_TOKEN"]
+        assert entries["remote"]["config"]["bearer_token_env"] == "QA_REMOTE_TOKEN"
+        service.invoke("mcpConfigUpsert", {"scope": "user", "name": "qa", "enabled": True})
+        config = service.invoke("mcpConfigList", {})["global"][0]["config"]
+        service.invoke("saveMcpJson", {"config": {"mcpServers": {"qa": config}}})
+        assert service.store.get("settings", "mcp")["qa"]["enabled"]
+        before = service.store.get("settings", "mcp")
+        with pytest.raises(ValueError):
+            service.invoke(
+                "saveMcpJson", {"config": {"mcpServers": {"new": {"command": "npx"}, "invalid": {"url": "bad"}}}}
+            )
+        assert service.store.get("settings", "mcp") == before
+    finally:
+        service.close()
 
 
 def test_archive_changes_notify_catalog_readers(tmp_path):
@@ -60,7 +168,7 @@ def test_model_picker_only_exposes_configured_unique_models(tmp_path):
         {
             "id": "qa-model",
             "name": "QA model",
-            "baseUrl": "http://127.0.0.1:1/v1",
+            "baseUrl": "https://example.com/v1",
             "api": "openai-completions",
             "apiKey": "local-test-credential",
             "models": [{"id": "qa-chat", "name": "QA chat"}],
@@ -86,7 +194,7 @@ def test_permission_defaults_and_explicit_session_choice_survive_restart(tmp_pat
                 "settings": {
                     "defaultMode": "agent",
                     "permissionPolicy": "human",
-                    "commandShell": "git-bash",
+                    "commandShell": "system",
                     "defaultSandbox": None,
                 }
             },
