@@ -209,7 +209,7 @@ try {
 		await page.screenshot({ path: join(directory, "api-only-model-settings.png") });
 	});
 	await check(
-		"LAN remains clickable after a failed status read and ignores a stale read after toggling",
+		"LAN disables unknown status, recovers on retry and ignores a stale read after toggling",
 		async () => {
 			failNextLanRead = true;
 			await settings("跨设备互联");
@@ -219,7 +219,10 @@ try {
 				.getByText("Local acceptance: status read failed", { exact: true })
 				.waitFor();
 			const toggle = page.getByRole("switch", { name: "跨设备互联", exact: true });
-			assert.equal(await toggle.isEnabled(), true);
+			assert.equal(await toggle.isEnabled(), false);
+			assert.equal((await invoke("lanGetStatus")).enabled, false);
+			await page.getByRole("alert").getByRole("button").click();
+			await until(async () => assert.equal(await toggle.isEnabled(), true));
 			await toggle.click();
 			await until(async () => assert.equal(await toggle.getAttribute("aria-checked"), "true"));
 			assert.equal((await invoke("lanGetStatus")).enabled, true);
