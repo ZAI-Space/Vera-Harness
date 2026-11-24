@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/assets/vera-logo.png" alt="VERA Logo" width="200" />
   <h1>VERA</h1>
-  <p><strong>从终端到桌面，围绕任务组装 Agent 能力。</strong></p>
+  <p><strong>做你所想　　如你所愿</strong></p>
   <p>模型 · 工具 · 记忆 · 委派 · 隔离 · 持续目标</p>
   <p>
     <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square" />
