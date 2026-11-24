@@ -27,8 +27,10 @@ def main() -> None:
             raise SystemExit("Refusing redirected package output")
         shutil.rmtree(output)
     shutil.copytree(ROOT / "packages/desktop-launcher", output)
-    for name in ("out", "build", "third_party"):
+    for name in ("out", "third_party"):
         shutil.copytree(frontend / name, output / name)
+    (output / "build").mkdir()
+    shutil.copyfile(ROOT / "docs/assets/vera-logo.png", output / "build/icon.png")
     for name in ("LICENSE.md", "THIRD_PARTY_NOTICES.md"):
         shutil.copyfile(ROOT / name, output / name)
     source = output / "source"
@@ -44,7 +46,8 @@ def main() -> None:
     ):
         shutil.copyfile(frontend / name, source / name)
     shutil.copytree(frontend / "patches", source / "patches")
-    for name in ("build", "scripts", "third_party"):
+    shutil.copytree(output / "build", source / "build")
+    for name in ("scripts", "third_party"):
         shutil.copytree(frontend / name, source / name)
     command = [sys.executable, "-m", "build", "--wheel", "--outdir", str(output / "python")]
     if importlib.util.find_spec("pip") is None and shutil.which("uv"):
