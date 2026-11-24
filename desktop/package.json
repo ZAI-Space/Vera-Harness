@@ -1,6 +1,6 @@
 {
   "name": "vera-desktop",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": true,
   "engines": {
     "node": ">=22 <26"
@@ -10,7 +10,6 @@
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev --watch",
-    "preview:website": "vite ../website --host 127.0.0.1 --port 8765 --strictPort",
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",

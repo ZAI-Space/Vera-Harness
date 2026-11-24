@@ -12,13 +12,15 @@
 | `desktop/tests/` | 前端单元和组件测试 | 镜像被测源码路径；UI 验收位于 `desktop/tests/ui/`。 |
 | `examples/` | 小型、安全的插件和配置示例 | 使用占位凭据与本地路径，不调用付费服务。 |
 | `docs/` 与 `docs/zh/` | 成对的英文和中文用户、开发者文档 | 行为变化同时更新两种语言，保留准确命令和标识符。 |
-| `website/` | 静态落地页源码 | 将共用文档构建到 `website/docs/`，仅提交源码。见[官网文档接入](website.md)。 |
+| `mkdocs.website.yml` 与 `scripts/build_website_docs.py` | 外部落地页的文档集成 | 导出到仓库外的已有目录。见[官网文档接入](website.md)。 |
 | `desktop/third_party/` 与 `THIRD_PARTY_NOTICES.md` | 复用代码和依赖的来源、许可证说明 | 随发布源码保留声明。 |
 | `scripts/` | 仓库维护和启动脚本 | 不写入凭据或仓库内报告。 |
 
 ## 生成文件和本地文件
 
-不要提交 `.venv/`、Python 缓存、覆盖率输出、`desktop/node_modules/`、`desktop/out/`、`desktop/.local/`、`desktop/coverage/`、`site/`、`website/docs/`、本地轨迹、日志、报告和凭据。桌面 UI 验收结果写入临时目录，验收驱动和确定性夹具仍属于仓库源码。
+不要提交 `.venv/`、Python 缓存、覆盖率输出、`desktop/node_modules/`、`desktop/out/`、`desktop/.local/`、`desktop/coverage/`、`site/`、本地轨迹、日志、报告和凭据。桌面 UI 验收结果写入临时目录，验收驱动和确定性夹具仍属于仓库源码。
+
+宣传落地页源码在仓库外独立维护，导出的官网文档也保存在该外部目录中。
 
 ## 命名和职责
 

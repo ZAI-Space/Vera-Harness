@@ -4,7 +4,7 @@
 
 !!! note "SWE-bench run script"
 
-    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/run/benchmarks/swebench.py)
+    - [Read on GitHub](https://github.com/ZAI-Space/Vera-Harness/blob/main/src/vera/run/benchmarks/swebench.py)
 
 ::: vera.run.benchmarks.swebench
 

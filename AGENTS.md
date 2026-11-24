@@ -78,8 +78,9 @@ separately. Do not remove tests or weaken assertions to make CI pass.
 
 ## Git delivery
 
-Create daily branches from `dev`, named `<type>/-<kebab-case>`, and open a focused
-PR back to `dev`. Keep daily diffs below 400 lines when practical. Use
+`main` is the only long-lived, default and production branch. Create temporary
+task branches from `main`, named `<type>/-<kebab-case>`, and open a focused PR
+back to `main`. Keep daily diffs below 400 lines when practical. Use
 `<type>(<scope>): <subject>` commits, with an imperative subject of at most 50
 characters and no final period. Types are `feat`, `fix`, `docs`, `style`,
 `refactor`, `perf`, `test`, `build`, `ci` and `chore`. Keep one intent per commit.
@@ -88,13 +89,12 @@ Reference daily issues with `Refs #123`. Use `Closes #123` for issues completed 
 a release or hotfix. Keep development PRs in Draft, review the diff before Ready,
 synchronize the target branch and rerun affected checks before merging.
 
-`main` is for releases, hotfixes and production rollback. Squash daily and hotfix
-PRs. Release `dev` to `main` with a merge commit; synchronize hotfixes back through
-a `main` to `dev` PR. Delete merged task branches. Revert through a PR.
+Squash daily and hotfix PRs. Tag the landed `main` commit for a release. Delete
+temporary task branches after delivery. Revert through a PR to `main`.
 
-The owner has selected a single-maintainer policy: PRs and required CI checks
-remain mandatory, with zero required human approvals. Keep branch protection and
-required checks. AI review is evidence, not a human GitHub approval.
+The owner has selected a single-maintainer policy: PRs and all 10 required CI
+checks remain mandatory, with zero required human approvals. Keep `main` branch
+protection and required checks. AI review is evidence, not a human GitHub approval.
 
 ## Repository hygiene
 

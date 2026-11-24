@@ -47,8 +47,8 @@ Here's a few popular models and the required API keys:
 
 [bold yellow]You can leave any setting blank to skip it.[/bold yellow]
 
-More information at https://github.com/zml-mis/Vera-Harness/blob/dev/docs/quickstart.md
-Model adapter guidance: https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/quickstart.md
+More information at https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/quickstart.md
+Model adapter guidance: https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/models/quickstart.md
 """
 
 

@@ -2,9 +2,9 @@ name: Documentation
 
 on:
   push:
-    branches: [dev, main]
+    branches: [main]
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 
 permissions:
   contents: read
@@ -25,4 +25,4 @@ jobs:
         run: |
           python scripts/check_docs.py
           python -m mkdocs build --strict
-          python scripts/build_website_docs.py
+          python -m mkdocs build --strict --config-file mkdocs.website.yml --site-dir "$RUNNER_TEMP/vera-website-docs"

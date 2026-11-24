@@ -22,17 +22,3 @@ Keep all KaTeX mathematical families. The Electron build retains WOFF2 and remov
 Ship `desktop/third_party/katex-LICENSE`, `codicons-LICENSE` and Monaco's license/third-party notices with desktop distributions. Check the pinned source license before adding fonts, artwork, plugins or upstream code. A package-level license field may not describe every embedded asset.
 
 Sources: [KaTeX fonts](https://github.com/KaTeX/katex-fonts/blob/master/LICENSE), [Codicons](https://github.com/microsoft/vscode-codicons/blob/main/LICENSE).
-
-## Landing page fonts
-
-The static landing page loads Inter, Quantico, Space Grotesk and JetBrains Mono
-from Google Fonts. These families use SIL Open Font License 1.1 and permit
-commercial use. The repository contains no landing page font binaries. If you
-self-host these fonts, include their copyright and OFL notices and follow the
-reserved-name conditions. Remote fonts require access to Google Fonts; local
-fallback fonts remain available when the service cannot be reached.
-
-Font licenses: [Inter](https://github.com/google/fonts/blob/main/ofl/inter/OFL.txt),
-[Quantico](https://github.com/google/fonts/blob/main/ofl/quantico/OFL.txt),
-[Space Grotesk](https://github.com/google/fonts/blob/main/ofl/spacegrotesk/OFL.txt),
-[JetBrains Mono](https://github.com/google/fonts/blob/main/ofl/jetbrainsmono/OFL.txt).

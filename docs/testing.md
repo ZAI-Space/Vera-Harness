@@ -51,6 +51,6 @@ The UI runner executes five isolated scenarios for settings, global settings, ma
 - Missing containers, platforms, optional upstream applications or credentials can cause skips. Report each category.
 - A local protocol peer validates integration, not model quality or live marketplace availability.
 - Security reproduction requires its own isolated, bounded environment. Ordinary CI is engineering evidence.
-- Verify the PR head SHA and every required CI job before merge; verify the resulting `dev` SHA afterwards.
+- Verify the PR head SHA and every required CI job before merge; verify the resulting `main` SHA afterwards.
 
-Daily branches start at `dev` and return through a squash PR. Releases use `dev` → `main`. This repository uses a single-maintainer policy: PRs and required checks remain mandatory, with zero required human approvals. The maintainer can merge after checks pass; do not bypass branch protection or report unfinished checks as passing.
+`main` is the only long-lived, default and production branch. Temporary task branches start at `main` and return through a squash PR; delete them after delivery. Tag landed `main` commits for releases. This repository uses a single-maintainer policy: PRs and all 10 required checks remain mandatory, with zero required human approvals. The maintainer can merge after checks pass; do not bypass branch protection or report unfinished checks as passing.

@@ -138,7 +138,7 @@ class OpenRouterModel(ToolCallingModel):
                 f"No valid cost information available from OpenRouter API for model {self.config.model_name}: "
                 f"Usage {usage}, cost {cost}. Cost must be > 0.0. Set cost_tracking: 'ignore_errors' in your config file or "
                 "export VERA_COST_TRACKING='ignore_errors' to ignore cost tracking errors "
-                "(for example for free/local models), more information at https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/local_models.md "
+                "(for example for free/local models), more information at https://github.com/ZAI-Space/Vera-Harness/blob/main/docs/models/local_models.md "
                 "for more details. Still stuck? Please open a github issue at https://github.com/zml-mis/Vera-Harness/issues!"
             )
         return {"cost": cost}

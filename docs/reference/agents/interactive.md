@@ -4,7 +4,7 @@
 
 !!! note "InteractiveAgent class"
 
-    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/agents/interactive.py)
+    - [Read on GitHub](https://github.com/ZAI-Space/Vera-Harness/blob/main/src/vera/agents/interactive.py)
 
     ??? note "Full source code"
 

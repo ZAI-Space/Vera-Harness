@@ -1,6 +1,8 @@
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 name: Check Markdown links in modified files
 permissions:
   contents: read
@@ -12,6 +14,6 @@ jobs:
     - uses: tcort/github-action-markdown-link-check@v1
       with:
         use-verbose-mode: 'yes'
-        check-modified-files-only: 'yes'
-        base-branch: ${{ github.base_ref }}
+        check-modified-files-only: ${{ github.event_name == 'pull_request' && 'yes' || 'no' }}
+        base-branch: ${{ github.base_ref || 'main' }}
         config-file: .github/mlc_config.json

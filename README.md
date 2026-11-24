@@ -98,7 +98,7 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-日常分支从 `dev` 创建，经 PR 合回 `dev`；发布再进入 `main`。可选服务缺失、真实模型费用及人工平台联调应分别报告，不把跳过项或上游分数当作当前 VERA 验证结果。
+`main` 是唯一长期、默认和生产分支。临时任务分支从 `main` 创建，经 PR 合回 `main`，交付后删除。可选服务缺失、真实模型费用及人工平台联调应分别报告，不把跳过项或上游分数当作当前 VERA 验证结果。
 
 ## 许可与来源
 

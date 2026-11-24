@@ -4,7 +4,7 @@
 
 !!! note "DefaultAgent class"
 
-    - [Read on GitHub](https://github.com/zml-mis/Vera-Harness/blob/dev/src/vera/agents/default.py)
+    - [Read on GitHub](https://github.com/ZAI-Space/Vera-Harness/blob/main/src/vera/agents/default.py)
 
     ??? note "Full source code"
 
