@@ -6,11 +6,15 @@ export interface WorkspacePlugin {
 	id: string;
 	name: string;
 	description: string;
+	longDescription?: string;
+	compatibility?: string;
 	exampleDescription?: "review" | "design" | "notes";
 	version: string;
 	author: string;
 	category: "development" | "productivity" | "design";
 	capabilities: string[];
+	/** Optional catalog-provided icon identity. */
+	icon?: string;
 	source?: string;
 	/** The catalog identity pins installation to its advertised ref and subdirectory. */
 	marketplace?: string;

@@ -1,3 +1,5 @@
+"""Query Requesty through the VERA Model interface."""
+
 import json
 import logging
 import os
@@ -57,6 +59,13 @@ class RequestyRateLimitError(Exception):
 
 
 class RequestyModel(ToolCallingModel):
+    """Call Requesty chat completions and normalize tool actions and usage.
+
+    ``RequestyModelConfig`` supplies model and formatting options. The adapter
+    reads ``REQUESTY_API_KEY`` and may perform network I/O; API, authentication,
+    rate-limit and format errors propagate according to the retry policy.
+    """
+
     abort_exceptions: list[type[Exception]] = [RequestyAuthenticationError, KeyboardInterrupt]
 
     def __init__(self, **kwargs):

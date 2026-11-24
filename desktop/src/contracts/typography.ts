@@ -32,7 +32,7 @@ export const CODE_FONT_SIZE_MAX = 20;
  * —— 防「新增了字号却忘了加 token」这类退化（spec D9.3）。
  */
 export const FONT_SIZE_TOKENS = [
-	10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 15, 16, 18, 19, 28, 32, 36, 40,
+	10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 15, 16, 18, 19, 23, 26, 28, 32, 36, 40,
 ] as const;
 
 const isFiniteNumber = (value: unknown): value is number =>

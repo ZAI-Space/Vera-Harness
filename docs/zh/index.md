@@ -18,7 +18,7 @@
 | 后台与应用 | [渠道](channels.md)、[定时任务](scheduler.md)、[前端对接](frontend-integration.md) |
 | 评测和演化 | [版本化演化](evolution.md) |
 
-终端入口已经可用。桌面端可复用 Python 接口，通用桌面 HTTP/WebSocket 服务仍需要实现与联调。`vera-harness` 是当前包名；`vera`、旧命令和数据标识保留兼容。可选服务测试、真实模型验证与任务评测分别记录，不将其他项目的公开分数当作 VERA 成绩。
+终端入口继续可用。Electron 桌面端通过带认证的本机回环 HTTP 服务复用 Python Runtime；渠道和定时任务也通过适配器复用同一 Runtime。`vera-harness` 是当前包名；`vera`、旧命令和数据标识保留兼容。可选服务测试、真实模型验证与任务评测分别记录，不将其他项目的公开分数当作 VERA 成绩。
 
 ## 配置、命令与源码示例
 
@@ -32,3 +32,7 @@ flowchart LR
     R --> E[Local environment or configured sandbox]
     A --> S[State events / RunStore / Trajectories]
 ```
+
+## 开发与维护
+
+[系统架构](architecture.md) · [接口边界](desktop-api.md) · [任务看板](taskboard.md) · [测试与交付](testing.md) · [仓库结构](repository-structure.md) · [许可证与字体](licenses.md)

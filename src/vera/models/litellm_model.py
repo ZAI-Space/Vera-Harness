@@ -1,3 +1,5 @@
+"""Query LiteLLM Chat Completions and validate model actions before execution."""
+
 import json
 import logging
 import os
@@ -17,9 +19,11 @@ from vera.models.utils.actions_toolcall import (
 )
 from vera.models.utils.anthropic_utils import _reorder_anthropic_thinking_blocks
 from vera.models.utils.cache_control import set_cache_control
+from vera.models.utils.content_string import get_content_string
 from vera.models.utils.openai_multimodal import expand_multimodal_content
 from vera.models.utils.retry import retry
 from vera.models.utils.tool_registry import ToolCallingModel
+from vera.models.utils.usage import token_usage
 
 logger = logging.getLogger("litellm_model")
 
@@ -33,8 +37,12 @@ class LitellmModelConfig(BaseModel):
     """Model registry for cost tracking and model metadata. See the local model guide (https://github.com/zml-mis/Vera-Harness/blob/dev/docs/models/local_models.md) for more details."""
     set_cache_control: Literal["default_end"] | None = None
     """Set explicit cache control markers, for example for Anthropic models"""
-    cost_tracking: Literal["default", "ignore_errors"] = os.getenv("VERA_COST_TRACKING", "default")
-    """Cost tracking mode for this model. Can be "default" or "ignore_errors" (ignore errors/missing cost info)"""
+    cost_tracking: Literal["default", "ignore_errors", "tokens"] = os.getenv("VERA_COST_TRACKING", "default")
+    """Use strict monetary accounting, tolerate missing prices, or record tokens without a price lookup."""
+    usage_identity: dict[str, str] | None = None
+    """Optional desktop provider/model identity for per-model usage, including delegated calls."""
+    allow_text_final: bool = False
+    """Accept a nonempty, successfully completed text answer without tool calls; strict tasks opt out."""
     format_error_template: str = "{{ error }}"
     """Template used when the LM's output is not in the expected format."""
     observation_template: str = (
@@ -47,7 +55,15 @@ class LitellmModelConfig(BaseModel):
 
 
 class LitellmModel(ToolCallingModel):
+    """Call a LiteLLM provider and normalize tool actions and usage metadata.
+
+    Configuration comes from ``LitellmModelConfig``. Provider credentials and
+    model availability are prerequisites. ``query`` may perform network I/O,
+    update global model statistics, and raise provider or format errors.
+    """
+
     abort_exceptions: list[type[Exception]] = [
+        litellm.exceptions.BadRequestError,
         litellm.exceptions.UnsupportedParamsError,
         litellm.exceptions.NotFoundError,
         litellm.exceptions.PermissionDeniedError,
@@ -103,9 +119,23 @@ class LitellmModel(ToolCallingModel):
             **cost_output,
             "timestamp": time.time(),
         }
+        if self.config.allow_text_final and not actions:
+            message["extra"]["text_final"] = True
         return message
 
-    def _calculate_cost(self, response) -> dict[str, float]:
+    def _calculate_cost(self, response) -> dict:
+        """Always retain reported tokens; token-only mode never requires a model price entry.
+
+        Strict monetary accounting remains available for priced evaluations. A zero
+        compatibility cost in token-only mode is explicitly marked unknown, not free.
+        """
+        usage = response.get("usage") if isinstance(response, dict) else getattr(response, "usage", None)
+        raw = usage.model_dump() if hasattr(usage, "model_dump") else usage or {}
+        if not isinstance(raw, dict):
+            raw = {}
+        counters = {"usage": token_usage(raw), "usage_reported": bool(raw)}
+        if self.config.cost_tracking == "tokens":
+            return {"cost": 0.0, "cost_known": False, **counters}
         try:
             cost = litellm.cost_calculator.completion_cost(response, model=self.config.model_name)
             if cost <= 0.0:
@@ -123,11 +153,18 @@ class LitellmModel(ToolCallingModel):
                 )
                 logger.critical(msg)
                 raise RuntimeError(msg) from e
-        return {"cost": cost}
+        return {"cost": cost, "cost_known": cost > 0, **counters}
 
     def _parse_actions(self, response) -> list[dict]:
         """Parse tool calls from the response. Raises FormatError if unknown tool."""
         tool_calls = response.choices[0].message.tool_calls or []
+        if (
+            self.config.allow_text_final
+            and not tool_calls
+            and response.choices[0].finish_reason == "stop"
+            and get_content_string(response.choices[0].message.model_dump()).strip()
+        ):
+            return []
         return parse_toolcall_actions(
             tool_calls,
             format_error_template=self.config.format_error_template,

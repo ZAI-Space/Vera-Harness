@@ -42,7 +42,8 @@ def chunks(text: str, size: int = 2000) -> list[str]:
 class ChannelStore:
     """One private SQLite journal; every accepted event is persisted before it is acknowledged."""
 
-    def __init__(self, directory: Path):
+    def __init__(self, directory: Path, *, defer_dispatch: bool = False):
+        self.defer_dispatch = defer_dispatch
         self.directory = private_directory(directory)
         self.path = directory / "channels.sqlite3"
         with self.connect() as db:
@@ -59,7 +60,8 @@ class ChannelStore:
     @contextmanager
     def connect(self):
         """Serialize short journal transactions; no network calls occur under this lock."""
-        with closing(sqlite3.connect(self.path, timeout=5)) as db, db:
+        # Allow bounded contention between collectors, workers, sender and status readers.
+        with closing(sqlite3.connect(self.path, timeout=30)) as db, db:
             db.row_factory = sqlite3.Row
             db.execute("BEGIN IMMEDIATE")
             yield db
@@ -83,10 +85,19 @@ class ChannelStore:
                 db.execute("INSERT OR IGNORE INTO sessions(id) VALUES (?)", (message.session_id,))
                 epoch = db.execute("SELECT epoch FROM sessions WHERE id = ?", (message.session_id,)).fetchone()[0]
                 command = message.text.strip()
-                status = "command" if command.startswith("/") or not command else "queued"
+                status = (
+                    "received"
+                    if self.defer_dispatch
+                    else "command"
+                    if command.startswith("/") or not command
+                    else "queued"
+                )
                 if (
-                    status == "queued"
-                    and db.execute("SELECT COUNT(*) FROM messages WHERE status = 'queued'").fetchone()[0] >= 100
+                    status in {"queued", "received"}
+                    and command
+                    and not command.startswith("/")
+                    and db.execute("SELECT COUNT(*) FROM messages WHERE status IN ('queued','received')").fetchone()[0]
+                    >= 100
                 ):
                     raise ChannelError("Inbound queue is full; cursor not advanced.")
                 db.execute(
@@ -112,6 +123,8 @@ class ChannelStore:
             (message.session_id,),
         ).fetchall()
         if command == "/cancel":
+            running = sum(row["status"] == "running" for row in active)
+            queued = sum(row["status"] == "queued" for row in active)
             db.execute(
                 "UPDATE messages SET cancel = 1 WHERE session = ? AND status IN ('queued', 'running')",
                 (message.session_id,),
@@ -120,7 +133,19 @@ class ChannelStore:
                 "UPDATE messages SET status = 'cancelled' WHERE session = ? AND status = 'queued'",
                 (message.session_id,),
             )
-            text = "已请求取消本会话的任务。正在执行的工具可能需要等待返回。"
+            text = (
+                "已请求取消正在执行的任务；当前工具返回后会停止，不会自动重放。"
+                if running
+                else "已取消排队任务。"
+                if queued
+                else "当前没有正在执行或排队的任务。"
+            )
+        elif command == "/pause":
+            text = (
+                "远程通道不支持安全暂停正在执行的工具；请使用 /cancel 终止。任务不会自动重放，之后可重新发送请求。"
+                if active
+                else "当前没有可暂停的任务。"
+            )
         elif command == "/new":
             if active:
                 text = "请先 /cancel，待当前任务结束后再 /new。"
@@ -138,7 +163,7 @@ class ChannelStore:
                 else "本会话还没有任务。"
             )
         else:
-            text = "发送文字即可执行任务。/status 查询状态，/cancel 取消任务，/new 清空后续会话上下文，/help 查看帮助。"
+            text = "发送文字即可执行任务。/status 查询状态，/pause 查看暂停说明，/cancel 取消任务，/new 清空后续会话上下文，/help 查看帮助。"
             if not command:
                 text = "当前仅处理文字和已有语音转写文本。\n" + text
         self._reply(db, message, text, "command")

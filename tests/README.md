@@ -2,23 +2,16 @@
 
 The test tree is organized by the boundary it verifies:
 
-- `agents/`, `config/`, `environments/`, `models/`: focused unit and contract
-  tests for the Python modules.
-- `run/`: CLI, Runtime, channels, desktop service, markets, scheduler, storage
-  and other integration tests.
+- `agents/`, `config/`, `environments/`, `models/`: focused Python component tests.
+- `run/`: Runtime, CLI, channels, desktop, markets, scheduler and storage integration.
 - `utils/`: shared utility behavior.
-- `test_data/`: small checked-in fixtures only.
+- `test_data/`: small maintained fixtures.
+- `../desktop/tests/`: frontend contracts, stores, components and Electron acceptance.
 
-Tests that need an optional backend declare the prerequisite and skip with an
-explicit reason. A skip is not reported as a pass for that backend. Temporary
-acceptance reports, screenshots, caches and model credentials stay outside the
-repository.
+Run `python -m pytest -n 2 -ra` from the repository root. Run `npm run test:ui`
+from `desktop/` after building and preparing the optional Taskboard dependency.
+See [testing](../docs/testing.md) for the complete checks and prerequisites.
 
-Run the normal Python suite from the repository root:
-
-```bash
-python -m pytest -n 2 -ra
-```
-
-The real Electron acceptance suite lives with the desktop app and runs from
-`desktop/` with `npm run test:ui`.
+Tests declare optional prerequisites and skip with an explicit reason. A skip
+does not establish acceptance. Keep temporary reports, screenshots, caches and
+model credentials outside the repository.

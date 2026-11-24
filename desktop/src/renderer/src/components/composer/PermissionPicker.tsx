@@ -3,6 +3,7 @@ import { useT } from "../../i18n";
 import type { PermissionPolicy } from "../../stores/permission-policy";
 import { CheckIcon } from "../icons";
 import { ConfirmPolicyIcon, HumanPolicyIcon, YoloPolicyIcon } from "./PermissionPolicyIcons";
+import { YoloWarning } from "./YoloWarning";
 
 const POLICIES = ["human", "confirm", "yolo"] as const satisfies readonly PermissionPolicy[];
 const POLICY_ICONS = { human: HumanPolicyIcon, confirm: ConfirmPolicyIcon, yolo: YoloPolicyIcon };
@@ -14,12 +15,15 @@ const POLICY_ICONS = { human: HumanPolicyIcon, confirm: ConfirmPolicyIcon, yolo:
 export function PermissionPicker({
 	policy,
 	onPolicyChange,
+	disabled = false,
 }: {
 	policy: PermissionPolicy;
 	onPolicyChange: (policy: PermissionPolicy) => void;
+	disabled?: boolean;
 }) {
 	const t = useT();
 	const [open, setOpen] = useState(false);
+	const [warning, setWarning] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const PolicyIcon = POLICY_ICONS[policy];
@@ -52,12 +56,13 @@ export function PermissionPicker({
 				aria-label={t("composer.permissionMode")}
 				aria-haspopup="menu"
 				aria-expanded={open}
+				disabled={disabled}
 				onClick={() => setOpen((value) => !value)}
 			>
 				<PolicyIcon size={14} className={policy === "yolo" ? "text-warn" : undefined} />
 				<span>{t(`composer.permissionPolicies.${policy}.title`)}</span>
 			</button>
-			{open && (
+			{open && !disabled && (
 				<div
 					role="menu"
 					aria-label={t("composer.permissionMode")}
@@ -88,7 +93,8 @@ export function PermissionPicker({
 								aria-checked={policy === value}
 								className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-ink-2 transition-colors hover:bg-hover"
 								onClick={() => {
-									onPolicyChange(value);
+									if (value === "yolo" && policy !== "yolo") setWarning(true);
+									else onPolicyChange(value);
 									setOpen(false);
 									triggerRef.current?.focus();
 								}}
@@ -110,6 +116,15 @@ export function PermissionPicker({
 						);
 					})}
 				</div>
+			)}
+			{warning && (
+				<YoloWarning
+					onCancel={() => setWarning(false)}
+					onConfirm={() => {
+						onPolicyChange("yolo");
+						setWarning(false);
+					}}
+				/>
 			)}
 		</div>
 	);

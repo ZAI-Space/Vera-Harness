@@ -6,7 +6,6 @@ import type { Dropdown } from "../components/ui/Dropdown";
 import type { Tooltip } from "../components/ui/Tooltip";
 import type { useContextUsage } from "../hooks/use-context-usage";
 import type { useLanguage } from "../hooks/use-language";
-import type { useQuota } from "../hooks/use-quota";
 import type { useT } from "../i18n";
 import type { useProjectsStore } from "../stores/projects";
 import type { useSessionsStore } from "../stores/sessions";
@@ -36,7 +35,6 @@ export interface VeraUiApi {
 	hooks: {
 		useT: typeof useT;
 		useContextUsage: typeof useContextUsage;
-		useQuota: typeof useQuota;
 		useLanguage: typeof useLanguage;
 	};
 	stores: {

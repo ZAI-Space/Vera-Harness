@@ -1,3 +1,6 @@
+"""Define explicit Agent Loop completion, interruption and parsing outcomes."""
+
+
 class InterruptAgentFlow(Exception):
     """Raised to interrupt the agent flow and add messages."""
 

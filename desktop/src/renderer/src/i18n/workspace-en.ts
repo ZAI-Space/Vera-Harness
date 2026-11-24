@@ -5,6 +5,12 @@ export const workspaceEn = {
 			"Frontend preview: plugin and task services are not connected. Drafts last for this app run only.",
 	},
 	plugins: {
+		addRepository: "Add plugin repository",
+		repositoryHint: "Add a repository containing a marketplace catalog, then choose it in the source filter.",
+		repositoryName: "Repository name",
+		saveRepository: "Add repository",
+		sourceFilter: "Filter source",
+		refreshMarket: "Refresh catalog",
 		loadingMarket: "Loading plugin marketplace…",
 		retryMarket: "Retry marketplace",
 		emptyMarket: "No installable plugins in this marketplace",

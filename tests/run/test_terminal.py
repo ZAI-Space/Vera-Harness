@@ -1,6 +1,7 @@
 """Exercise project selection and terminal commands with real files and prompt input."""
 
 import json
+import os
 import subprocess
 import time
 from copy import deepcopy
@@ -61,6 +62,20 @@ def test_git_file_selection_filters_ignored_credentials_and_preserves_literal_co
     ]
     assert session.files.attach(r"email@example.org and \@literal") == r"email@example.org and \@literal"
     assert session.files.list(limit=0) == []
+
+
+@pytest.mark.skipif(os.name == "nt", reason="The portable fsmonitor fixture uses a POSIX shell.")
+def test_git_file_selection_does_not_run_workspace_fsmonitor(tmp_path, session):
+    """Project enumeration must not execute a hook selected by workspace metadata."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    marker = tmp_path.parent / "fsmonitor-marker"
+    hook = tmp_path / "fsmonitor.sh"
+    hook.write_text(f"#!/bin/sh\nprintf invoked > {marker}\nprintf 'token\\0'\n", encoding="utf-8")
+    hook.chmod(0o700)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "core.fsmonitor", str(hook)], check=True)
+
+    assert "src/hello.py" in session.files.list()
+    assert not marker.exists()
 
 
 @pytest.mark.parametrize(

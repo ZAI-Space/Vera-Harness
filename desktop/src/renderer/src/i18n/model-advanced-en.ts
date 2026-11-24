@@ -4,8 +4,8 @@ export const modelAdvancedEn = {
 	connectionName: "Connection name",
 	namePlaceholder: "For example, DeepSeek (official)",
 	nameHint: "Shown on the connection card and can be renamed. One connection can contain multiple models.",
-	connectionTitle: "API connection",
-	editConnection: "Edit connection",
+	connectionTitle: "Model configuration",
+	editConnection: "Edit model settings",
 	connectionPlaceholder: "For example, my-api",
 	connectionHint:
 		"Identifies a provider or gateway connection, not a model. One connection can contain multiple models.",
@@ -49,7 +49,7 @@ export const modelAdvancedEn = {
 	testHint: "A connection test sends a real request and consumes a small number of tokens.",
 	testPending: "Connection testing is not connected yet. Saving currently saves configuration only.",
 	errors: {
-		toolCallLimit: "Tool call rounds must be a positive integer.",
+		toolCallLimit: "Tool call rounds must be an integer from 1 to 10000.",
 		reasoningParameter:
 			"Use letters, digits and underscores, with dots between nested fields. Fields cannot start with a digit.",
 		reasoningValues: "Use up to 32 effort values, each with 1–64 characters.",

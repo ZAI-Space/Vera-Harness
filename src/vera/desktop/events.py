@@ -6,6 +6,8 @@ from collections import deque
 from threading import Condition
 from uuid import uuid4
 
+from vera.desktop.usage import token_usage
+
 
 class EventBus:
     """Bounded replay buffer; a slow consumer must rehydrate after a cursor gap."""
@@ -65,8 +67,7 @@ def assistant_message(message: dict, model: dict | None) -> dict:
     response = message.get("extra", {}).get("response", message)
     response = response if isinstance(response, dict) else {}
     usage = response.get("usage") or {}
-    input_tokens = usage.get("prompt_tokens", usage.get("input_tokens", 0)) or 0
-    output_tokens = usage.get("completion_tokens", usage.get("output_tokens", 0)) or 0
+    counts = token_usage(usage)
     return {
         "role": "assistant",
         "content": content,
@@ -75,11 +76,7 @@ def assistant_message(message: dict, model: dict | None) -> dict:
         "provider": (model or {}).get("provider", ""),
         "model": (model or {}).get("modelId", ""),
         "usage": {
-            "input": input_tokens,
-            "output": output_tokens,
-            "cacheRead": 0,
-            "cacheWrite": 0,
-            "totalTokens": usage.get("total_tokens", input_tokens + output_tokens),
+            **counts,
             "cost": {
                 "input": 0,
                 "output": 0,
@@ -88,6 +85,7 @@ def assistant_message(message: dict, model: dict | None) -> dict:
                 "total": message.get("extra", {}).get("cost", 0),
             },
         },
+        "usageReported": bool(usage),
         "stopReason": "toolUse" if len(content) > 1 else "stop",
     }
 

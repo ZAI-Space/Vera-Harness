@@ -2,11 +2,13 @@ import { TASK_NOTIFICATION_COPY, UI_WORKBENCH_TRUST_COPY } from "@vera/contracts
 import { behaviorZh } from "./behavior-zh";
 import { modelAccessZh } from "./model-access-zh";
 import { modelAdvancedZh } from "./model-advanced-zh";
+import { settingsExtraZh } from "./settings-extra-zh";
 import { subagentsZh } from "./subagents-zh";
 import { workspaceZh } from "./workspace-zh";
 /** 中文语言包（作为 key 的结构定义，en.ts 与之同形） */
 export const zh = {
 	...workspaceZh,
+	...settingsExtraZh,
 	behavior: behaviorZh,
 	modelAccess: modelAccessZh,
 	modelAdvanced: modelAdvancedZh,
@@ -22,7 +24,8 @@ export const zh = {
 		targetUnavailable: "通知对应的会话或连接已不可用。",
 	},
 	emptyState: {
-		slogan: "Build With VERA",
+		sloganLead: "Build With",
+		sloganBrand: "VERA",
 	},
 	storageStartup: {
 		preparing: "正在准备…",
@@ -190,6 +193,7 @@ export const zh = {
 		queueRestore: "取回编辑",
 		queueFull: "已有一条排队消息，取回后再发",
 		targetChanged: "项目已切换，请回到原项目重试发送",
+		permissionSaveFailed: "权限模式保存失败，请重试后再发送。",
 		removeQuote: "移除引用",
 		permissionMode: "权限模式",
 		permissionPolicies: {
@@ -214,6 +218,8 @@ export const zh = {
 		noMatch: "没有匹配的命令",
 		notConfigured: "未检测到可用配置",
 		argPlaceholder: "输入参数…",
+		cancelCommand: "取消所选命令",
+		subagentTaskPlaceholder: "输入要交给子代理的任务…",
 		builtin: {
 			new: { label: "新对话", description: "创建新对话" },
 			compact: { label: "压缩", description: "压缩会话上下文", argumentHint: "[关注重点]" },
@@ -240,6 +246,7 @@ export const zh = {
 			exported: "已导出：{path}",
 			exportCancelled: "已取消导出",
 			noSession: "请先选择项目目录并创建会话",
+			noSubagentTask: "请先输入要交给子代理的任务",
 		},
 	},
 	at: {
@@ -436,7 +443,7 @@ export const zh = {
 	mediaMaintenance: {
 		working: "后台处理中…",
 		background: "任务在后台处理关闭弹窗不会停止已确认的整理；重新打开可查询持久状态",
-		closedRequired: "仅处理所选会话；执行前必须关闭会话、只读检视和运行写者",
+		closedRequired: "仅处理所选会话；运行中的会话不能整理或恢复。",
 		backupKept: "独立原件备份 · 不会自动删除：",
 		appendSafety:
 			"新增消息或来源变化后拒绝直接还原请保留当前文件与原件备份，另行留存备份再处理，不要覆盖新消息",
@@ -450,7 +457,7 @@ export const zh = {
 		},
 		confirm: {
 			compact:
-				"确认仅整理此会话的展示截图？将独立保留完整原件，校验原图和候选后原子替换需要备份、候选及原图的额外空间用户附件、read图片和非目标记录不改",
+				"确认无损整理此会话的图片存储？将保留完整独立备份，再将图片去重保存。图片内容和聊天记录保持完整；备份需要额外空间。",
 			restore:
 				"确认恢复原件？仅在当前文件仍是整理后的版本且没有新增消息时允许替换来源或备份不一致会拒绝；不会覆盖新数据，也不会删除备份",
 			resume:
@@ -470,15 +477,15 @@ export const zh = {
 	},
 	mediaPreview: {
 		title: "截图整理与恢复",
-		readOnly: "仅扫描此会话全部分支，不修改会话或媒体备份不会自动删除，也不计入节省",
+		readOnly: "仅预览此会话的图片存储，不修改内容。备份不会自动删除，也不计入节省。",
 		refresh: "重新预览",
 		cancelled: "扫描已取消，原文件和媒体未改",
 		failed: "读取失败",
 		unsupported: "文件格式不是当前支持版本，或会话头损坏；不能执行整理，原文件未改",
-		noBenefit: "没有可整理的展示图，或预计不能缩小活跃文件",
+		noBenefit: "没有可整理的图片、已整理，或预计无法减少存储内容。",
 		scanning: "后台扫描中：{done} / {total}可关闭并取消，不阻塞其他会话",
 		summary:
-			"活跃文件预计 {before} → {after}；展示图 {count} 张 · 去重 {unique} 张；备份 {backup}，额外峰值空间上界 {peak}已有原图可复用，预估保守计算全部新增",
+			"存储内容预计 {before} → {after}；附件 {count} 张 · 唯一图片 {unique} 张。备份 {backup}，额外空间预计 {peak}。数据库文件可能复用空闲页，磁盘占用不一定立即缩小。",
 		preserved: "保留坏行 {invalid} 条，跳过无法安全整理的图片 {skipped} 张；用户附件和read图片不变",
 	},
 	archive: {
@@ -521,6 +528,7 @@ export const zh = {
 	sidebar: {
 		plugins: "插件",
 		scheduled: "定时任务",
+		taskboard: "任务面板",
 		title: "导航",
 		newSession: "新任务",
 		newSessionInProject: "在 {name} 中新建会话",
@@ -566,9 +574,13 @@ export const zh = {
 		loading: "加载中…",
 		comingSoon: "该分类的设置将在后续版本提供",
 		category: {
+			web: "联网工具",
 			archived: "已归档的聊天",
 			appearance: "通用",
 			behavior: "行为",
+			rules: "规则与记忆",
+			statistics: "统计数据",
+			about: "关于",
 			subagents: "Subagent",
 			models: "模型",
 			skills: "Skills",
@@ -633,8 +645,9 @@ export const zh = {
 		centerOrb: "居中放大状态动画",
 		centerOrbHint: "任务运行时在对话中央显示状态动画",
 		lan: {
+			retry: "重新连接",
 			title: "跨设备互联",
-			hint: "在可信局域网内，用手机实时查看 agent 的运行进度默认关闭；每次开启会轮换访问令牌",
+			hint: "在可信局域网内，用手机查看 agent 的运行进度。默认关闭；每次开启会轮换访问令牌",
 			port: "监听端口：{port}",
 			clients: "已连接 {count} 台设备",
 			copy: "复制",
@@ -647,9 +660,10 @@ export const zh = {
 			securityContent: "观察页会显示对话输出、工具调用和任务内容，其中可能含代码或敏感信息",
 			securityTrusted: "仅在可信局域网中开启并分享链接",
 			securityForward: "不要把此端口转发或暴露到公网",
-			securityFirewall: "macOS 首次监听时出现“允许传入连接”防火墙提示属正常",
+			securityFirewall: "两台设备需在同一局域网；系统防火墙需允许本应用接收连接",
 		},
 		about: {
+			feedback: "问题反馈",
 			backendConnected: "后端已连接",
 			backendDisconnected: "后端未连接",
 		},
@@ -683,8 +697,6 @@ export const zh = {
 			testOk: "连接正常 · {modelId}",
 			testFailed: "测试失败：{error}",
 			removeCredential: "移除凭证",
-			login: "订阅登录",
-			loginApiKey: "登录",
 			builtinEdit: "配置端点与 Key",
 			builtinEditTitle: "配置 {name} 端点",
 			builtinBaseUrl: "baseUrl · 可选，留空走官方端点",
@@ -720,17 +732,6 @@ export const zh = {
 			customModelsHintAll: "至少添加一个模型，保存后生效",
 			submitting: "保存中…",
 		},
-		login: {
-			title: "订阅登录 · {name}",
-			apiKeyTitle: "登录 · {name}",
-			browserHint: "完成浏览器授权，或粘贴最终回调地址",
-			deviceCodeHint: "在打开的验证页面输入以下代码",
-			deviceCodeExpires: "代码 {minutes} 分钟内有效",
-			waiting: "等待授权完成…",
-			waitingInteractive: "等待应答…",
-			submit: "提交",
-			failed: "登录失败",
-		},
 		skills: {
 			title: "已加载的 Skills",
 			hint: "查看后端提供的 Skills",
@@ -743,6 +744,16 @@ export const zh = {
 			diagnostics: "加载诊断",
 		},
 		mcp: {
+			login: "登录",
+			jsonAdd: "添加 JSON",
+			scanLocal: "扫描本地 MCP 配置",
+			scanEmpty:
+				"未找到配置。检查当前项目 .mcp.json、Cursor、VS Code 和用户 Claude 配置；也可直接粘贴 JSON。",
+			marketAdd: "从市场添加",
+			marketTitle: "MCP 市场",
+			jsonHint:
+				"粘贴包含 mcpServers 的完整 JSON。支持 stdio 命令和 HTTP 地址。凭据使用环境变量引用；保存后默认停用，可先测试再启用。",
+			jsonInvalid: "JSON 格式不正确，请检查括号、引号和逗号。",
 			argsFormat: "参数应为 JSON 字符串数组，含空格的路径请放在同一个数组项中",
 			probe: "测试连接",
 			probing: "正在测试…",
@@ -762,7 +773,6 @@ export const zh = {
 			hideReason: "收起原因",
 			reasonTitle: "官方通知原文",
 			reasonHint: "检查命令路径、参数和网络权限",
-			login: "登录",
 			loginWaiting: "在浏览器完成授权后自动生效",
 			loginManual: "官方未给出授权页 URL：可能是远程 server 需要交互式登录，请按官方通知指引操作",
 			toolReadOnly: "只读",
@@ -773,6 +783,7 @@ export const zh = {
 			deleteAsk: "删除 {name}？mcp.json 里的条目会立即移除",
 			deleteNow: "删除",
 			enable: "启用",
+			disable: "停用",
 			reconnectDisabledHint: "重连已禁用 · 当前会话运行中",
 			configFiles: "配置文件",
 			pathGlobal: "全局",

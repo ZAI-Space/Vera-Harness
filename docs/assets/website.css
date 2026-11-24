@@ -1,0 +1,237 @@
+/* Keep documentation on the landing page's white canvas and blue accent. */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: #111827;
+  --md-default-fg-color--light: #4b5563;
+  --md-primary-fg-color: #ffffff;
+  --md-primary-fg-color-dark: #111827;
+  --md-primary-bg-color: #111827;
+  --md-primary-bg-color--light: #4b5563;
+  --md-typeset-a-color: #2563eb;
+  --md-accent-fg-color: #2563eb;
+  --md-code-bg-color: #f3f4f6;
+  --md-text-font: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.md-nav__link--active,
+.website-toc-active {
+  color: #2563eb;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.md-search__form {
+  background-color: #f3f4f6;
+  border-radius: 0.6rem;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: #111827;
+  font-weight: 600;
+}
+
+.md-typeset h1 {
+  font-size: 1.75rem;
+}
+
+.md-typeset {
+  line-height: 1.8;
+}
+
+.md-nav--secondary {
+  border-left: 1px solid #e5e7eb;
+}
+
+.md-container,
+.md-main {
+  height: 100%;
+  min-height: 0;
+}
+
+.md-main__inner.md-grid {
+  height: 100%;
+  margin-top: 0;
+  padding-top: 2.8rem;
+}
+
+.md-content {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-top: 1rem;
+}
+
+.md-content__inner {
+  padding-bottom: 3rem;
+}
+
+.md-sidebar {
+  top: 2.8rem !important;
+  height: calc(100% - 2.8rem) !important;
+}
+
+.md-sidebar__scrollwrap {
+  height: 100% !important;
+  max-height: none !important;
+}
+
+.website-tools {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2.8rem;
+  color: #4b5563;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.website-tools .md-header__inner {
+  display: flex;
+  height: 100%;
+  gap: 0.6rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.website-tools .md-search {
+  display: none;
+  padding: 0;
+}
+
+.website-tools .md-search__inner {
+  width: 100%;
+}
+
+.website-drawer-toggle,
+.website-toc-toggle {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  cursor: pointer;
+}
+
+.website-search-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.5rem;
+  background: #f3f4f6;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.website-toc-toggle {
+  border: 0;
+  background: transparent;
+}
+
+/* A small-screen contents drawer uses the same generated TOC and anchors. */
+@media screen and (max-width: 59.9844em) {
+  .md-sidebar--secondary {
+    display: none;
+  }
+
+  body[data-toc-open] .md-sidebar--secondary {
+    display: block;
+    position: fixed;
+    right: 0;
+    z-index: 4;
+    width: min(16rem, 85vw);
+    padding: 1rem;
+    background: white;
+    box-shadow: -0.2rem 0 1rem #11182718;
+  }
+}
+
+@media screen and (min-width: 60em) {
+  .md-main__inner.md-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 11rem;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .md-content {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .md-sidebar--secondary {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    height: 100% !important;
+    width: 11rem;
+    align-self: stretch;
+    padding-top: 1rem;
+    transform: none !important;
+  }
+
+  .website-toc-toggle {
+    display: none;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-grid,
+  .md-main__inner.md-grid {
+    max-width: 78rem;
+    grid-template-columns: 13rem minmax(0, 1fr) 11rem;
+    padding-top: 0;
+  }
+
+  .md-sidebar--primary {
+    position: static;
+    grid-column: 1;
+    grid-row: 1;
+    height: 100% !important;
+    width: 13rem;
+    padding-top: 3.2rem;
+    transform: none !important;
+  }
+
+  .md-content {
+    grid-column: 2;
+  }
+
+  .md-sidebar--secondary {
+    grid-column: 3;
+  }
+
+  .website-tools {
+    left: max(0px, calc((100% - 78rem) / 2));
+    width: 13rem;
+    border-bottom: 0;
+  }
+
+  .website-drawer-toggle {
+    display: none;
+  }
+
+  .md-sidebar--primary .md-sidebar__scrollwrap {
+    height: calc(100% - 0.5rem) !important;
+  }
+}
+
+/* Preserve Material's full search overlay above the independent reading columns. */
+[data-md-toggle="search"]:checked ~ .website-tools .md-search {
+  display: block;
+}
+
+[data-md-toggle="search"]:checked ~ .website-tools .md-search__inner {
+  position: fixed;
+  top: 0.5rem;
+  left: 50%;
+  width: min(36rem, calc(100vw - 1rem));
+  transform: translateX(-50%);
+}

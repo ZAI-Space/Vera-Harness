@@ -13,6 +13,7 @@ from uuid import uuid4
 from vera.channels.credentials import private_directory
 from vera.scheduler.config import DEFAULT_DIRECTORY, JobSpec, next_occurrence, parse_schedule, utc_text
 from vera.tools import ToolError
+from vera.utils.serialize import strip_sensitive
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -92,6 +93,7 @@ class JobStore:
         """Persist a validated job; no process, provider or sandbox is started."""
         now = time.time() if now is None else now
         spec = JobSpec.model_validate(value)
+        persisted = strip_sensitive(spec.model_dump(mode="json"))
         if not spec.workspace.is_dir():
             raise ToolError("The job workspace must exist.")
         schedule = parse_schedule(spec.schedule, spec.timezone, now)
@@ -99,7 +101,7 @@ class JobStore:
         with self._db(True) as db:
             db.execute(
                 "INSERT INTO jobs(id,spec,schedule,state,next_at,created_at) VALUES (?,?,?,'scheduled',?,?)",
-                (key, spec.model_dump_json(), json.dumps(schedule), schedule["next"], now),
+                (key, json.dumps(persisted), json.dumps(schedule), schedule["next"], now),
             )
         return self.get(key)
 
@@ -129,6 +131,7 @@ class JobStore:
         """Replace settings atomically; snapshots of queued/running executions remain unchanged."""
         now = time.time() if now is None else now
         spec = JobSpec.model_validate(value)
+        persisted = strip_sensitive(spec.model_dump(mode="json"))
         if not spec.workspace.is_dir():
             raise ToolError("The job workspace must exist.")
         schedule = parse_schedule(spec.schedule, spec.timezone, now)
@@ -139,7 +142,7 @@ class JobStore:
             state = "paused" if current["state"] == "paused" else "scheduled"
             db.execute(
                 "UPDATE jobs SET spec=?,schedule=?,state=?,next_at=?,fired=0,revision=revision+1 WHERE id=?",
-                (spec.model_dump_json(), json.dumps(schedule), state, schedule["next"], key),
+                (json.dumps(persisted), json.dumps(schedule), state, schedule["next"], key),
             )
         return self.get(key)
 
@@ -255,6 +258,7 @@ class JobStore:
                     "id": row["id"],
                     "job_id": row["job_id"],
                     "scheduled_at": utc_text(row["slot"]),
+                    "finished_at": utc_text(row["finished_at"]) if row["finished_at"] is not None else None,
                     "status": row["status"],
                     "manual": bool(row["manual"]),
                     "cancel_requested": bool(row["cancel"]),

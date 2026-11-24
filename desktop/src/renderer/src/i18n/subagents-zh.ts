@@ -55,6 +55,7 @@ export const subagentsZh = {
 		storage: "未能保存到本机，表单已保留，请重试",
 	},
 	presets: {
+		"coding-workflow": { name: "编程任务流程", description: "按需委派：阅读代码、复现、修改、验证" },
 		explorer: {
 			name: "探索者",
 			description: "检索代码库，回答「在哪」和「怎么工作」",

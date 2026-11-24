@@ -19,6 +19,7 @@ import { Toaster } from "./components/Toaster";
 import { getExecutionApi } from "./environment-api";
 import { PluginsPage } from "./features/plugins/PluginsPage";
 import { ScheduledPage } from "./features/scheduled/ScheduledPage";
+import { TaskboardPage } from "./features/taskboard/TaskboardPage";
 import { useSessionEventBridge } from "./hooks/use-session-event-bridge";
 import { useI18nStore } from "./i18n";
 import { selectActiveCwd } from "./lib/active-cwd";
@@ -108,13 +109,13 @@ export default function App() {
 
 	useEffect(() => {
 		// 上次项目目录：启动即预填（用户不用重选项目）。**只带 cwd，不恢复任何会话**——
-		// v10 启动仍是纯空会话页，历史全在左栏。偏好已在 main.tsx render 前 init 完毕，这里同步可用。
+		// 启动保持空会话页，历史在左栏。偏好已在 main.tsx 渲染前初始化，这里同步可用。
 		// 单例 draft：开屏就建好唯一那份（cwd = lastCwd，模型等 loadModels 回填），
 		// 这样「空态输入框 / 项目选择器 / 发送」从一开始就有同一份配置真相
 		const lastCwd = useUiPreferencesStore.getState().lastCwd;
 		useSessionsStore.getState().activateNewSessionDraft(lastCwd ?? undefined);
 		// 开屏就绪信号：首批数据（模型列表）settle 后收场（finishSplash 幂等）。
-		// v10：**不再恢复上次打开的会话**（启动纯空 = 新会话页，与 pi 原生 / Codex 一致）；
+		// 不恢复上次打开的会话；启动时显示新会话页。
 		// 历史全在左栏，点一下才按需加载
 		void Promise.allSettled([useSessionsStore.getState().loadModels(LOCAL_ENVIRONMENT)]).then(() =>
 			finishSplash(),
@@ -188,6 +189,7 @@ export default function App() {
 					</div>
 					{workspacePage === "plugins" && <PluginsPage />}
 					{workspacePage === "scheduled" && <ScheduledPage />}
+					{workspacePage === "taskboard" && <TaskboardPage />}
 					{workspacePage === "chat" && <DiffSidebar />}
 				</div>
 			</div>

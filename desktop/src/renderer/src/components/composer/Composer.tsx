@@ -29,7 +29,7 @@ import { useSessionsStore } from "../../stores/sessions";
 import { pushToast } from "../../stores/toasts";
 import { selectTranscript, useTranscriptStore } from "../../stores/transcript";
 import { ImagePreviewOverlay } from "../chat/ImagePreview";
-import { ArrowUpIcon, PencilIcon, PlusIcon, StopIcon } from "../icons";
+import { ArrowUpIcon, CloseIcon, PencilIcon, PlusIcon, StopIcon } from "../icons";
 import { AtMenu } from "./AtMenu";
 import { ComposerEditor, type ComposerEditorHandle } from "./ComposerEditor";
 import { ContextRing } from "./ContextRing";
@@ -280,18 +280,23 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
 		if (at.handleKeyDown(e)) return;
 		if (slash.handleKeyDown(e)) return;
-		// 胶囊撤销：Esc（任意文本态，菜单未消费时）；空文本 Backspace/Delete 先 @ 胶囊后 slash 胶囊
+		// Esc 或正文起点的 Backspace 取消命令，正文和附件保持不变。
 		if (slashCommand && e.key === "Escape") {
-			slash.restoreSlashPill(e);
+			slash.cancelSlashCommand(e);
+			return;
+		}
+		const selection = editorRef.current?.selectionRange();
+		if (
+			slashCommand &&
+			((e.key === "Backspace" && selection?.start === 0 && selection.end === 0) ||
+				(!text.trim() && (e.key === "Backspace" || e.key === "Delete")))
+		) {
+			slash.cancelSlashCommand(e);
 			return;
 		}
 		if (text === "" && (e.key === "Backspace" || e.key === "Delete")) {
 			// 胶囊撤销：视觉由近及远（@ 文件 → slash 命令 → 引用）
 
-			if (slashCommand) {
-				slash.restoreSlashPill(e);
-				return;
-			}
 			if (quotes.length > 0) {
 				e.preventDefault();
 				setQuotes((prev) => prev.slice(0, -1));
@@ -488,6 +493,14 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 							{slashCommand && (
 								<span className="mt-0.5 flex shrink-0 select-none items-center rounded-md bg-surface px-2 py-0.5 font-mono text-ui-12 leading-5 text-ink-2 shadow-pop">
 									{slashLabel !== slashCommand && <span className="mr-1.5">{slashLabel}</span>}/{slashCommand}
+									<button
+										type="button"
+										aria-label={t("slash.cancelCommand")}
+										onClick={slash.cancelSlashCommand}
+										className="ml-1.5 text-ink-faint hover:text-ink"
+									>
+										<CloseIcon size={10} />
+									</button>
 								</span>
 							)}
 
@@ -497,7 +510,13 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 								draftKey={draftKey}
 								document={document}
 								className={slashCommand ? "min-w-[140px] flex-1" : "w-full"}
-								placeholder={slashCommand ? t("slash.argPlaceholder") : placeholder}
+								placeholder={
+									slashCommand?.startsWith("subagent:")
+										? t("slash.subagentTaskPlaceholder")
+										: slashCommand
+											? t("slash.argPlaceholder")
+											: placeholder
+								}
 								readOnly={readOnly}
 								onChange={handleTextChange}
 								onKeyDown={handleKeyDown}
@@ -533,6 +552,7 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 								<PermissionPicker
 									key={policyTarget}
 									policy={permissionPolicy}
+									disabled={agentActive}
 									onPolicyChange={(policy) => {
 										if (activeSessionId)
 											void usePermissionPolicyStore.getState().savePolicy(activeSessionId, policy);

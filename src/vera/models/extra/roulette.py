@@ -1,3 +1,5 @@
+"""Select and interleave configured model adapters for controlled experiments."""
+
 import random
 
 from pydantic import BaseModel

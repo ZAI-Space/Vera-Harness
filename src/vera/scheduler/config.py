@@ -89,9 +89,9 @@ class JobSpec(BaseModel):
     repeat: int | None = Field(default=None, ge=1, le=1_000_000)
     grace_seconds: int = Field(default=120, ge=0, le=86400)
     catch_up: bool = True
-    timeout: int = Field(default=600, ge=1, le=86400)
-    step_limit: int = Field(default=50, ge=1, le=1000)
-    cost_limit: float = Field(default=1, gt=0, le=100)
+    timeout: int = Field(default=600, ge=0, le=86400)
+    step_limit: int = Field(default=50, ge=0, le=1000)
+    cost_limit: float = Field(default=1, ge=0, le=100)
 
     @field_validator("timezone")
     @classmethod

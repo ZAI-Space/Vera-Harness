@@ -1,7 +1,11 @@
-<!--
-Thanks for contributing a pull request, we appreciate you!
+## Problem and behavior
 
-If this PR fixes an issue, please reference it, e.g., 'Fixes #1234'.
+<!-- Describe the trigger, resulting behavior and reason for the change. -->
 
-You can delete this comment.
--->
+## Validation
+
+<!-- List actual commands/results and any skipped or unverified scope. -->
+
+## Issue
+
+<!-- Daily PR: Refs #123. Release/hotfix PR: Closes #123. -->

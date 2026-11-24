@@ -1,6 +1,6 @@
 import type { AvailableModel } from "@vera/contracts";
 import { useMemo } from "react";
-import { clampThinkingLevel, THINKING_LEVELS, type ThinkingLevel } from "../lib/thinking";
+import { clampThinkingLevel, THINKING_LEVELS } from "../lib/thinking";
 import { useSessionsStore } from "../stores/sessions";
 import { useTranscriptStore } from "../stores/transcript";
 
@@ -38,12 +38,12 @@ export function useSessionBusy(sessionId: string | null): boolean {
 /**
  * 思考档位收拢点（模型弹层底部横条 + chip 上的档位后缀共用）：
  * - effective：draft 页读 draft 配置，真实会话 = 会话覆写 ?? 全局默认；
- * - supported：当前模型支持的档位（按 THINKING_LEVELS 顺序规范化；缺省 = 全量）；
+ * - supported：当前模型支持的档位（按服务商声明的顺序保留；缺省 = 全量）；
  * - display：收敛到 supported 后的显示值（clamp 只作用于显示，不回写 store）。
  */
 export function useThinkingLevelState(): {
 	effective: string;
-	supported: ThinkingLevel[];
+	supported: string[];
 	display: string;
 } {
 	const effective = useSessionsStore((s) => {
@@ -53,9 +53,10 @@ export function useThinkingLevelState(): {
 	});
 	// 直接取 store 里那个数组引用（稳定），过滤放到 useMemo：selector 返回新数组会触发死循环
 	const declared = useActiveModelInfo()?.thinkingLevels;
-	const supported = useMemo<ThinkingLevel[]>(() => {
+	const supported = useMemo<string[]>(() => {
 		if (!declared || declared.length === 0) return [...THINKING_LEVELS];
-		return THINKING_LEVELS.filter((level) => declared.includes(level));
+		// Custom APIs can declare values such as "enabled"; preserve their order.
+		return [...new Set(declared)];
 	}, [declared]);
 	return { effective, supported, display: clampThinkingLevel(effective, supported) };
 }

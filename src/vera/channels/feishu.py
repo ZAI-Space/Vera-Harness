@@ -2,9 +2,11 @@
 
 import json
 import os
+from pathlib import Path
 
 from vera.channels.config import AccountConfig, ChannelError, InboundMessage
 from vera.channels.weixin import DeliveryRejected, api_origin
+from vera.utils.python_process import python_module_command
 
 
 def normalize_event(account: str, value: dict) -> InboundMessage | None:
@@ -45,8 +47,8 @@ class FeishuClient:
         except ImportError:
             raise ChannelError("Install vera-harness[channels] to use the Feishu SDK.") from None
         credentials = credentials or {}
-        self.app_id = credentials.get("app_id") or os.getenv(account.app_id_env)
-        self.secret = credentials.get("app_secret") or os.getenv(account.app_secret_env)
+        self.app_id = (credentials.get("app_id") or os.getenv(account.app_id_env) or "").strip()
+        self.secret = (credentials.get("app_secret") or os.getenv(account.app_secret_env) or "").strip()
         if not self.app_id or not self.secret:
             raise ChannelError(
                 "Run channels login for this Feishu account, or set its App ID/secret environment variables."
@@ -124,6 +126,7 @@ class FeishuClient:
     def check(self) -> str:
         """Verify tenant authentication and bot capability without sending a message."""
         import lark_oapi as lark
+        from lark_oapi.core.exception import ObtainAccessTokenException
 
         request = (
             lark.BaseRequest.builder()
@@ -134,14 +137,34 @@ class FeishuClient:
         )
         try:
             response = self.client.request(request)
+        except ObtainAccessTokenException as error:
+            # SDK messages may contain echoed request data; expose only the numeric provider code.
+            code = error.code if isinstance(error.code, int) and not isinstance(error.code, bool) else "未知"
+            if code == 21001:
+                raise ChannelError(
+                    "飞书访问被平台或组织的访问控制策略拒绝（错误码 21001），这不表示 App Secret 填错。"
+                    "请联系企业管理员或飞书开放平台支持核查账号身份、应用状态和访问策略；重复修改密钥无法确认或解除此限制。"
+                ) from None
+            raise ChannelError(
+                f"飞书应用鉴权失败（错误码 {code}）。请从飞书开放平台“凭证与基础信息”复制同一自建应用的 "
+                "App ID 和 App Secret；不要填写 Verification Token 或 Encrypt Key。"
+            ) from None
         except Exception as error:
-            raise ChannelError(f"Feishu application authentication failed ({type(error).__name__}).") from None
+            raise ChannelError(f"无法完成飞书应用鉴权（{type(error).__name__}），请检查网络连接后重试。") from None
         if not response.success():
-            raise ChannelError(f"Feishu bot check failed (code {response.code}). Enable the bot and publish the app.")
+            raise ChannelError(f"飞书机器人校验失败（错误码 {response.code}）。请检查机器人能力、应用权限及发布状态。")
         return json.loads(response.raw.content).get("bot", {}).get("app_name", "")
 
 
-def pair_account(config, name: str, show_code, *, credentials: dict | None = None, timeout: int = 300) -> dict:
+def pair_account(
+    config,
+    name: str,
+    show_code,
+    *,
+    credentials: dict | None = None,
+    timeout: int = 300,
+    cancel_path: Path | None = None,
+) -> dict:
     """Verify an app and bind a user by a short-lived, single-use code received over the official SDK.
 
     App secrets are protected by CredentialStore. No peer is approved without the
@@ -149,9 +172,7 @@ def pair_account(config, name: str, show_code, *, credentials: dict | None = Non
     """
     import hashlib
     import secrets
-    import sys
     import time
-    from pathlib import Path
     from uuid import uuid4
 
     from vera.channels.credentials import CredentialStore, private_directory
@@ -163,7 +184,7 @@ def pair_account(config, name: str, show_code, *, credentials: dict | None = Non
     store = CredentialStore(config.state_directory)
     nonce = uuid4().hex
     code = f"{secrets.randbelow(1_000_000):06d}"
-    cancel = config.state_directory / f"pairing-{nonce}.stop"
+    cancel = cancel_path or config.state_directory / f"pairing-{nonce}.stop"
     store.save(
         f"pairing-{nonce}",
         {
@@ -172,6 +193,7 @@ def pair_account(config, name: str, show_code, *, credentials: dict | None = Non
             "credentials": {"app_id": client.app_id, "app_secret": client.secret},
             "code_hash": hashlib.sha256(code.encode()).hexdigest(),
             "expires": time.time() + timeout,
+            "stop_path": str(cancel.resolve()),
         },
     )
     show_code(code)
@@ -185,15 +207,13 @@ def pair_account(config, name: str, show_code, *, credentials: dict | None = Non
             ),
         }
         run_process(
-            [
-                sys.executable,
-                "-m",
+            python_module_command(
                 "vera.channels.worker",
                 "--state",
                 str(config.state_directory),
                 "--pair-feishu",
                 nonce,
-            ],
+            ),
             cwd=config.workspace,
             env=environment,
             log=directory / "process.log",

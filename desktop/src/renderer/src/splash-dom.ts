@@ -18,6 +18,5 @@ splash.innerHTML = `
 	<div class="sp-wave" aria-hidden="true"></div>
 	<div class="sp-wave sp-wave-echo" aria-hidden="true"></div>
 	<img class="sp-word" src="${veraLogo}" width="468" height="220" alt="VERA" draggable="false" />
-	<div class="sp-line" role="progressbar"></div>
 	<div class="sp-status text-ui-12" role="status"></div>`;
 document.body.append(splash);
