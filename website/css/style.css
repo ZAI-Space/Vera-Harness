@@ -164,3 +164,92 @@ body {
   transform: scale(1.35);
   box-shadow: 0 0 10px rgba(22, 119, 255, 0.5);
 }
+
+/* The original landing sections share one shell with docs and the demo. */
+body[data-view] {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  --shell-header-height: 112px;
+}
+
+.view-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.view-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.site-view {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.home-view,
+.demo-view {
+  overflow-y: auto;
+}
+
+.home-view {
+  scroll-behavior: smooth;
+}
+
+.docs-view,
+.demo-view {
+  padding-top: var(--shell-header-height);
+}
+
+#docs-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+body:not([data-view="home"]) #home-dots {
+  display: none;
+}
+
+#navbar-pill a[aria-current="page"] {
+  color: #2563eb;
+}
+
+@media (max-width: 639px) {
+  body[data-view] {
+    --shell-header-height: 88px;
+  }
+
+  #navbar-pill {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  #navbar-pill > div:nth-child(2) {
+    gap: clamp(0.75rem, 4vw, 1.5rem);
+    font-size: 0.8rem;
+  }
+
+  #navbar-pill > a span {
+    font-size: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-track {
+    transition: none;
+  }
+
+  .home-view {
+    scroll-behavior: auto;
+  }
+}

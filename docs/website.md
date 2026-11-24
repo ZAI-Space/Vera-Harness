@@ -2,9 +2,9 @@
 
 # Website documentation build
 
-Build the repository documentation beside the existing landing page. The landing
-page links to `docs/zh/`; English pages remain available through the language tabs
-and each page's language links.
+Build the repository documentation into the existing landing page. The landing
+page keeps its capsule navigation across Home, Docs and Demo. The Docs view embeds
+`docs/zh/`; use the documentation language links to open English pages.
 
 ## Build
 
@@ -36,10 +36,11 @@ The website hook groups its navigation into usage docs, maintenance docs and API
 reference. The build uses the existing Markdown pages, Python API references,
 search index, code copy controls and Mermaid fences.
 
-The website theme adds a home link and a white background with blue links.
-Desktop pages show the category navigation, article and page contents in three
-columns. On smaller screens, Material provides navigation and search drawers.
-The build does not change the landing page's sections, styles or scripts.
+The website theme uses a white background with blue links. The landing page slides
+between its Home, Docs and Demo views without replacing the top navigation.
+Desktop documentation keeps the category list on the left and page contents on
+the right. The article scrolls independently in the center. Smaller screens use
+navigation and search drawers. The original seven Home sections remain available.
 
 ## Rebuild and preview
 
@@ -58,5 +59,6 @@ Serve the whole landing directory to test relative links and search:
 python -m http.server 8765 --directory /absolute/path/to/landing
 ```
 
-Open `http://127.0.0.1:8765/docs/zh/`. Check category navigation, page contents,
-language links, search, code copying and the return link to the landing page.
+Open `http://127.0.0.1:8765/#docs`. Check the persistent top navigation, view
+switching, category navigation, page contents, language links, search and code
+copying. Scroll a long article and confirm that both sidebars stay in place.

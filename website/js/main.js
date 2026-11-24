@@ -1,6 +1,7 @@
 /**
  * VERA HARNESS - LANDING PAGE MAIN CONTROLLER
- * Handles responsive iframe scaling, floating island navbar, and scroll-spy interactions.
+ * Keeps the landing, documentation and demo in one hash-addressable shell.
+ * Section iframes retain their content and height synchronization across views.
  */
 
 // Seamless Iframe Height Sync (Exact fit, no overflow gap)
@@ -39,17 +40,19 @@ window.addEventListener('message', (e) => {
 // Dynamic Floating Pill Navbar on Scroll (Transforms to frosted pill upon scrolling)
 function initNavbarScroll() {
   const navPill = document.getElementById('navbar-pill');
-  if (!navPill) return;
+  const homeView = document.getElementById('view-home');
+  if (!navPill || !homeView) return;
 
   function updateNavbarOnScroll() {
-    if (window.scrollY > 40) {
+    if (document.body.dataset.view !== 'home' || homeView.scrollTop > 40) {
       navPill.classList.add('pill-scrolled');
     } else {
       navPill.classList.remove('pill-scrolled');
     }
   }
 
-  window.addEventListener('scroll', updateNavbarOnScroll, { passive: true });
+  homeView.addEventListener('scroll', updateNavbarOnScroll, { passive: true });
+  window.addEventListener('viewchange', updateNavbarOnScroll);
   updateNavbarOnScroll();
 }
 
@@ -86,7 +89,7 @@ function initScrollSpy() {
         }
       }
     });
-  }, { threshold: 0.3 });
+  }, { root: document.getElementById('view-home'), threshold: 0.3 });
 
   // Smooth Anchor Click Handler for Navigation Links
   document.querySelectorAll('a[href^="#sec-"]').forEach(anchor => {
@@ -95,7 +98,8 @@ function initScrollSpy() {
       const targetId = this.getAttribute('href').substring(1);
       const targetEl = document.getElementById(targetId);
       if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth' });
+        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+        targetEl.scrollIntoView({ behavior });
       }
     });
   });
@@ -106,8 +110,68 @@ function initScrollSpy() {
   });
 }
 
+// Hash changes restore the active view without replacing the global navigation.
+function initViews() {
+  const names = ['home', 'docs', 'demo'];
+  const track = document.getElementById('view-track');
+  const docsFrame = document.getElementById('docs-frame');
+  const docsBase = new URL('./docs/', window.location.href);
+  let currentDocsPath = 'zh/';
+
+  function docsURL(path) {
+    const target = new URL(path, docsBase);
+    return target.origin === docsBase.origin && target.pathname.startsWith(docsBase.pathname) ? target : new URL('zh/', docsBase);
+  }
+
+  function applyRoute() {
+    const [route, query = ''] = window.location.hash.slice(1).split('?');
+    const name = names.includes(route) ? route : 'home';
+    document.body.dataset.view = name;
+    track.style.transform = `translateX(-${names.indexOf(name) * 100}%)`;
+    names.forEach((view) => {
+      const panel = document.getElementById(`view-${view}`);
+      const active = view === name;
+      panel.inert = !active;
+      panel.setAttribute('aria-hidden', String(!active));
+      const link = document.getElementById(`nav-${view}`);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+    if (name === 'docs') {
+      const path = new URLSearchParams(query).get('path') || currentDocsPath;
+      const target = docsURL(path);
+      let currentURL = '';
+      try {
+        currentURL = docsFrame.contentWindow.location.href;
+      } catch {
+        // An external link can leave the frame on another origin; restore docs.
+      }
+      if (currentURL !== target.href) docsFrame.src = target.href;
+    }
+    if (route.startsWith('sec-')) {
+      document.getElementById(route)?.scrollIntoView();
+    }
+    window.dispatchEvent(new Event('viewchange'));
+  }
+
+  // Same-origin documentation pages report their current path, including anchors.
+  // Replace the shell URL because iframe navigation already creates history entries.
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin || event.source !== docsFrame.contentWindow || event.data?.type !== 'VERA_DOCS_LOCATION') return;
+    const target = docsURL(event.data.path);
+    currentDocsPath = target.pathname.slice(docsBase.pathname.length) + target.search + target.hash;
+    if (document.body.dataset.view === 'docs') {
+      history.replaceState(null, '', `#docs?path=${encodeURIComponent(currentDocsPath)}`);
+    }
+  });
+  window.addEventListener('hashchange', applyRoute);
+  window.addEventListener('popstate', applyRoute);
+  applyRoute();
+}
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   initNavbarScroll();
   initScrollSpy();
+  initViews();
 });

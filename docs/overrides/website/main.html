@@ -1,7 +1,23 @@
 {% extends "base.html" %}
 
-{% block announce %}
-<a class="website-home" href="{{ '../' | url }}">
-  {% if page and page.file.src_uri.startswith('zh/') %}← 返回官网{% else %}← VERA home{% endif %}
-</a>
+{% block header %}
+<header class="md-header website-tools" data-md-component="header">
+  <nav class="md-header__inner" aria-label="文档工具">
+    <label class="website-drawer-toggle md-icon" for="__drawer" aria-label="打开文档分类" role="button" tabindex="0">
+      {% include ".icons/material/menu.svg" %}
+    </label>
+    <label class="website-search-toggle" for="__search" role="button" tabindex="0">
+      <span class="md-icon">{% include ".icons/material/magnify.svg" %}</span>
+      <span>搜索文档</span>
+    </label>
+    {% include "partials/search.html" %}
+    <button class="website-toc-toggle md-icon" type="button" aria-label="打开页内目录" aria-expanded="false">
+      {% include ".icons/material/format-list-bulleted.svg" %}
+    </button>
+  </nav>
+</header>
 {% endblock %}
+
+{% block announce %}{% endblock %}
+{% block tabs %}{% endblock %}
+{% block footer %}{% endblock %}

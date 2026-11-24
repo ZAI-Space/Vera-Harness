@@ -15,8 +15,6 @@ theme:
     - navigation.sections
     - navigation.tabs
     - navigation.tabs.sticky
-    - navigation.top
-    - navigation.footer
     - content.action.edit
     - content.code.copy
     - content.code.annotate
@@ -24,6 +22,10 @@ theme:
 extra:
   homepage: ../
   version: null
+extra_javascript:
+  - assets/js/sh-annotation.js
+  - assets/js/gif-controls.js
+  - assets/website.js?v=docs-shell-3
 extra_css:
   - assets/custom.css
   - assets/gif-controls.css
@@ -31,4 +33,4 @@ extra_css:
   - assets/image_theme.css
   - assets/bubbles.css
   - assets/navigation_cards.css
-  - assets/website.css
+  - assets/website.css?v=docs-shell-3

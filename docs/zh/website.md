@@ -2,7 +2,7 @@
 
 # 官网文档构建
 
-将仓库文档构建到现有落地页旁。落地页链接到 `docs/zh/`；通过语言标签和每页的语言链接访问英文页面。
+将仓库文档接入现有落地页。首页、文档和演示共用顶部胶囊导航；文档视图内嵌 `docs/zh/`，通过文档语言链接访问英文页面。
 
 ## 构建
 
@@ -28,9 +28,9 @@ python scripts/build_website_docs.py --landing-dir /absolute/path/to/landing
 `mkdocs.website.yml` 继承[常规文档配置](documentation.md)。官网 hook 将既有导航分为使用文档、维护文档和接口参考。
 构建复用现有 Markdown 页面、Python API 引用、搜索索引、代码复制控件和 Mermaid 代码块。
 
-官网文档主题加入返回官网链接，使用白色背景与蓝色链接。
-桌面页面分为分类导航、正文和页内目录三栏。较小屏幕由 Material 提供导航与搜索抽屉。
-构建不修改落地页的各屏内容、样式和脚本。
+官网文档使用白色背景与蓝色链接。首页、文档和演示之间采用横向过渡，顶部胶囊导航始终保留。
+桌面文档的左侧分类和右侧页内目录固定，中间正文独立滚动。较小屏幕使用导航与搜索抽屉。
+首页保留原有七屏展示内容。
 
 ## 重建与预览
 
@@ -46,4 +46,5 @@ python scripts/build_website_docs.py --landing-dir /absolute/path/to/landing
 python -m http.server 8765 --directory /absolute/path/to/landing
 ```
 
-打开 `http://127.0.0.1:8765/docs/zh/`，检查分类导航、页内目录、语言链接、搜索、代码复制与返回官网链接。
+打开 `http://127.0.0.1:8765/#docs`，检查顶部导航、栏目切换、分类导航、页内目录、语言链接、搜索和代码复制。
+滚动长文档时，确认两侧栏保持原位。
