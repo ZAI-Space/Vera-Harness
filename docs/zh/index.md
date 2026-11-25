@@ -18,11 +18,9 @@
 | 后台与应用 | [渠道](channels.md)、[定时任务](scheduler.md)、[前端对接](frontend-integration.md) |
 | 评测和演化 | [版本化演化](evolution.md) |
 
-终端入口继续可用。Electron 桌面端通过带认证的本机回环 HTTP 服务复用 Python Runtime；渠道和定时任务也通过适配器复用同一 Runtime。`vera-harness` 是当前包名；`vera`、旧命令和数据标识保留兼容。可选服务测试、真实模型验证与任务评测分别记录，不将其他项目的公开分数当作 VERA 成绩。
+Electron 桌面端、终端、渠道和定时任务共用 Python Runtime。桌面通过带认证的本机回环 HTTP 服务连接后端。安装包名为 `vera-harness`，终端命令为 `vera`；历史命令和数据标识保留兼容。
 
 ## 配置、命令与源码示例
-
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```mermaid
 flowchart LR

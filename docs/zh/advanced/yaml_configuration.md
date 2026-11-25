@@ -18,8 +18,6 @@ confirm/yolo/human 为权限；run_mode 只是 plan/goal 的运行时配置部�
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```bash
 vera -c vera.yaml -c project.yaml -c agent.step_limit=40
 ```

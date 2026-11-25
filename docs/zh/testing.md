@@ -14,7 +14,7 @@
 | `desktop/tests/ui` | 真实 Electron 验收和共用启动器。 |
 | `tests/run/desktop_contract_trace.py` | 为 TypeScript 契约测试生成真实 Python 事件。 |
 
-`src/vera/models/test_models.py` 是发布的确定性模型适配器，不是遗漏的测试文件。
+`src/vera/models/test_models.py` 提供 Runtime 使用的确定性模型适配器。
 
 ## Python 检查
 
@@ -28,7 +28,7 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-`python -m pytest tests/run/test_examples.py -ra` 验证随仓库发布的示例，不调用付费模型。回归测试尽量使用真实文件和本机协议 fixture；不得用模拟结果替代缺失的联调证据，也不得删除失败测试。
+运行 `python -m pytest tests/run/test_examples.py -ra` 检查随仓库发布的示例。集成测试使用真实文件、子进程和本地协议服务。
 
 ## 桌面检查
 
@@ -43,14 +43,13 @@ npm run build
 npm run test:ui
 ```
 
-UI 验收依次执行设置、全局设置、市场、模型配置与通用助手五组独立场景，启动真实 Electron、Python 服务和本机模型协议端点，检查显示与文件、数据库副作用，并输出各组证据目录。根目录 `.venv` 不是目标解释器时设置 `VERA_PYTHON`。全局设置场景会启动固定版本的可选任务面板；请先按[任务面板](taskboard.md)完成安装准备。
+UI 测试通过独立场景覆盖设置、市场、模型配置和助手交互。测试启动 Electron、Python 服务和本地模型协议服务，检查界面、文件与数据库变化，并输出报告目录。使用其他 Python 解释器时设置 `VERA_PYTHON`。全局设置场景会启动固定版本的任务面板，运行前按[任务面板](taskboard.md)完成安装准备。
 
-## 证据口径
+## 测试环境
 
-- 默认 pytest 不启用付费的 `--run-fire` 测试。
-- 缺少容器、平台、可选上游应用或凭据会产生跳过，需分别报告。
-- 本机协议端点验证集成，不证明模型质量或真实市场可达性。
-- 安全复现需要单独的受限隔离环境；普通 CI 记录工程化结果。
-- 合并前核对 PR 的准确 SHA 与全部必需 CI；合并后核对 `main` 的结果。
+- 运行 `python -m pytest -n 2 -ra` 执行默认套件，`-ra` 显示包含跳过项的运行摘要。
+- 容器测试需准备对应引擎和镜像，任务面板测试需安装对应构建。
+- 添加 `--run-fire` 可启用外部模型 API 测试，运行前配置供应商凭据和预算。
+- 安全复现用例在独立隔离环境中执行。
 
-`main` 是唯一长期、默认和生产分支。临时任务分支从 `main` 创建，经 Squash PR 合回，交付后删除；发布时给已合入 `main` 的提交打标签。本仓库采用个人维护策略：保留 PR 和全部 10 项必需检查，人工批准数为 0。检查通过后由维护者自行合并；不得绕过分支保护，也不得将未完成的检查记为通过。
+`main` 是唯一长期、默认和生产分支。临时任务分支通过必需检查后，经 Squash PR 合回，交付后删除；发布时给已合入 `main` 的提交打标签。完整流程见[贡献指南](contributing.md)。

@@ -14,8 +14,6 @@ DefaultAgent 协调流程，Model 解析 provider 动作与观察格式，Enviro
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```mermaid
 flowchart TD
     A["run: initialize or restore messages"] --> B["check cancellation / step"]

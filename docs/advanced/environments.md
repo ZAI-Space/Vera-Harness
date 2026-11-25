@@ -22,6 +22,6 @@ vera --sandbox docker
 vera --sandbox-profile python-dev
 ```
 
-The default local backend does not isolate the host. Windows native local tests are different from Linux container tests. No optional backend is considered available merely because its Python class can import.
+The local backend runs with the current user's host permissions. For isolation, install and configure a sandbox backend with its required engine and image.
 
 Set low-level options under `environment`, and policy under `sandbox`. [Saved sandbox configuration](../sandbox.md) explains checks, selection, permissions, host MCP opt-ins and unavailable backends. User configuration manages engine/image installation; the Runtime does not silently downgrade an explicit isolation request.

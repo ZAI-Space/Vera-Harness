@@ -77,7 +77,7 @@ Event envelopes carry `sessionId,sequence,event`. A cursor gap or service restar
 
 ## Permissions and limits
 
-`confirm` requests approval, `yolo` executes without individual approval, and `human` executes the command entered by the user. Approval currently offers allow once / deny; persistent command-whitelist editing is not exposed. Sandboxes are separate user-configured isolation environments. No available backend means disabled sandbox choices, not automatic installation.
+`confirm` requests approval, `yolo` executes without individual approval, and `human` executes the command entered by the user. Approval offers allow once / deny. Sandboxes use user-configured isolation environments; install the selected backend before use.
 
 The UI consistently labels these policies Human, Confirm and Yolo. Existing sessions persist their choice in the backend and restore it when reopened; new sessions inherit behavior defaults. Provider catalogs are separate from execution pickers: unconfigured, hidden and deleted models are excluded from those pickers. User Skills are available without first creating a conversation; enabled plugin Skills also appear in the resource catalog.
 
@@ -87,7 +87,7 @@ Unattended schedules require explicit `yolo` and a fresh context per run. Saving
 
 The API form asks for the provider, API key and model IDs in that order. Configuration labels are generated from the provider or custom endpoint; model display names are omitted.
 
-SSH, PI extensions, codemode/deferred MCP exposure and manual context compaction are not supplied by this backend adapter. Their UI entries are disabled or reject unsupported operations explicitly. MCP configuration applies to the next task; the settings page does not pretend a persistent connection is alive. These limits are separate from the existing Hindsight memory/context module.
+Use the method table in [desktop API](desktop-api.md) when connecting a frontend client. MCP configuration applies to the next task; the connection check records the result and time of a transport probe. See [memory](hindsight-memory.md) for Hindsight configuration.
 
 ## Settings and remote capabilities
 
@@ -99,6 +99,6 @@ Device interconnect starts disabled. Enabling it creates a separate LAN listener
 
 ## Verification
 
-After installing dependencies and building, run `npm run test:ui` from `desktop/`. This launches actual Electron, Python service and local model protocol processes under a private temporary directory, clicks settings and sends commands, and checks the UI, SQLite and file effects. Windows remain hidden; no user configuration or paid model is used. The printed `EVIDENCE` directory retains reports, failure screenshots and logs. External-model and marketplace-network acceptance remain separate evidence.
+After installing dependencies and building, run `npm run test:ui` from `desktop/`. The command starts Electron, the Python service and a local model protocol service in a private temporary directory. It exercises settings and task submission, then checks the UI, SQLite and file changes. Tests use isolated configuration. The printed `EVIDENCE` directory contains reports, failure screenshots and logs.
 
-The repository includes real HTTP/process, streaming SSE, approval, abort, persistence and scheduler adapter tests. A TypeScript integration test consumes events produced by an actual Python worker and verifies the final renderer projection. Electron acceptance additionally checks actual display, tool approval, Bash output and collapsible reasoning with a local protocol peer. A separate live DeepSeek run through the desktop service and worker completed streaming, tool execution and file creation with `Submitted`; see [streaming evidence](desktop-streaming.md#acceptance-evidence). Other providers and marketplace availability require their own credentials/network acceptance.
+Integration tests cover HTTP, worker processes, SSE streaming, approval, cancellation, persistence and scheduling. The TypeScript contract test consumes Python worker events and checks the renderer state. Electron tests cover response display, tool approval, Bash output and reasoning disclosure. See [streaming tests](desktop-streaming.md#regression-tests).

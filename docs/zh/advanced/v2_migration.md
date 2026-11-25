@@ -18,8 +18,6 @@ VERA 使用当前发行包、命令和 Python 命名。安装本仓库并确认�
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```bash
 python -m pip install -e '.[mcp,channels]'
 vera --help

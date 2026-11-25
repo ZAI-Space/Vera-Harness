@@ -18,8 +18,6 @@ UI 状态用 Stateful 订阅，订阅者不能修改执行；独立上下文用 
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```python
 from vera.agents.default import DefaultAgent
 from vera.config import get_config_from_spec

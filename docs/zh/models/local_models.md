@@ -16,8 +16,6 @@ Portkey 可用 litellm_model_name_override 让网关模型名对应价格标识�
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```yaml
 model:
   model_class: litellm

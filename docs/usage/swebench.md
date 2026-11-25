@@ -24,7 +24,7 @@ Inspect every selected task, including failed/aborted tasks, before a continuati
 
 `run.env_startup_command` is rendered with instance variables and executes before the Agent. Supply only trusted setup commands and valid Git syntax. Container cache, installation, startup and model runtime failures need separate diagnostics.
 
-The inference output includes predictions suitable for the chosen external SWE-bench evaluator. Use that evaluator's current documentation for submission/scoring. A public upstream agent score is not a result for this VERA candidate. Keep paid model budgets, dataset access and sandbox requirements explicit.
+Submit the generated predictions to the external SWE-bench evaluator. Follow its documentation for the selected dataset version and scoring command.
 
 ## Implementation
 

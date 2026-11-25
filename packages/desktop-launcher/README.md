@@ -11,8 +11,7 @@ and Bash for local tools. Windows uses Git for Windows Bash. First launch
 downloads Electron and Python dependencies into a private runtime. System Python
 is not modified. Configure a model in the app before running tasks.
 
-This is an Alpha release. Windows and Linux run in CI; macOS is not qualified.
-The npm package is a launcher, not a signed native installer.
+This Alpha desktop launcher is distributed through npm for Windows and Linux.
 
 ```bash
 npx vera-harness --doctor

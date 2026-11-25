@@ -34,9 +34,9 @@ flowchart LR
 
 The terminal remains available. The Electron desktop uses the Python desktop service over an authenticated loopback HTTP transport. Channels and scheduled tasks reuse the same Runtime through their adapters. State observation, planning, standing goals and scheduling remain extensions around the existing Agent Loop.
 
-!!! note "Compatibility and evidence"
+!!! note "Naming and compatibility"
 
-    The product is VERA and the distribution is `vera-harness`. Current Python imports use `vera.*`, configuration uses `vera.yaml` and `VERA_*`, and new trajectories use VERA identifiers. Legacy CLI, environment and built-in config aliases remain available; update old Python import paths. See [migration](advanced/v2_migration.md). Optional-service tests and paid model runs are distinct from local protocol tests; no upstream benchmark score is a VERA result.
+    The product is VERA and the distribution is `vera-harness`. Current Python imports use `vera.*`, configuration uses `vera.yaml` and `VERA_*`, and new trajectories use VERA identifiers. Legacy CLI, environment and built-in config aliases remain available; update old Python import paths. See [migration](advanced/v2_migration.md).
 
 ## Development and maintenance
 

@@ -31,10 +31,6 @@
 
     No. Goals have turn, cost and elapsed budgets. Jobs have per-invocation limits. Accounting happens at call/boundary checks, so an in-flight provider request can overshoot the remaining allowance. A scheduler needs a live service and does not wake a powered-off machine.
 
-??? question "Does local test success prove model quality?"
+??? question "How does the desktop connect to the backend?"
 
-    No. Unit/protocol tests, actual sandbox runs, paid provider runs and task benchmarks provide different evidence. VERA does not inherit another project's published benchmark score. Report the candidate commit, task set, model and unavailable prerequisites with results.
-
-??? question "Is there a desktop API already?"
-
-    Yes. The Electron desktop uses an authenticated loopback Python service for sessions, streaming events and Runtime operations. Optional integrations and live providers have separate prerequisites and acceptance scope. See [frontend integration](frontend-integration.md).
+    The Electron desktop uses an authenticated loopback Python service for sessions, streaming events and Runtime operations. See [frontend integration](frontend-integration.md) for startup and configuration.

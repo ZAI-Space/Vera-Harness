@@ -18,8 +18,6 @@ SQLite 在完整步骤边界保存任务与消息检查点；轨迹和数据库�
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```bash
 vera --storage ./runs.sqlite3 -t "Run the unit tests"
 vera-extra runs list --db ./runs.sqlite3

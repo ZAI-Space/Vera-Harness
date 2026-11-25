@@ -93,6 +93,5 @@ context budget and shared-bank setting fixed. Example checks:
 - A child's bank contains a note that its sibling must never retrieve. Check the returned bank and fact IDs.
 - A long session spans several tool calls and a user correction. Check retained constraints, token usage and task success.
 
-The local HTTP tests verify the request contracts and what the Agent receives.
-They cannot measure Hindsight's factual consolidation or the model's task quality.
-Use a running Hindsight service for that comparison.
+Use a running Hindsight service to compare these modes. Review the returned bank
+and fact IDs alongside task results, token usage and retained constraints.

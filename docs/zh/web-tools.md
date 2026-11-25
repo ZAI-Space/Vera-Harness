@@ -18,8 +18,6 @@ Bash 承担当前环境中的文件读写、检索和构建。统一注册表把
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```bash
 export SEARXNG_URL=http://127.0.0.1:8080
 bash scripts/start.sh -c vera.yaml -c web.search_provider=searxng

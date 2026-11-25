@@ -167,4 +167,4 @@ python -m pytest tests/run/test_channels.py
 
 测试使用真实 HTTP 服务、官方飞书 SDK、WebSocket protobuf 事件、SQLite、Bash 和
 Agent 子进程，覆盖扫码/PIN、身份配对、白名单、重复事件、会话隔离、发件不确定性、
-重启恢复及凭据保护。真人平台联调和真实付费模型结果单独记录，不以本地测试代替。
+重启恢复及凭据保护。

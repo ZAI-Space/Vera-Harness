@@ -20,8 +20,6 @@ litellm、litellm_response 分别对应 Chat/Responses；openrouter、openrouter
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```bash
 vera-extra config setup
 vera-extra config set VERA_MODEL_NAME openai/YOUR_MODEL

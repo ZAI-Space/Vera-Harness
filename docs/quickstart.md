@@ -38,7 +38,7 @@ python -m venv .venv
     vera --help
     ```
 
-The documented install source is this repository. The package name alone is not a claim that a public PyPI release has been published. For a minimal install use `pip install -e .`; development adds `.[dev]` or `.[full,channels]`.
+Install from this repository with `pip install -e .` for a minimal setup. For development, use `.[dev]` or `.[full,channels]`.
 
 ## Configure a model
 

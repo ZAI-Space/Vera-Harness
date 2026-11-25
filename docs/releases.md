@@ -18,8 +18,7 @@ that service. Configure a model in desktop settings before submitting a task.
 
 Use `npm install -g vera-harness`, then `vera-harness`, for a global installation.
 `npx` executes the same npm package; it is not a separate publishing destination.
-This release is Alpha. Windows and Linux run in CI. macOS and signed native
-installers are outside this release's verified distribution scope.
+The Alpha desktop launcher is distributed through npm for Windows and Linux.
 
 ## Configuration and recovery
 

@@ -10,8 +10,6 @@
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```python
 from vera.config import get_config_from_spec
 from vera.runtime import open_agent_runtime
