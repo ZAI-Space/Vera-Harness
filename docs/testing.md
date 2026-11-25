@@ -14,7 +14,7 @@ Use the existing test suites. Keep credentials and acceptance reports outside th
 | `desktop/tests/ui` | Actual Electron acceptance and the shared launcher. |
 | `tests/run/desktop_contract_trace.py` | Real Python events consumed by the TypeScript contract test. |
 
-`src/vera/models/test_models.py` is a shipped deterministic model adapter, not a misplaced test suite.
+`src/vera/models/test_models.py` provides the deterministic model adapter used by the runtime.
 
 ## Python checks
 
@@ -28,7 +28,7 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-Run `python -m pytest tests/run/test_examples.py -ra` to validate the distributed examples without a paid provider. New regression tests use real files and local protocol fixtures where practical. Do not replace missing integration evidence with mocks or remove failing tests.
+Run `python -m pytest tests/run/test_examples.py -ra` to check the distributed examples. Integration tests use real files, subprocesses and local protocol services.
 
 ## Desktop checks
 
@@ -43,14 +43,13 @@ npm run build
 npm run test:ui
 ```
 
-The UI runner executes five isolated scenarios for settings, global settings, marketplaces, model configuration and the general assistant. It starts Electron, a Python service and a local model protocol peer, checks actual file/database effects, and prints each evidence directory. Set `VERA_PYTHON` when the root `.venv` is not the intended interpreter. The global settings scenario starts the pinned optional Taskboard; prepare its installation first as described in [Taskboard](taskboard.md).
+The UI runner covers settings, marketplaces, model configuration and assistant interactions in isolated scenarios. It starts Electron, a Python service and a local model protocol service, checks file and database changes, and prints the report directory. Set `VERA_PYTHON` to select an interpreter other than the root `.venv`. The global settings scenario starts the pinned Taskboard; prepare its installation as described in [Taskboard](taskboard.md).
 
-## Evidence limits
+## Test environments
 
-- Default pytest does not enable paid `--run-fire` tests.
-- Missing containers, platforms, optional upstream applications or credentials can cause skips. Report each category.
-- A local protocol peer validates integration, not model quality or live marketplace availability.
-- Security reproduction requires its own isolated, bounded environment. Ordinary CI is engineering evidence.
-- Verify the PR head SHA and every required CI job before merge; verify the resulting `main` SHA afterwards.
+- Run the default suite with `python -m pytest -n 2 -ra`. The `-ra` option displays a summary, including skipped cases.
+- Container tests require the corresponding engine and image. Taskboard tests require its installed build.
+- Use `--run-fire` to enable external model API tests. Configure provider credentials and a budget before running them.
+- Run security reproduction cases in a separate isolated environment.
 
-`main` is the only long-lived, default and production branch. Temporary task branches start at `main` and return through a squash PR; delete them after delivery. Tag landed `main` commits for releases. This repository uses a single-maintainer policy: PRs and all 10 required checks remain mandatory, with zero required human approvals. The maintainer can merge after checks pass; do not bypass branch protection or report unfinished checks as passing.
+`main` is the only long-lived, default and production branch. Temporary task branches return through a squash PR after the required checks pass. Delete temporary branches after delivery and tag landed `main` commits for releases. See [contributing](contributing.md) for the workflow.

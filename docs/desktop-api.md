@@ -39,7 +39,7 @@ TypeScript contracts live in `desktop/src/contracts`; dispatch lives in `src/ver
 | Maintenance | `previewSessionProjectDeletion`, `deleteSessionProject` | Expiring single-use preview; removes session records, not project source. |
 | Media | See `media_maintenance.py` method table | Explicit confirmation, authoritative session ownership and backup/fingerprint checks. |
 
-An authenticated local caller has desktop-owner authority. An unused bridge declaration does not authorize an anonymous caller; remove unsupported declarations instead of treating them as public APIs.
+An authenticated local caller has desktop-owner authority. Use the method contracts above when integrating a client.
 
 ## LAN and messaging
 

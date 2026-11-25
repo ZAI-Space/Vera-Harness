@@ -24,8 +24,6 @@ auto 在 Linux/WSL 优先探测 Bubblewrap，再探测有镜像的本地 Linux D
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```yaml
 mode: docker
 docker_image: python:3.12-slim

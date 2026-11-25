@@ -20,4 +20,4 @@ Windows 用户先阅读并在仓库根目录运行 `scripts/setup-taskboard.ps1`
 
 适配器为上游服务设置 `127.0.0.1`、随机实例 token、独立 secret 和私有数据目录。桌面通过带 sandbox 的 iframe 显示看板；能力链接应保持私有。完整路由控制由实际安装的上游版本负责，与 VERA 本机 `/invoke` 认证是两条边界。
 
-相关测试为 `tests/run/test_taskboard_integration.py`、`test_taskboard_execution.py`。缺少上游安装应记录跳过，不代表集成已验收。
+集成测试位于 `tests/run/test_taskboard_integration.py` 和 `test_taskboard_execution.py`，运行前需安装任务面板。

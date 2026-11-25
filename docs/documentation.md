@@ -2,7 +2,7 @@
 
 # Documentation maintenance
 
-Write for users, integrators and maintainers. Organize pages by the reader's task. Keep historical acceptance reports out of product documentation.
+Write for users, integrators and maintainers. Organize pages by the reader's task, with clear steps and links to related guides.
 
 ## Page ownership
 
@@ -10,7 +10,7 @@ Write for users, integrators and maintainers. Organize pages by the reader's tas
 - Quickstart and feature pages: complete steps, input, result, recovery and permission boundaries.
 - Architecture and API pages: ownership, data flow, contracts, state and errors.
 - API reference: existing Python symbols instead of copied signatures.
-- Testing and contribution pages: commands, directories, prerequisites and evidence limits.
+- Testing and contribution pages: environments, commands, directories and the development workflow.
 
 ## Changes
 
@@ -27,4 +27,4 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-Static checks validate links, language pairs and API references. Also read the README, installation path and built pages. These checks do not establish live-model, optional-service or production-security acceptance.
+The checks validate links, language pairs and API references. Before publishing, read the README, follow the installation steps and inspect the built pages for layout and navigation.

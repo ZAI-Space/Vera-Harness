@@ -18,14 +18,14 @@ python -m mkdocs build --strict
 python scripts/check_docs.py
 ```
 
-Use actual files, subprocesses and explicit local protocol peers for new integration tests. Report unavailable backends and paid-provider scope separately. A passing skipped test is not validation of that backend.
+Use real files, subprocesses and local protocol services for integration tests. See [testing](testing.md) for environment setup and commands.
 
 ## Branches and delivery
 
 `main` is the only long-lived, default and production branch. Create temporary task branches from `main`, named `<type>/-<kebab-case>`, and submit focused PRs to `main`. Use conventional commits. Synchronize the target before merging and rerun affected checks. Squash daily and hotfix PRs. Tag the landed `main` commit for a release and delete temporary branches after delivery.
 
-Keep `main` protected. The single-maintainer policy requires PRs and all 10 required CI checks, with zero required human approvals. AI review supplies evidence; it is not a human GitHub approval.
+Keep `main` protected. The single-maintainer policy requires PRs and all 10 required CI checks, with zero required human approvals.
 
 ## Documentation
 
-Every public guide has English and Chinese versions. Preserve headings, admonitions, tables, runnable examples and API references. Update both language pages for behavior changes, retain exact config identifiers, and run the documentation checker plus strict build. Do not insert credentials or claim verification that did not run. [Documentation maintenance](documentation.md) lists the review map.
+Every public guide has English and Chinese versions. Preserve headings, admonitions, tables, runnable examples and API references. Update both language pages for behavior changes, retain exact config identifiers, and run the documentation checker plus strict build. Use placeholders for credentials in examples. See [documentation maintenance](documentation.md).

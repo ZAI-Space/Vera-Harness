@@ -22,8 +22,6 @@ GitHub 使用 openai/plugins 市场，Gitee 使用已固定的镜像快照。国
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```shell
 vera-extra plugins marketplace use github
 vera-extra plugins marketplace search remotion

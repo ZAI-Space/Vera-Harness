@@ -29,8 +29,6 @@
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```text
 Review @src/main.py and @"docs/design notes.md"
 ```

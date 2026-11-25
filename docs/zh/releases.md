@@ -16,8 +16,7 @@ npx vera-harness
 提交任务前，在桌面设置中配置模型。
 
 长期安装可用 `npm install -g vera-harness`，之后运行 `vera-harness`。
-`npx` 执行的是同一个 npm 包，不需要单独发布。本次为 Alpha 版本，Windows 和 Linux 运行 CI。
-macOS 与签名原生安装包不在本次已验证的分发范围内。
+`npx` 执行的是同一个 npm 包，不需要单独发布。Alpha 桌面启动器通过 npm 分发，面向 Windows 和 Linux。
 
 ## 配置与恢复
 

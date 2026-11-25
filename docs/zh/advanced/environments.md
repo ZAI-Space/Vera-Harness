@@ -14,11 +14,9 @@ Environment 执行命令，SandboxConfig 追加隔离、挂载与外部能力策
 | swerex_modal | Modal 服务、认证、依赖与网络 |
 | contree | 兼容 ConTree SDK 和服务权限 |
 
-可通过 --environment-class 或 environment.environment_class 选择，隔离策略通过 --sandbox/--sandbox-profile。可导入类不代表服务可用；原生 Windows 本地测试也不证明 Linux 容器可用。实际设置、工作区边界及无环境的灰态处理见[沙箱](../sandbox.md)。
+通过 `--environment-class` 或 `environment.environment_class` 选择后端，通过 `--sandbox` 或 `--sandbox-profile` 配置隔离策略。运行前安装所选后端的依赖。配置方法、工作区边界和可用状态见[沙箱](../sandbox.md)。
 
 ## 配置、命令与源码示例
-
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```bash
 vera --environment-class local

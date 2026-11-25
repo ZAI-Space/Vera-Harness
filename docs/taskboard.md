@@ -20,4 +20,4 @@ A completed run becomes ready for review. It does not automatically accept the t
 
 The adapter supplies `127.0.0.1`, a random instance token, a separate secret and a private data directory. The board is displayed in a sandboxed iframe. Its capability URL must remain private. Upstream route enforcement belongs to the separately installed revision; VERA's local `/invoke` authentication is a different boundary.
 
-See `tests/run/test_taskboard_integration.py` and `test_taskboard_execution.py`. An absent upstream installation is an explicit skip, not proof of integration acceptance.
+Integration tests are in `tests/run/test_taskboard_integration.py` and `test_taskboard_execution.py`. Install Taskboard before running them.

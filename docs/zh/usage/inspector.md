@@ -8,8 +8,6 @@ q 退出，h/左与 l/右切换步骤，j/下与 k/上滚动，H/L 切换轨迹�
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```bash
 vera-extra inspector
 vera-extra inspector /path/to/run.traj.json

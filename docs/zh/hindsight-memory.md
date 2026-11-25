@@ -18,11 +18,9 @@ reflect 使用 Hindsight 对事实、观察、mental models 的综合，并可�
 
 ## 比较验证
 
-保持模型、任务、工作区、bank 快照、上下文预算和共享配置一致，仅改变 memory_mode。检查旧命令被替代、同等可信事实冲突、共享与项目决策冲突、子 Agent bank 隔离及长会话纠正。HTTP 测试只证明请求和注入契约，不证明真实 Hindsight 整合质量或模型效果；需对运行服务另做比较。
+比较不同记忆模式时，保持模型、任务、工作区、bank 快照、上下文预算和共享配置一致，仅改变 `memory_mode`。检查旧命令更新、事实冲突、项目决策优先级、子 Agent bank 隔离和长会话纠正，结合返回的 bank、fact ID 与任务结果分析差异。
 
 ## 配置、命令与源码示例
-
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```bash
 export HINDSIGHT_BANK_ID=harness-project

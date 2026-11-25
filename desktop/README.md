@@ -19,4 +19,4 @@ Git Bash、Linux/macOS：`bash scripts/start-desktop.sh`。Windows 使用 Git Ba
 
 [后端接口与运行边界](../docs/zh/frontend-integration.md) · [流式与思考呈现](../docs/zh/desktop-streaming.md)
 
-前端来源及许可证见 [Percho MIT](third_party/percho-LICENSE) 与 [PI-Desktop LGPL-3.0](third_party/pi-desktop/NOTICE.md)。这些声明保留各自代码的许可，不将 LGPL 部分改为 MIT。
+前端来源及许可证见 [Percho MIT](third_party/percho-LICENSE) 与 [PI-Desktop LGPL-3.0](third_party/pi-desktop/NOTICE.md)。

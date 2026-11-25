@@ -75,4 +75,4 @@ Linux benchmark images are outside the native Windows local-execution contract.
 The startup tests use deterministic model responses and real Bash commands, with
 no paid model calls. `.github/workflows/windows.yaml` covers Python 3.10 and 3.12.
 
-The test commands above exercise the current candidate. Historical Windows checks are not a substitute for rerunning the modified startup entries. Optional Linux images/backends, ARM64 and paid provider tests require separate evidence. Repository CI declares Python 3.10 and 3.12 jobs; local testing does not establish that a remote job ran for this SHA.
+Run the relevant tests after changing startup or command execution. Check the [Windows workflow](https://github.com/ZAI-Space/Vera-Harness/actions/workflows/windows.yaml) for CI results.

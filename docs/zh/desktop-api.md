@@ -39,7 +39,7 @@ Content-Type: application/json
 | 清理 | `previewSessionProjectDeletion`、`deleteSessionProject` | 预览令牌有时限且只用一次；清理会话记录，不删除项目源码。 |
 | 媒体 | 见 `media_maintenance.py` 方法表 | 显式确认，核对权威会话、备份及内容指纹。 |
 
-已认证的本机调用者具有桌面所有者权限。无用桥接声明不等于匿名接口；应删除不支持的声明，保持契约与实现一致。
+已认证的本机调用者具有桌面所有者权限。客户端按上述方法契约调用接口。
 
 ## LAN 与消息渠道
 

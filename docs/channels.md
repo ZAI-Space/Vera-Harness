@@ -40,7 +40,7 @@ vera-extra channels stop -c channels.yaml
 
 The adapter follows Tencent/openclaw-weixin's protocol at `0ad1ae91347a938f52f1e4e2abd6dcda51e05f9e`. It does not embed OpenClaw. Login displays a terminal QR and an absolute temporary PNG path. Scan and confirm with the operator's phone; enter a PIN through hidden input if requested. An expired QR is replaced, and login cleanup deletes temporary images. Never keep using an old screenshot.
 
-By default only the paired owner is allowed. Explicit `allowed_users` replaces the list; wildcards are rejected. Accounts keep separate credentials and poll cursors. A `-14` response requires login again. Text and platform-provided voice transcription are supported. Attachments, encrypted CDN downloads, speech recognition and multimedia replies are not implemented.
+By default only the paired owner is allowed. Explicit `allowed_users` replaces the list; wildcards are rejected. Accounts keep separate credentials and poll cursors. A `-14` response requires login again. The channel accepts text and platform-provided voice transcription, and sends text replies.
 
 ## Feishu application pairing
 
@@ -85,4 +85,4 @@ A retry can duplicate a delivered reply. Restart cleans only processes matching 
 python -m pytest tests/run/test_channels.py
 ```
 
-Tests use real local HTTP, the official SDK/WebSocket events, SQLite, Bash and agent subprocesses. Actual human platform pairing and paid model tests require separate evidence. Logs are in private `artifacts/`; chat errors expose exception types rather than secret-bearing tracebacks. Platform API URLs are restricted, HTTPS validation stays enabled, and Weixin API redirects are not followed.
+Tests cover local HTTP, official SDK/WebSocket events, SQLite, Bash and agent subprocesses. Logs are stored in private `artifacts/`. Chat error messages show exception types; detailed diagnostics remain in the local logs. Platform API URLs are restricted, HTTPS validation stays enabled, and Weixin API redirects are not followed.

@@ -6,9 +6,9 @@
 
     Provider deltas must arrive before completion. A smooth-text animation improves presentation of received text; it cannot turn a buffered response into real streaming. Visible reasoning is shown only when the provider supplies it.
 
-## PI-Desktop source study
+## Design references
 
-Reviewed upstream revision `f589deec80b4be928146db0eca74e6f3f5e4e4b0` on 2026-11-19. This study is separate from the earlier licensed UI reuse recorded in the desktop's third-party notice.
+The presentation design references PI-Desktop revision `f589deec80b4be928146db0eca74e6f3f5e4e4b0`. Component sources and licenses are listed in the desktop's third-party notice.
 
 | Upstream implementation | Observed behavior | VERA application |
 | --- | --- | --- |
@@ -31,13 +31,11 @@ The desktop selects streaming subclasses of the existing LiteLLM adapters. Chat 
 
 Each model reply starts a turn. Text and visible reasoning append to separate content blocks; tool argument fragments never execute. Complete tool calls are validated and, in confirm mode, wait for a scoped approval. Tool results precede turn completion. Stable UI identities avoid replaying a whole answer when it settles.
 
-The backend keeps a live display projection for reconnect. If stopped, received text remains in history and partial tool arguments stay display-only. A missing completion receipt produces an error rather than a success claim. Opaque signatures and encrypted reasoning remain provider replay material; they are not presented as readable thoughts.
+The backend keeps a live display projection for reconnect. If stopped, received text remains in history and partial tool arguments stay display-only. A missing completion receipt produces an error. Opaque signatures and encrypted reasoning are retained for provider context replay; the reasoning panel displays readable content supplied by the provider.
 
-## Acceptance evidence
+## Regression tests
 
 - `tests/run/test_desktop_streaming.py`: a local HTTP SSE peer pauses before completion; the backend must already expose text and reasoning, then retain final tools/usage. A second test aborts before completion.
 - `desktop/tests/contracts/transcript/harness.integration.test.ts`: a real Python worker executes Bash; TypeScript consumes its event trace and checks reasoning, answer, tool completion and idle state.
-- Electron manual integration: task submission, waiting state, response body, reasoning disclosure, approval and actual Bash output observed in the desktop.
-- Live DeepSeek acceptance on 2026-11-19: the desktop service and actual worker streamed 42 text deltas, completed two tool calls, wrote the expected project file and settled with `Submitted`. Reported cost was USD 0.00029409. This run exercised the production task configuration through the service; the Electron interaction above used a controlled local peer.
 
-The controlled peers establish protocol/UI behavior; the live run additionally verifies one external model's service/worker path. They do not establish every external provider's reasoning format, model quality or long-duration stability. Unsupported or unavailable provider reasoning must remain absent.
+Run desktop interaction tests with `npm run test:ui` from `desktop/`. See [testing](testing.md) for environment setup and commands.

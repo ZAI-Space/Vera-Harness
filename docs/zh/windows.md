@@ -20,11 +20,9 @@ PowerShell/CMD 在仓库运行 `.\start.cmd`；Git Bash/Linux 运行 `bash scrip
 
 Windows 显式传入 `--noprofile --norc -c`，每条操作使用新 Shell。Mintty 在原生 Python 不能识别终端时使用 winpty；Windows Terminal 可直接承载。支持重定向帮助和非交互调用。路径尽量使用正斜杠并正确引用，有需要时用 cygpath，不全局禁用 MSYS2 路径转换。
 
-超时通过受管进程树终止和有界输出读取处理。这里是本地权限执行，不是沙箱。Linux 容器后端、镜像和命名空间需单独验证。历史平台验证不代表当前所有可选环境通过；按文末命令重测当前候选。
+超时会终止所属进程树，并限时读取剩余输出。本地模式使用当前用户权限；需要隔离时，按[沙箱文档](sandbox.md)配置对应后端。
 
 ## 配置、命令与源码示例
-
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```powershell
 .\start.cmd --help

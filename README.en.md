@@ -97,10 +97,10 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-`main` is the only long-lived, default and production branch. Temporary task branches start from `main`, merge through PRs into `main`, and are deleted after delivery. Report optional prerequisites, paid provider tests and human platform acceptance separately. Skipped tests and upstream scores are not VERA results.
+See the [contribution guide](CONTRIBUTING.md) for the development workflow and the [testing guide](docs/testing.md) for test requirements and commands.
 
 ## License and provenance
 
-Distributed under [MIT](LICENSE.md). [Third-party notices](THIRD_PARTY_NOTICES.md) retain source attribution and required copyright notices separately from product branding.
+Core code is distributed under [MIT](LICENSE.md). See [Third-party notices](THIRD_PARTY_NOTICES.md) for component sources and licenses.
 
 Maintainers can start with [architecture](docs/architecture.md), [API boundaries](docs/desktop-api.md) and [testing](docs/testing.md). The [offline example](examples/README.md) needs no model credentials.

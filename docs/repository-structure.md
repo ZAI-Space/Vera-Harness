@@ -51,4 +51,4 @@ npm run build
 npm run test:ui
 ```
 
-Record unavailable optional services, paid model runs and manual acceptance as separate evidence. A local fixture proves the fixture path only.
+See [testing](testing.md) for test environments and commands.

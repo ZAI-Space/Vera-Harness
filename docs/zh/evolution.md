@@ -26,11 +26,9 @@ Docker/Bubblewrap 包裹整个历史优化 Python 进程，不只隔离 Bash。�
 
 ## 真实 auto-harness 适配
 
-在候选目录外准备 `https://github.com/neosigmaai/auto-harness.git` 的干净检出，并执行 `git checkout 52360dbbeb8cea8886d90778e634a145c51da735`。可信绝对路径 `factory.py:create` 接受 `(upstream, candidate, split)`，返回 `upstream.BenchmarkRunner`，连接候选的真实 VERA Runtime，不能仍调用示例 Agent。适配器会校验上游 SHA 与干净状态；`VERA_AUTO_HARNESS_CHECKOUT` 指向此检出可运行真实上游接口测试。通用上游没有统一实际费用接口，适配器按声明界计费，遗漏任务算零。设置专用 checkout 环境变量可实测该接口；本地协议/CLI 测试不替代真实 benchmark 或模型效果。
+在候选目录外准备 `https://github.com/neosigmaai/auto-harness.git` 的干净检出，并执行 `git checkout 52360dbbeb8cea8886d90778e634a145c51da735`。可信绝对路径 `factory.py:create` 接受 `(upstream, candidate, split)`，返回 `upstream.BenchmarkRunner`，连接候选的真实 VERA Runtime，不能仍调用示例 Agent。适配器会校验上游 SHA 与干净状态；`VERA_AUTO_HARNESS_CHECKOUT` 指向此检出可运行真实上游接口测试。通用上游没有统一实际费用接口，适配器按声明界计费，遗漏任务算零。设置专用 checkout 环境变量可实测该接口。
 
 ## 配置、命令与源码示例
-
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
 
 ```yaml
 objective: Improve task completion while preserving existing tool behavior.

@@ -19,4 +19,4 @@ Checks: `npm run check:boundary`, `npm run lint`, `npm run typecheck`, `npm test
 
 [Backend contract and limits](../docs/frontend-integration.md) · [Streaming and reasoning presentation](../docs/desktop-streaming.md)
 
-Source and licensing: [Percho MIT](third_party/percho-LICENSE), [PI-Desktop LGPL-3.0](third_party/pi-desktop/NOTICE.md). These notices retain each component's license and do not relicense LGPL code as MIT.
+Source and licensing: [Percho MIT](third_party/percho-LICENSE), [PI-Desktop LGPL-3.0](third_party/pi-desktop/NOTICE.md).

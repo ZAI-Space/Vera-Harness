@@ -32,8 +32,6 @@ Worker 将已保存的任务配置合并到安装包内置默认值，不在执�
 
 ## 配置、命令与源码示例
 
-示例与英文版保持同一调用契约；按环境替换占位参数，标识符保留源码命名。
-
 ```yaml
 name: Daily project check
 prompt: Inspect this project and report which checks pass, with actual command output.

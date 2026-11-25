@@ -98,8 +98,8 @@ python scripts/check_docs.py
 python -m mkdocs build --strict
 ```
 
-`main` 是唯一长期、默认和生产分支。临时任务分支从 `main` 创建，经 PR 合回 `main`，交付后删除。可选服务缺失、真实模型费用及人工平台联调应分别报告，不把跳过项或上游分数当作当前 VERA 验证结果。
+开发流程见[贡献指南](CONTRIBUTING.md)，测试环境与运行方法见[测试文档](docs/zh/testing.md)。
 
 ## 许可与来源
 
-采用 [MIT](LICENSE.md) 许可。源码来源和第三方版权保留于 [Third-party notices](THIRD_PARTY_NOTICES.md)；产品品牌更名不移除这些权利说明。
+核心代码采用 [MIT](LICENSE.md) 许可。第三方组件的来源与许可见 [Third-party notices](THIRD_PARTY_NOTICES.md)。
