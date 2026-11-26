@@ -405,11 +405,20 @@ try {
 		await until(async () => assert.equal((await invoke("getBehaviorSettings")).permissionPolicy, "human"));
 		await page.getByRole("button", { name: "添加配置", exact: true }).click();
 		await page.getByRole("textbox", { name: "配置名称", exact: true }).fill("ui-docker");
-		await page.getByRole("button", { name: "保存配置草稿", exact: true }).click();
-		await page.getByText("ui-docker", { exact: true }).waitFor();
-		const status = (await invoke("getSandboxProfiles")).status.choices.find(
-			(row) => row.name === "ui-docker",
+		assert.equal(
+			await page.getByRole("textbox", { name: "配置名称", exact: true }).inputValue(),
+			"ui-docker",
 		);
+		await page.getByRole("button", { name: "保存配置草稿", exact: true }).click();
+		// Saving includes up to three sequential Docker probes, each bounded to five seconds.
+		await page.getByRole("form", { name: "添加配置", exact: true }).waitFor({
+			state: "hidden",
+			timeout: 3 * 5000 + 8000,
+		});
+		await page.getByText("ui-docker", { exact: true }).waitFor();
+		const saved = await invoke("getSandboxProfiles");
+		assert.equal(saved.profiles.find((row) => row.name === "ui-docker")?.mode, "docker");
+		const status = saved.status.choices.find((row) => row.name === "ui-docker");
 		await page.getByRole("combobox", { name: "默认环境", exact: true }).scrollIntoViewIfNeeded();
 		await page.getByRole("combobox", { name: "默认环境", exact: true }).click();
 		assert.equal(await page.getByRole("option", { name: /^ui-docker/ }).isDisabled(), !status.available);

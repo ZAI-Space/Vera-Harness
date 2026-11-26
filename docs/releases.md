@@ -55,8 +55,8 @@ node --test tests/launcher/runtime.test.mjs
 The package contains the desktop frontend build, corresponding source and patches
 under `source/`, licenses, a VERA wheel and its SHA-256 checksum. Promotional
 landing page source, local configuration and credentials are excluded. Keep
-`dist/` out of Git. npm version `0.1.0-alpha.2` corresponds to Python `0.1.0a2`
-and tag `v0.1.0-alpha.2`.
+`dist/` out of Git. npm version `0.1.0-alpha.3` corresponds to Python `0.1.0a3`
+and tag `v0.1.0-alpha.3`.
 
 Create the release candidate on a temporary branch from `main`. Merge its PR
 into protected `main` after all 10 required CI checks pass. The single-maintainer
@@ -70,7 +70,7 @@ Publish the reviewed tarball with an authorized npm account:
 
 ```bash
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./dist/vera-harness-0.1.0-alpha.2.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./dist/vera-harness-0.1.0-alpha.3.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 npm view vera-harness version --registry=https://registry.npmjs.org/
 ```
 

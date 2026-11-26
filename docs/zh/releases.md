@@ -50,8 +50,8 @@ node --test tests/launcher/runtime.test.mjs
 ```
 
 包中包含桌面前端构建、`source/` 下的对应前端源码与补丁、许可证、VERA wheel 和 SHA-256 校验值，
-不包含宣传落地页源码、本机配置与凭据。`dist/` 不纳入 Git。npm 版本 `0.1.0-alpha.2` 对应
-Python 版本 `0.1.0a2` 与标签 `v0.1.0-alpha.2`。
+不包含宣传落地页源码、本机配置与凭据。`dist/` 不纳入 Git。npm 版本 `0.1.0-alpha.3` 对应
+Python 版本 `0.1.0a3` 与标签 `v0.1.0-alpha.3`。
 
 从 `main` 创建临时分支准备发布候选，全部 10 项必需 CI 检查通过后，经 PR 合入受保护的 `main`。
 单维护者策略的人工批准数为 0，交付后删除临时分支。
@@ -62,7 +62,7 @@ GitHub 同时提供标签对应的源码归档，Release 工作流也会从标�
 
 ```bash
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./dist/vera-harness-0.1.0-alpha.2.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish ./dist/vera-harness-0.1.0-alpha.3.tgz --access public --tag latest --registry=https://registry.npmjs.org/
 npm view vera-harness version --registry=https://registry.npmjs.org/
 ```
 
