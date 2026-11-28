@@ -16,6 +16,8 @@ class TaskObservation:
         self.usage, self.identifier, self.meta = usage, identifier, meta
         self.started, self.timestamp = started, timestamp
         self.first_response = None
+        self.model_request_ms = None
+        self.runtime_ready_ms = None
         self.retries = 0
         self.model_issue = False
         self.tools = {}
@@ -26,6 +28,11 @@ class TaskObservation:
         """Count effective output, actual retry attempts, and completed tool results only."""
         kind = frame["type"]
         now = time.monotonic()
+        if not frame.get("parentToolCallId"):
+            if kind == "tools_ready" and self.runtime_ready_ms is None:
+                self.runtime_ready_ms = (now - self.started) * 1000
+            if kind == "model_request" and self.model_request_ms is None:
+                self.model_request_ms = (now - self.started) * 1000
         if kind == "model_request":
             self.usage.begin_request(
                 frame["id"],
@@ -75,6 +82,11 @@ class TaskObservation:
             {
                 "status": status,
                 "firstResponseMs": self.first_response,
+                "runtimeReadyMs": self.runtime_ready_ms,
+                "modelRequestMs": self.model_request_ms,
+                "providerWaitMs": self.first_response - self.model_request_ms
+                if self.first_response is not None and self.model_request_ms is not None
+                else None,
                 "normalResponse": not self.model_issue,
                 "retries": self.retries,
                 "tools": [

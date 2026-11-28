@@ -1,6 +1,10 @@
 """A real local SSE peer proves deltas arrive before completion and survive stops."""
 
 import json
+import os
+import sqlite3
+import subprocess
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -201,8 +205,39 @@ def wait_for(predicate):
     pytest.fail("Expected a real streaming worker event.")
 
 
-def test_deltas_precede_completion_and_preserve_reasoning_and_tools(streaming_desktop):
+def test_token_only_desktop_import_never_downloads_the_model_price_table():
+    """A fresh SDK import must use bundled metadata without a price HTTP request."""
+    script = """
+import httpx
+requests = []
+def reject_download(*args, **kwargs):
+    requests.append(True)
+    raise AssertionError('Unexpected model price download')
+httpx.get = reject_download
+import vera.desktop.streaming
+assert not requests, 'Desktop imported LiteLLM with remote price fetching enabled'
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        env=os.environ | {"LITELLM_LOCAL_MODEL_COST_MAP": "True", "VERA_SILENT_STARTUP": "1"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_deltas_precede_completion_and_preserve_reasoning_and_tools(streaming_desktop, monkeypatch):
     service, key, arrived, release = streaming_desktop
+    start_worker = subprocess.Popen
+
+    def checked_worker(*args, **kwargs):
+        # Even an inherited legacy setting must not re-enable the price download.
+        assert kwargs["env"]["LITELLM_LOCAL_MODEL_COST_MAP"] == "True"
+        return start_worker(*args, **kwargs)
+
+    monkeypatch.setenv("LITELLM_LOCAL_MODEL_COST_MAP", "False")
+    monkeypatch.setattr("vera.desktop.sessions.subprocess.Popen", checked_worker)
     service.invoke("prompt", {"sessionId": key, "text": "Stream the result."})
     assert arrived.wait(45)
     started = time.monotonic()
@@ -222,6 +257,10 @@ def test_deltas_precede_completion_and_preserve_reasoning_and_tools(streaming_de
     wait_for(lambda: not service.sessions.baseline(key)["transcript"]["agentActive"])
     value = service.sessions.get(key)
     assert value["stats"]["inputTokens"] == 40 and value["stats"]["outputTokens"] == 20
+    with sqlite3.connect(service.store.path) as db:
+        timing = json.loads(db.execute("SELECT payload FROM desktop_performance").fetchone()[0])
+    assert 0 <= timing["runtimeReadyMs"] <= timing["modelRequestMs"] <= timing["firstResponseMs"]
+    assert timing["providerWaitMs"] == pytest.approx(timing["firstResponseMs"] - timing["modelRequestMs"])
     messages = value["messages"]
     assert any("First streamed fragment. Second streamed fragment." == row["text"] for row in messages)
     assert any("Visible reasoning" in row.get("thinking", "") for row in messages)

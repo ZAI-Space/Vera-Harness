@@ -164,6 +164,7 @@ export function useComposerSend(options: UseComposerSendOptions) {
 		draft: DraftEntry;
 		generation: number | undefined;
 		wasActive: boolean;
+		interrupt?: boolean;
 	}): Promise<void> => {
 		const { document, draft, generation, wasActive } = sent;
 		const content = document ? sent.content : resolveSlashContent(sent.content);
@@ -219,6 +220,7 @@ export function useComposerSend(options: UseComposerSendOptions) {
 				text: content,
 				document,
 				images: draft.images.length ? draft.images : undefined,
+				...(sent.interrupt ? { interrupt: true } : {}),
 			});
 		} catch (error) {
 			if (sessionId && markedActive) {
@@ -238,7 +240,7 @@ export function useComposerSend(options: UseComposerSendOptions) {
 		}
 	};
 
-	const handleSend = async () => {
+	const handleSend = async (interrupt = false) => {
 		// 图片准备可能跨越导航或一轮运行结束；发送检查读取原目标的当前状态。
 		const current = options.activeSessionId
 			? useTranscriptStore.getState().bySession[options.activeSessionId]
@@ -288,8 +290,8 @@ export function useComposerSend(options: UseComposerSendOptions) {
 			pushToast("warning", "composer.imageUnsupported");
 			return;
 		}
-		// 运行中保留单条排队上限；暂停或停止后的人工新消息必须能携带旧队列恢复。
-		if (agentActive && followUpQueue.length >= 1 && (document || !content.startsWith("/"))) {
+		// 与后端队列容量一致；停止后的人工消息仍可携带旧队列恢复。
+		if (agentActive && followUpQueue.length >= 20 && (document || !content.startsWith("/"))) {
 			showFeedback(t("composer.queueFull"), "warn");
 			return;
 		}
@@ -299,7 +301,7 @@ export function useComposerSend(options: UseComposerSendOptions) {
 		try {
 			const generation = useSessionsStore.getState().newSessionDraft?.generation;
 			const draft = takeDraft(options.draftKey);
-			await sendNow({ content, document, draft, generation, wasActive: agentActive });
+			await sendNow({ content, document, draft, generation, wasActive: agentActive, interrupt });
 		} finally {
 			sendGuard.current.release();
 		}

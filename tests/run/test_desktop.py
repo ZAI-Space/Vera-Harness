@@ -308,12 +308,12 @@ def test_provider_secrets_roles_and_unavailable_sandbox_are_real(desktop, tmp_pa
     assert commands["sandbox:unavailable"]["invocationName"] == "sandbox unavailable"
 
 
-# Value: protects=one queued follow-up executes once and abort discards it even after worker exit;
+# Value: protects=queued follow-ups execute once in order and abort discards them even after worker exit;
 # fails_when=queued work survives cancellation or restarts after the worker exits;
 # why_new=existing desktop tests never prompt while a worker is running; seam=none;
 # no_claim=external model quality or long-duration concurrency stability.
 def test_queued_followup_executes_once_and_abort_discards_pending_work(desktop, tmp_path):
-    service, invoke, url, headers = desktop
+    service, invoke, _, _ = desktop
     service.sessions.base_config["model"]["outputs"][0]["extra"]["actions"][0]["command"] = (
         "printf 'run\\n' >> execution-count.txt"
     )
@@ -328,23 +328,19 @@ def test_queued_followup_executes_once_and_abort_discards_pending_work(desktop, 
     wait_until(lambda: approval_for(key))
     invoke("prompt", sessionId=key, text="Run one queued task.")
     assert invoke("getFollowUpMessages", sessionId=key) == ["Run one queued task."]
-    rejected = requests.post(
-        url + "/invoke",
-        headers=headers,
-        json={"method": "prompt", "args": {"sessionId": key, "text": "Reject a second queued task."}},
-        timeout=5,
-    )
-    assert rejected.status_code == 400 and "already queued" in rejected.json()["error"]
+    invoke("prompt", sessionId=key, text="Run second queued task.")
+    assert invoke("getFollowUpMessages", sessionId=key) == ["Run one queued task.", "Run second queued task."]
     assert not (workspace / "execution-count.txt").exists()
-    for _ in range(4):
+    for _ in range(6):
         pending = wait_until(lambda: approval_for(key))
         invoke("respondPermission", sessionId=key, requestId=pending["id"], answer="allow")
     wait_until(lambda: not service.sessions.baseline(key)["transcript"]["agentActive"])
-    assert (workspace / "execution-count.txt").read_text().splitlines() == ["run", "run"]
+    assert (workspace / "execution-count.txt").read_text().splitlines() == ["run", "run", "run"]
     assert invoke("getFollowUpMessages", sessionId=key) == []
     assert [row["text"] for row in invoke("getSessionMessages", sessionId=key) if row["role"] == "user"] == [
         "Run first task.",
         "Run one queued task.",
+        "Run second queued task.",
     ]
 
     cancelled_workspace = tmp_path / "cancelled-queue"

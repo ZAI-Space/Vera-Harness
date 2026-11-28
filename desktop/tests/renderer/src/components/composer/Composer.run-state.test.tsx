@@ -131,6 +131,24 @@ it("无关工具更新不重新渲染输入框", async () => {
 	expect(fixture.render).not.toHaveBeenCalled();
 });
 
+it("运行中默认排队，并允许显式停止后立即发送", async () => {
+	fixture.prompt.mockClear();
+	await act(() => root.render(<Composer />));
+	await status({ agentActive: true, followUpQueue: ["older input"] });
+	const draft = () => ({ ...EMPTY_DRAFT, document: composerDocumentFromText("new input") });
+	await act(() => useDraftStore.getState().updateDraft("fixture", draft));
+	await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="composer.send"]')?.click());
+	expect(fixture.prompt).toHaveBeenLastCalledWith(expect.objectContaining({ text: "new input" }));
+	expect(fixture.prompt.mock.lastCall?.[0]).not.toHaveProperty("interrupt");
+	await act(() => useDraftStore.getState().updateDraft("fixture", draft));
+	await act(async () =>
+		container.querySelector<HTMLButtonElement>('[title="composer.sendImmediatelyHint"]')?.click(),
+	);
+	expect(fixture.prompt).toHaveBeenLastCalledWith(
+		expect.objectContaining({ text: "new input", interrupt: true }),
+	);
+});
+
 it.each<[string, SessionEvent]>([
 	["正常完成", { type: "agent_end", messages: [], willRetry: false }],
 	["最终失败收尾", { type: "agent_settled", aborted: false }],

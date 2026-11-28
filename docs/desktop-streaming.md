@@ -29,6 +29,10 @@ Provider SSE → desktop streaming model adapter → worker JSON frames
 
 The desktop selects streaming subclasses of the existing LiteLLM adapters. Chat Completions is normalized by LiteLLM for OpenAI-compatible, Anthropic and Gemini providers; Responses uses its native response events. Received chunks are assembled into the final provider response so the original action parser, cost accounting, tool validation and runtime receipts still apply. The Agent Loop is unchanged.
 
+Desktop workers use token accounting and set `LITELLM_LOCAL_MODEL_COST_MAP=True` before importing the SDK. LiteLLM uses its bundled model metadata during startup instead of downloading the remote price table. Provider requests still require their configured connection.
+
+Task performance receipts record milliseconds from task start: `runtimeReadyMs` marks the first root `tools_ready` frame, `modelRequestMs` the first root `model_request`, and `firstResponseMs` the first effective root output. `providerWaitMs` is `firstResponseMs - modelRequestMs`, or `null` if either value is unavailable. These timings separate runtime preparation from the observed wait for provider output; they do not guarantee a fixed response speed.
+
 Each model reply starts a turn. Text and visible reasoning append to separate content blocks; tool argument fragments never execute. Complete tool calls are validated and, in confirm mode, wait for a scoped approval. Tool results precede turn completion. Stable UI identities avoid replaying a whole answer when it settles.
 
 The backend keeps a live display projection for reconnect. If stopped, received text remains in history and partial tool arguments stay display-only. A missing completion receipt produces an error. Opaque signatures and encrypted reasoning are retained for provider context replay; the reasoning panel displays readable content supplied by the provider.

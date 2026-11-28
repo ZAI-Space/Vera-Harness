@@ -1,6 +1,6 @@
 {
 	"name": "vera-harness",
-	"version": "0.1.0-alpha.3",
+	"version": "0.1.0-alpha.4",
 	"description": "Launch the VERA Harness desktop app with its local Python runtime",
 	"type": "module",
 	"main": "out/main/index.js",
