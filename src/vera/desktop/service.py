@@ -256,7 +256,9 @@ class DesktopService:
                 "archivedAt": value["meta"].get("archivedAt"),
             }
         if method == "prompt":
-            return self.sessions.prompt(key, args["text"], args.get("document"), args.get("images"))
+            return self.sessions.prompt(
+                key, args["text"], args.get("document"), args.get("images"), interrupt=args.get("interrupt", False)
+            )
         if method == "abort":
             return self.sessions.abort(key)
         if method == "respondPermission":
@@ -349,11 +351,7 @@ class DesktopService:
         if method == "getTodos":
             return []
         if method == "clearQueue":
-            value = self.sessions.get(key)
-            value["queue"] = []
-            self.save_session(value)
-            self.sessions.emit(key, {"type": "queue_update", "steering": [], "followUp": []})
-            return {"steering": [], "followUp": []}
+            return self.sessions.clear_queue(key)
         if method in {"markSessionHistoryReady", "setViewedSubagent"}:
             return None
         if method == "getSessionNavigation":

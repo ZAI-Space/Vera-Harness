@@ -1,7 +1,7 @@
 /** Real assistant conversation, approval and tool execution through Electron/IPC/Python. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,7 @@ const python =
 const directory = await mkdtemp(join(tmpdir(), "vera-general-chat-ui-"));
 const connectionFile = join(directory, "connection.json");
 const modelFile = join(directory, "model.json");
+const releaseFile = join(directory, "release-model");
 const environment = {
 	...process.env,
 	PYTHONUTF8: "1",
@@ -100,7 +101,14 @@ try {
 		"--connection-file",
 		connectionFile,
 	]);
-	start(["-m", "tests.run.general_assistant_ui_fixture", "--connection-file", modelFile]);
+	start([
+		"-m",
+		"tests.run.general_assistant_ui_fixture",
+		"--connection-file",
+		modelFile,
+		"--release-file",
+		releaseFile,
+	]);
 	await until(() => access(connectionFile), 60000);
 	await until(() => access(modelFile));
 	const baseUrl = JSON.parse(await readFile(modelFile, "utf8")).url;
@@ -173,6 +181,61 @@ try {
 		await until(async () => assert.equal((await invoke("getSubagentRoles"))[0].name, "coding-workflow"));
 		await page.screenshot({ path: join(directory, "coding-workflow-role.png") });
 	});
+	await check(
+		"queued messages run in order; send now stops the active task and retains older inputs",
+		async () => {
+			await page.getByRole("dialog").getByRole("button", { name: "关闭", exact: true }).click();
+			await page.getByRole("dialog").waitFor({ state: "hidden" });
+			const sessionId = (await invoke("listAllSessions"))[0].sessionId;
+			const editor = page.locator('[contenteditable="true"]').first();
+			const send = async (text, immediately = false) => {
+				await editor.fill(text);
+				await page.getByRole("button", { name: immediately ? "立即发送" : "发送", exact: true }).click();
+			};
+			const settled = () =>
+				until(
+					async () =>
+						assert.equal((await invoke("getSessionBaseline", { sessionId })).transcript.agentActive, false),
+					60000,
+				);
+			await send("queue-hold-one");
+			await page.getByText("完成：queue-hold-one", { exact: true }).waitFor({ timeout: 30000 });
+			await send("queue-two");
+			await send("queue-three");
+			await until(async () =>
+				assert.deepEqual(await invoke("getFollowUpMessages", { sessionId }), ["queue-two", "queue-three"]),
+			);
+			await page.screenshot({ path: join(directory, "queued-messages.png") });
+			await writeFile(releaseFile, "release");
+			await settled();
+			let messages = await invoke("getSessionMessages", { sessionId });
+			assert.deepEqual(
+				messages
+					.filter((row) => row.kind === "user")
+					.slice(-3)
+					.map((row) => row.text),
+				["queue-hold-one", "queue-two", "queue-three"],
+			);
+			await unlink(releaseFile);
+			await send("queue-hold-two");
+			await page.getByText("完成：queue-hold-two", { exact: true }).waitFor({ timeout: 30000 });
+			await send("queue-later");
+			await send("queue-urgent", true);
+			await settled();
+			await writeFile(releaseFile, "release");
+			messages = await invoke("getSessionMessages", { sessionId });
+			assert.deepEqual(
+				messages
+					.filter((row) => row.kind === "user")
+					.slice(-3)
+					.map((row) => row.text),
+				["queue-hold-two", "queue-urgent", "queue-later"],
+			);
+			assert.deepEqual(await invoke("getFollowUpMessages", { sessionId }), []);
+			await page.getByText("完成：queue-later", { exact: true }).waitFor();
+			await page.screenshot({ path: join(directory, "priority-message-completed.png") });
+		},
+	);
 	assert.deepEqual(pageErrors, []);
 } catch (error) {
 	if (page && !page.isClosed()) {

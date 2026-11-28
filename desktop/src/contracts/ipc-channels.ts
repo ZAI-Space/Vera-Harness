@@ -238,11 +238,21 @@ export const SESSION_CHANNELS = {
 		"session:prompt",
 		"environment",
 		"mutation",
-	)<{ sessionId: string; text: string; images?: ImageInput[]; document?: ComposerDocument }, void>({
+	)<
+		{
+			sessionId: string;
+			text: string;
+			images?: ImageInput[];
+			document?: ComposerDocument;
+			interrupt?: boolean;
+		},
+		void
+	>({
 		sessionId: input.id,
 		text: input.text,
 		images: input.optional(input.array(input.object({ data: input.text, mimeType: input.text }))),
 		document: input.optional(input.jsonObject<ComposerDocument>()),
+		interrupt: input.optional(input.boolean),
 	}),
 	/** 仅重试当前末端模型失败，不新增用户消息；受理即返回，执行结果走事件流。 */
 	retryLastFailedTurn: ch(

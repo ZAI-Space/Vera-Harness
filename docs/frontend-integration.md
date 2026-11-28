@@ -40,7 +40,7 @@ Priced evaluations and RSI tasks can retain strict monetary accounting. Desktop 
 | --- | --- | --- |
 | New conversation | `createSession({options:{cwd,provider?,modelId?,thinkingLevel?}})` → `SessionMeta` | `DesktopStore` |
 | History and reconnect | `getSessionBaseline({sessionId})` → `meta,sequence,hydrationToken,transcript,permissionMode` | `Sessions`, SQLite |
-| Send / stop | `prompt({sessionId,text,document?,images?})`, `abort({sessionId})` | Isolated worker + `open_agent_runtime` |
+| Send / stop | `prompt({sessionId,text,document?,images?,interrupt?})`, `abort({sessionId})` | Isolated worker + `open_agent_runtime` |
 | Approve | `requestId,answer` with optional matching `sessionId` → resolution event | Scoped worker stdin; allow once / deny |
 | File attachment | `listProjectFiles({cwd})` → relative paths; composer `file.path` parts | `ProjectFiles` |
 | Model settings | Provider ID, protocol, base URL and definitions; execution pickers expose authenticated, visible models only | `Providers`, private credential vault |
@@ -73,7 +73,7 @@ The service binds only `127.0.0.1`. `/health`, `/invoke` and `/events?after=<cur
 
 Long polling wakes when an event arrives. Provider SSE fragments are forwarded as `thinking_delta`, `text_delta` and tool-argument updates before response completion. Tool boundaries and `turn_end` preserve order. The original model parser validates the completed response before any tool executes. Read [streaming presentation](desktop-streaming.md) for the PI-Desktop source study and behavior.
 
-Event envelopes carry `sessionId,sequence,event`. A cursor gap or service restart triggers rehydration; side-effect requests are never replayed automatically. Cancellation kills the owned worker tree, preserves received display text and clears pending approvals. Active sessions have independent workers and model contexts. One follow-up can wait behind an active task.
+Event envelopes carry `sessionId,sequence,event`. A cursor gap or service restart triggers rehydration; side-effect requests are never replayed automatically. Cancellation kills the owned worker tree, preserves received display text and clears pending approvals. Active sessions have independent workers and model contexts. Up to 20 follow-ups can wait behind an active task. Use `interrupt: true` to stop the current task and prioritize a new message; see [queue and recovery contracts](desktop-api.md#application-methods).
 
 ## Permissions and limits
 

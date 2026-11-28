@@ -41,6 +41,10 @@ Content-Type: application/json
 
 已认证的本机调用者具有桌面所有者权限。客户端按上述方法契约调用接口。
 
+`prompt({sessionId,text,document?,images?,interrupt?})` 在空闲会话启动任务，在运行中的会话排队。队列最多容纳 20 条消息，通常按先进先出顺序执行。传入 `interrupt: true` 时，停止当前 worker，让新消息先于已有队列执行；原队列内部顺序不变，同样受容量限制。worker 正在停止时发送消息，或任务运行中发送斜杠命令，均明确失败。桌面输入框的“立即发送”使用中断行为。
+
+排队消息仅在对应 worker 启动后移出队列，启动失败时保留供恢复。`clearQueue({sessionId})` 原子清空队列，返回 `steering: []`、`followUp` 中的排队文字，以及 `followUpInputs` 中的完整输入。每项输入包含 `document`（含文件引用）和 `images`；纯文字自动补成文字文档。重试前使用返回内容恢复输入框。
+
 ## LAN 与消息渠道
 
 LAN 每次启动默认关闭。开启后使用独立 HTTP 监听和新配对 token，token 放在链接片段中。`GET /api/snapshot` 需 token；`POST /api/action` 还需单独允许远程控制，且仅接受 `prompt`、`abort`、`respondPermission`。请求检查 Host、Origin 和当前会话，远程消息不允许修改配置的斜杠命令。

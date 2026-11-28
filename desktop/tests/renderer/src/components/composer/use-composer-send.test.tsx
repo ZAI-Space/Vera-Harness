@@ -261,7 +261,7 @@ describe("运行展示不放宽原发送资格", () => {
 					agentActive: true,
 					phase: "idle",
 					compacting: reason === "compacting",
-					followUpQueue: reason === "full-queue" ? ["queued"] : [],
+					followUpQueue: reason === "full-queue" ? Array(20).fill("queued") : [],
 				},
 			},
 		}));

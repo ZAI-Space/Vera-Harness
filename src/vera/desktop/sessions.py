@@ -19,6 +19,8 @@ from vera.terminal.session import TerminalSession
 from vera.utils.python_process import python_module_command
 from vera.utils.serialize import recursive_merge, strip_sensitive
 
+MAX_FOLLOW_UP_MESSAGES = 20
+
 
 class Sessions:
     """Own process lifetimes and ordered event persistence for independent chats."""
@@ -29,6 +31,7 @@ class Sessions:
         self.running = {}
         self.approvals = {}
         self.cancelled = set()
+        self.interrupted = set()
         self.watchers = set()
         self.base_config = config
         self.user_context_directory = store.directory / "user-context"
@@ -163,8 +166,21 @@ class Sessions:
         session.run_mode = value["selections"].get("runMode", "normal")
         return session
 
-    def prompt(self, key: str, text: str, document: dict | None = None, images: list | None = None) -> None:
-        """Accept once, then publish real worker progress; failures never report success."""
+    def prompt(
+        self,
+        key: str,
+        text: str,
+        document: dict | None = None,
+        images: list | None = None,
+        *,
+        interrupt: bool = False,
+        _queued: bool = False,
+    ) -> None:
+        """Run or enqueue input; interrupt stops the active run and prioritizes this input.
+
+        Existing queued inputs retain their order. Internal queue dispatch removes
+        an input only after its worker starts; startup failures retain it for recovery.
+        """
         started, timestamp = time.monotonic(), int(time.time() * 1000)
         with self.lock:
             value = self.get(key)
@@ -173,15 +189,23 @@ class Sessions:
             if value["meta"].get("archivedAt"):
                 raise ValueError("Unarchive this session before running it.")
             if key in self.running:
-                if key in self.cancelled:
+                if key in self.cancelled or key in self.interrupted:
                     raise ValueError("This task is stopping. Wait until it settles before sending another task.")
-                if value.get("queue"):
-                    raise ValueError("A follow-up is already queued.")
+                if len(value.get("queue", [])) >= MAX_FOLLOW_UP_MESSAGES:
+                    raise ValueError("The follow-up queue is full (20 messages).")
                 if text.startswith("/"):
                     raise ValueError("Stop the current task before changing its mode or capabilities.")
-                value["queue"] = [{"text": text, "document": document, "images": images}]
+                queue = value.setdefault("queue", [])
+                queue.insert(0 if interrupt else len(queue), {"text": text, "document": document, "images": images})
                 self.store.save("session", key, value)
-                self.emit(key, {"type": "queue_update", "steering": [], "followUp": [text]})
+                self.emit(
+                    key, {"type": "queue_update", "steering": [], "followUp": [row["text"] for row in value["queue"]]}
+                )
+                if interrupt:
+                    self.interrupted.add(key)
+                    process = self.running[key]
+                    if process.poll() is None:
+                        _kill_tree(process.pid)
                 return
             config = self.config(value)
             if images and (config["agent"]["mode"] == "human" or not value["meta"].get("model")):
@@ -206,6 +230,9 @@ class Sessions:
                     else:
                         raise ValueError("Unknown composer part.")
             original = text
+            if images and not text.strip():
+                # Image-only input is a task, not the terminal's empty-input help command.
+                text = "Describe the attached image."
             if terminal.run_mode in {"plan", "goal"} and not text.startswith("/"):
                 text = "/" + terminal.run_mode + " " + text
             result = terminal.process(text)
@@ -275,12 +302,13 @@ class Sessions:
             value["meta"]["messageCount"] = len(value["messages"])
             if not value["meta"].get("name"):
                 value["meta"]["name"] = original[:70]
-            self.store.save("session", key, value)
             environment = os.environ | {
                 "VERA_SILENT_STARTUP": "1",
                 "PYTHONUTF8": "1",
                 "VERA_GLOBAL_CONFIG_DIR": str(self.store.directory),
                 "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
+                # Desktop accounting uses tokens. Never fetch LiteLLM prices on startup.
+                "LITELLM_LOCAL_MODEL_COST_MAP": "True",
             }
             if config.get("web") and config.get("run_mode") != "plan":
                 from vera.desktop.web import WebSettings
@@ -305,6 +333,13 @@ class Sessions:
             process.stdin.write(json.dumps(request) + "\n")
             process.stdin.flush()
             self.running[key] = process
+            if _queued:
+                value["queue"] = value.get("queue", [])[1:]
+            self.store.save("session", key, value)
+            if _queued:
+                self.emit(
+                    key, {"type": "queue_update", "steering": [], "followUp": [row["text"] for row in value["queue"]]}
+                )
             self.emit(key, {"type": "session_info_changed", "name": value["meta"].get("name")})
             self.emit(key, {"type": "agent_start"})
             self.emit(key, {"type": "message_start", "message": user})
@@ -421,7 +456,7 @@ class Sessions:
                         value["meta"]["messageCount"] = len(value["messages"])
                         self.store.save("session", key, value)
             process.wait(timeout=10)
-            if not completed and key not in self.cancelled:
+            if not completed and key not in self.cancelled and key not in self.interrupted:
                 message = assistant_message(
                     {"content": "Task failed. Review the local run receipts and provider configuration."}, None
                 )
@@ -441,9 +476,11 @@ class Sessions:
             request_path.unlink(missing_ok=True)  # Do not retain decrypted provider credentials.
             with self.lock:
                 value = self.get(key)
-                if key in self.cancelled or not completed:
+                if key in self.cancelled or key in self.interrupted or not completed:
                     value["lastRunResult"] = {
-                        "exit_status": "Cancelled" if key in self.cancelled else "WorkerFailed",
+                        "exit_status": "Cancelled"
+                        if key in self.cancelled or key in self.interrupted
+                        else "WorkerFailed",
                         "submission": "",
                     }
                 if live:
@@ -466,16 +503,40 @@ class Sessions:
                             "onPermissionResolved", {"sessionId": key, "requestId": request_id, "answered": False}
                         )
                 self.emit(key, {"type": "agent_end", "messages": [], "willRetry": False})
-                self.emit(key, {"type": "agent_settled", "aborted": key in self.cancelled})
+                self.emit(key, {"type": "agent_settled", "aborted": key in self.cancelled or key in self.interrupted})
                 queued = self.get(key).get("queue", []) if key not in self.cancelled else []
-                if queued:
-                    value = self.get(key)
-                    value["queue"] = []
-                    self.store.save("session", key, value)
-                    self.emit(key, {"type": "queue_update", "steering": [], "followUp": []})
-                    self.prompt(key, **queued[0])
+                self.interrupted.discard(key)
                 self.cancelled.discard(key)
                 self.watchers.discard(threading.current_thread())
+                if queued:
+                    try:
+                        self.prompt(key, **queued[0], _queued=True)
+                    except Exception:
+                        self.events.emit(
+                            "onExtensionNotify",
+                            {"level": "error", "message": "排队消息启动失败，消息已保留，请取回后重试。"},
+                        )
+
+    def clear_queue(self, key: str) -> dict:
+        """Atomically return queued text, references and images before clearing them."""
+        with self.lock:
+            value = self.get(key)
+            queued = value.get("queue", [])
+            value["queue"] = []
+            self.store.save("session", key, value)
+            self.emit(key, {"type": "queue_update", "steering": [], "followUp": []})
+            return {
+                "steering": [],
+                "followUp": [row["text"] for row in queued],
+                "followUpInputs": [
+                    {
+                        "document": row.get("document")
+                        or {"version": 1, "parts": [{"type": "text", "text": row["text"]}]},
+                        "images": row.get("images") or [],
+                    }
+                    for row in queued
+                ],
+            }
 
     def _tool(self, key, value, frame):
         event = {

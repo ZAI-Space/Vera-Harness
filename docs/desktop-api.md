@@ -41,6 +41,10 @@ TypeScript contracts live in `desktop/src/contracts`; dispatch lives in `src/ver
 
 An authenticated local caller has desktop-owner authority. Use the method contracts above when integrating a client.
 
+`prompt({sessionId,text,document?,images?,interrupt?})` starts an idle session or queues input behind an active task. The queue holds at most 20 messages and normally runs in first-in, first-out order. With `interrupt: true`, an active worker stops and the new input runs before existing follow-ups; those follow-ups keep their order. The same queue limit applies. Sending while the worker is stopping or sending a slash command during an active task fails explicitly. In the desktop composer, use Send now to request interruption.
+
+Queued input is removed only after its worker starts. If startup fails, the input remains available for recovery. `clearQueue({sessionId})` atomically clears the queue and returns `steering: []`, queued text in `followUp`, and complete input in `followUpInputs`. Each input contains its `document` (including file references) and `images`; plain text receives a text-only document. Use the returned input to restore the composer before retrying.
+
 ## LAN and messaging
 
 LAN is disabled on startup. Enabling it starts a separate HTTP listener with a fresh pairing token in the URL fragment. `GET /api/snapshot` needs that token. `POST /api/action` also requires remote control to be enabled and permits only `prompt`, `abort` and `respondPermission`. Host/Origin and current session are checked. Remote prompts cannot issue configuration slash commands.

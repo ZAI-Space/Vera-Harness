@@ -29,6 +29,10 @@
 
 桌面选择已有 LiteLLM 模型的流式子类。Chat Completions 经 LiteLLM 统一 OpenAI 兼容、Anthropic 和 Gemini；Responses 使用原生响应事件。增量汇总为完整服务商响应后，仍交给原有动作解析、费用统计、工具校验与运行存储。Agent Loop 不变。
 
+桌面 worker 使用 Token 统计，并在导入 SDK 前设置 `LITELLM_LOCAL_MODEL_COST_MAP=True`。LiteLLM 启动时读取内置模型元数据，不下载远程价格表；模型请求仍需连接已配置的服务商。
+
+任务性能收据记录从任务开始计算的毫秒数：`runtimeReadyMs` 对应首个根级 `tools_ready` 事件，`modelRequestMs` 对应首个根级 `model_request`，`firstResponseMs` 对应首个有效根级输出。`providerWaitMs` 为 `firstResponseMs - modelRequestMs`，任一值缺失时为 `null`。这些字段用于区分运行环境准备与实际等待服务商输出的时间，不承诺固定响应速度。
+
 每条模型回复开启一个轮次，正文与可展示思考分别追加；工具参数片段不执行。完整工具调用经校验后，在 confirm 模式下等待对应审批。工具结果先回传，再结束轮次。稳定的消息标识避免结束时重播整段回复。
 
 后端保留用于重连的实时展示投影。停止后，已收到的文字保留在历史中，部分工具参数始终只用于展示。缺少完成记录时返回错误。不透明签名与加密推理内容保留用于服务商上下文回放，思考面板显示服务商提供的可读内容。

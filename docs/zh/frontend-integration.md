@@ -42,7 +42,7 @@ Plan、Goal、只读任务和 Subagent 保留各自的完成工具。基准测�
 | --- | --- | --- |
 | 新建会话 | `createSession({options:{cwd,provider?,modelId?,thinkingLevel?}})` → `SessionMeta` | `DesktopStore` |
 | 历史与恢复 | `getSessionBaseline({sessionId})` → `meta,sequence,hydrationToken,transcript,permissionMode` | `Sessions`、SQLite |
-| 发送与停止 | `prompt({sessionId,text,document?,images?})`、`abort({sessionId})` | 独立 worker、`open_agent_runtime` |
+| 发送与停止 | `prompt({sessionId,text,document?,images?,interrupt?})`、`abort({sessionId})` | 独立 worker、`open_agent_runtime` |
 | 审批 | `requestId,answer`；可附匹配的 `sessionId` → 已裁决事件 | 按会话绑定的 stdin 回复，仅允许一次或拒绝 |
 | 文件附件 | `listProjectFiles({cwd})` → 项目相对路径；输入文档使用 `file.path` | `ProjectFiles` |
 | 模型配置 | 连接标识、协议、地址、模型定义；执行选择器仅列出已认证且可见的模型 | `Providers`、私有凭据库 |
@@ -75,7 +75,7 @@ Plan、Goal、只读任务和 Subagent 保留各自的完成工具。基准测�
 
 长轮询在事件到达时立即唤醒。服务商 SSE 片段在回复完成前转换为 `thinking_delta`、`text_delta` 和工具参数增量；工具边界与 `turn_end` 保持顺序。完整回复仍由原模型解析器校验，校验完成前不会执行工具。PI-Desktop 调研与展示规则见[流式呈现](desktop-streaming.md)。
 
-事件包含 `sessionId,sequence,event`。游标缺口或服务重启触发基线恢复，不自动重放有副作用的请求。停止会终止所属 worker 进程树，保留已收到的文字并清理审批。会话之间有独立 worker 和模型上下文；运行期间可排队一条后续消息。
+事件包含 `sessionId,sequence,event`。游标缺口或服务重启触发基线恢复，不自动重放有副作用的请求。停止会终止所属 worker 进程树，保留已收到的文字并清理审批。会话之间有独立 worker 和模型上下文；运行期间最多排队 20 条后续消息。传入 `interrupt: true` 可停止当前任务并优先执行新消息；详见[队列与恢复契约](desktop-api.md#应用方法)。
 
 ## 权限与边界
 

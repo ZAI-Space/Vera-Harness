@@ -171,7 +171,7 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 	const preparingRef = useRef<{ key: string; generation: number | undefined; promise: Promise<unknown> }[]>(
 		[],
 	);
-	const sendWhenReady = async () => {
+	const sendWhenReady = async (interrupt = false) => {
 		if (readOnly) return;
 		const generation =
 			activeSessionId === null ? useSessionsStore.getState().newSessionDraft?.generation : undefined;
@@ -179,7 +179,7 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 		await Promise.all(inFlight.map((p) => p.promise));
 		if (activeSessionId === null && generation !== useSessionsStore.getState().newSessionDraft?.generation)
 			return;
-		await handleSend();
+		await handleSend(interrupt);
 	};
 	const focusEditor = () => editorRef.current?.focus();
 
@@ -567,6 +567,17 @@ export function Composer({ centered = false }: { centered?: boolean }) {
 						<div className={readOnly ? "pointer-events-none opacity-40" : undefined}>
 							<ModelPicker />
 						</div>
+						{agentActive && hasContent && (
+							<button
+								type="button"
+								className="text-ui-12 text-ink-dim hover:text-ink disabled:opacity-30"
+								disabled={readOnly || sending}
+								onClick={() => void sendWhenReady(true)}
+								title={t("composer.sendImmediatelyHint")}
+							>
+								{t("composer.sendImmediately")}
+							</button>
+						)}
 						{isStreaming && !hasContent ? (
 							<button
 								type="button"
